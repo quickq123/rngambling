@@ -37,9 +37,10 @@ public class LuckyBlock extends Block implements EntityBlock {
     public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, ItemStack tool,
             boolean willHarvest, FluidState fluid) {
         int luck = level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky ? lucky.luck() : 0;
+        int chain = level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky ? lucky.chain() : 0;
         boolean removed = super.onDestroyedByPlayer(state, level, pos, player, tool, willHarvest, fluid);
         if (removed && level instanceof ServerLevel serverLevel && countsAsPlayerBreak(player)) {
-            Outcomes.roll(serverLevel, pos, (ServerPlayer) player, luck);
+            Outcomes.roll(serverLevel, pos, (ServerPlayer) player, luck, chain);
         }
         return removed;
     }

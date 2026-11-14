@@ -4,21 +4,45 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
 ## Lucky blocks
 
-- Breaking one runs a random **outcome**, good or bad (`rngambling.outcome.Outcomes`).
+- Breaking one plays a random **effect** from the **effect catalog** (`docs/effect-catalog.csv`,
+  coded in `rngambling.outcome.Catalog`), each with a tier, a luck band and a weight.
 - Only a **real survival (or adventure) player** sets one off. Creative players, spectators,
   machines' fake players (quarries, block breakers, mining turtles) and explosions just remove
   the block. It never drops itself.
-- **Luck**, from -100 to +100, is stored in each block. Each outcome has a weight (how often at
-  0 luck) and a rating from -10 to +10; luck multiplies the weight by
-  `exp(1.6 * luck/100 * rating/10)`. Bad outcomes never vanish, even at +100.
-  Current share of good / bad outcomes (logged by the `luck_tilts_the_odds` game test):
+- **Luck**, from -100 to +100, is stored in each block, and picks the effect in two steps
+  (`Outcomes.pick`): first good, neutral or bad (a smooth S-curve in luck, never below 6% either
+  way, so nothing is ever certain; neutral likeliest near 0), then the tier within that group by
+  closeness to each tier's home luck (Catastrophic -85, Very Bad -52, Bad -22, Good +25,
+  Very Good +60, Legendary +88); then the effect within the tier by the catalog's weight, at
+  full weight inside its own band and a quarter outside. Wildcards are drawn instead 8% of the
+  time when the luck is inside their band. Shares (logged by the `luck_tilts_the_odds` test):
 
-  | Luck | Good | Bad |
-  |---|---|---|
-  | -100 | 26% | 71% |
-  | 0 | 58% | 38% |
-  | +100 | 84% | 13% |
+  | Luck | Good | Neutral | Bad | Likeliest tier |
+  |---|---|---|---|---|
+  | -100 | 7% | 3% | 90% | Catastrophic 68% |
+  | -50 | 13% | 7% | 80% | Very Bad 38% |
+  | 0 | 34% | 33% | 34% | Neutral 33% |
+  | +50 | 80% | 7% | 13% | Very Good 37% |
+  | +100 | 90% | 3% | 7% | Legendary 61% |
 
+- **The catalog so far** (140 effects): all its "Vanilla only" effects, plus Fool's Diamonds,
+  Cursed Mining and Mob Repellent. **Still to come:** the "easy custom" effects (Hot Potato,
+  Tax Collector, golem escorts, Ore Vision, Mystery Item/Treasure, Genie's Wish, Phoenix
+  Blessing, Double or Nothing, Boss Bounty, Villager Friends, Ghost Block, Mob Shuffle, Message
+  in a Bottle, Disco Floor, Llama Spit Party), the structure rooms (Wither Arena, Warden's
+  Hollow, Void Platform, Rising Lava Tomb, Elder Guardian Monument, Fortress Ambush, Empowered
+  Wither, Blind Hedge Maze, Mob Arena Waves, Skyblock Strand, Drowned Pit, Treasure Vault,
+  Parkour Course, Puzzle Vault, Treasure Island), and the Dragon Hatchling.
+- **Grief:** explosions and fire happen in the world. Effects that build or place blocks (or
+  would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop, The
+  Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
+  Effects that put blocks into empty space and take them away again (Melting Ice Prison,
+  Jukebox) and chain effects (more lucky blocks, only into empty space) stay in the world.
+- **Chains:** effects that place lucky blocks (Echo Blocks, Bonus Lucky Blocks, Lucky Fountain,
+  Lucky Piñata, Lucky Block Respawn) mark them one deeper; a block 2 deep can't chain again.
+- **Server-wide effects** (Nightfall, Weather Roulette, Time Skip) happen in single player only,
+  unless `global_effects_in_multiplayer` is on. `max_explosion_power` (6) caps effects'
+  explosions; `max_bonus_hearts` (10) caps Heart Container.
 - Survival players can't see a placed block's luck; the creative-only Luck Glasses show it.
 - Two kinds:
   - **Bought** (done): a plain casino-styled block, sold by the Casino Dealer. **Its luck is
@@ -60,26 +84,26 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | Woodland Mansion | spread around +30 (±25) | 4 of its chunks | 2-8 inside at rates 5-3 |
   | Ancient City | extremes ±70-100, half good | 20 of its chunks | 11 inside |
 
-- **Themed outcomes** (done, `rngambling.outcome.Themes`): the outcome list depends on the
-  luck zone where a lucky block is **broken** (not where it came from); its own luck still
-  sets how good or bad the draw is likely to be. A theme swaps some ordinary outcomes and
-  adds its own; zones without one use the ordinary 23:
+- **Themed effects** (done, `rngambling.outcome.Themes`): the catalog depends on the luck zone
+  where a lucky block is **broken** (not where it came from); its own luck still sets how good
+  or bad the draw is likely to be. A theme swaps some catalog effects (keeping their tier, band
+  and weight) and adds its own:
 
   | Zone | Swapped | Added |
   |---|---|---|
-  | Nether | zombies -> blazes, silverfish -> magma cubes, creeper -> wither skeletons, lightning -> ring of fire, chickens -> striders, ingots -> gold blocks, feast -> porkchops | ghast (bad), netherite scrap, quartz and glowstone |
-  | End | zombies -> endermites, creeper -> angry endermen, silverfish -> a shulker, launch -> levitation, lightning -> blindness and slowness, feast -> chorus fruit | ender pearls, shulker shells, elytra (very rare) |
-  | Ancient City | zombies -> a sculk shriek and Darkness | echo shards |
-  | Mushroom Fields | chickens -> mooshrooms, feast -> mushroom stew | |
+  | Nether | Zombie Horde -> Blaze Horde, Cave Spider Pack -> magma cubes, Witch Coven -> wither skeletons, Iron Haul -> gold blocks, Food Basket -> porkchops | netherite scrap, quartz and glowstone |
+  | End | Zombie Horde -> endermites, Fused Creeper -> shulkers, Orbital Launch -> levitation, Single Lightning Bolt -> blindness, Food Basket -> chorus fruit | shulker shells, dragon's breath |
+  | Ancient City | Zombie Horde -> a sculk shriek and Darkness | echo shards |
+  | Mushroom Fields | Barnyard -> mooshrooms, Food Basket -> mushroom stew | |
 - **Mimic Wand** (creative only, done): right-click a block to disguise it, with luck rolled by
   the luck zone there; right-click a disguised one to see what it copies, its luck and its
   zone; sneak + right-click to turn it back.
 
 ## The Sandbox
 
-Outcomes that would change or grief the world (`Outcome.sandbox()`: TNT, TNT ring, creeper,
-ghast, lightning, ring of fire, blazes, anvil, cobwebs, silverfish, angry endermen) are played
-out in the **Sandbox** dimension instead (`rngambling:sandbox`): an endless plane of bedrock
+Effects that build or place blocks, or would tear a lot up (`Outcome.sandbox()`: Anvil Rain,
+Obsidian Cage, Spider Web Trap, Silverfish Infestation, Lava Shower, Diamond Pillar; later the
+Wither fights and structure rooms) are played out in the **Sandbox** dimension instead (`rngambling:sandbox`): an endless plane of bedrock
 under the End's sky. Each visit gets its own arena on the plane, 4,096 blocks from any other,
 so players never meet there, even if several get a Sandbox outcome at once (one visit per
 player at a time; a Sandbox outcome while already there plays out where they stand). Arena
@@ -89,7 +113,8 @@ where the block was broken. `config/rngambling-common.toml` `sandbox_enabled = f
 off (outcomes then happen in place, as they also do if the dimension is missing).
 
 - **Coming back:** once nothing is going on within 64 blocks of the arena (no mobs, TNT, falling blocks,
-  lightning or projectiles) and at least 5 seconds have passed, or after 90 seconds at most,
+  lightning or projectiles) and at least 5 seconds (or the effect's own hold, e.g. the Obsidian
+  Cage's 30) have passed, or after 90 seconds at most (or the hold plus 10),
   the player is brought back to **exactly** where they broke the block (dimension, position,
   facing). Items and experience left there come back with them.
 - **Safeguards:** the return point is kept three ways: in the running visit, on the player,
@@ -194,7 +219,7 @@ House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
   `-PshotsWorld=casino` places the plains slots casino with a villager, checks it becomes a Casino
   Dealer, and pictures it and its trades. `-PshotsWorld=villages` counts the casinos in the
   nearest villages (from their layouts, without generating terrain).
-- `-PshotsWorld=sandbox`: TNT played out in the Sandbox, the exact return, and the admin
+- `-PshotsWorld=sandbox`: Anvil Rain played out in the Sandbox, the exact return, and the admin
   commands, in a real world.
 - Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla
   houses it starts from).

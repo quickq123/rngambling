@@ -1,0 +1,174 @@
+﻿ID,Effect,Luck Min,Luck Max,Tier,Category,World Impact,Weight,Description,Implementation Notes,Build Difficulty,Build Path (easiest)
+CAT-01,Wither Arena,-100,-80,Catastrophic,Boss fight,Sandbox,5,Player is pulled into a sealed obsidian arena with a freshly spawned Wither. Return on Wither death or player death.,Save return pos + inventory snapshot. Decide keep-inventory rules for sandbox deaths.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Spawn a vanilla Wither in the middle."
+CAT-03,Warden's Hollow,-100,-70,Catastrophic,Boss / stealth,Sandbox,5,Dark sculk cavern with a dormant Warden. Sneak to the exit portal without waking it.,"Apply Darkness; place sculk shriekers along the obvious path.",Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. The Warden, sculk sensors and shriekers are all vanilla."
+CAT-04,Meteor Strike,-100,-80,Catastrophic,Explosion,Real world (heavy grief),6,"Warning rumble and a fiery particle trail, then a meteor slams down within 8 blocks: big explosion, magma and fire crater.","Cap explosion power in config; respect spawn protection and claim mods.",Vanilla only,
+CAT-05,TNT Monsoon,-100,-75,Catastrophic,Explosion,Real world (heavy grief),6,20-40 primed TNT rain from the sky in a 12-block radius over 10 seconds.,Count and radius configurable. Stagger spawns to limit lag.,Vanilla only,
+CAT-06,Charged Creeper Squad,-95,-70,Catastrophic,Mob ambush,Real world (heavy grief),6,Three charged creepers spawn in a ring around the player with a lightning flash.,Spawn 4-5 blocks out so the player has a moment to react.,Vanilla only,
+CAT-07,Void Platform,-100,-80,Catastrophic,Trap,Sandbox,5,"Player stands on one block above the void; surrounding blocks crumble. Survive 30 seconds and an exit portal appears.",Give a few sandbox-only blocks to build with.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Crumbling: a server tick task removes a random edge block every 10 ticks."
+CAT-08,Rising Lava Tomb,-100,-75,Catastrophic,Trap / puzzle,Sandbox,5,Sealed glass box. Lava rises one block every 4 seconds. One hidden block in the walls is breakable.,Mark the weak block with subtle cracked texture.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Rising lava: a tick task fills one layer of lava every 80 ticks."
+CAT-09,Cursed Armor Swap,-100,-75,Catastrophic,Curse,Player only,5,Current armor is dropped at the player's feet and replaced with leather armor bearing Curse of Binding and negative armor modifiers.,Never delete gear - drop it so it can be recovered.,Vanilla only,
+CAT-10,Total XP Drain,-100,-80,Catastrophic,Penalty,Player only,4,"All experience levels are drained, orbs visibly spiraling into the block and vanishing.",,Vanilla only,
+CAT-11,Inventory Explosion,-100,-70,Catastrophic,Penalty,Player only,6,The entire inventory sprays out in all directions at high velocity.,Extend item despawn timer to ~10 min for fairness.,Vanilla only,
+CAT-12,Orbital Launch,-100,-76,Catastrophic,Movement,Player only,5,Player is launched ~150 blocks straight up with no slow fall.,Water bucket clutch is the counterplay.,Vanilla only,
+CAT-13,Thunder God's Wrath,-100,-76,Catastrophic,Weather,Real world (light grief),5,Instant thunderstorm. Lightning strikes the player's position every 2 seconds for 20 seconds - keep moving to dodge.,"Fire spread from lightning; config to disable fire.",Vanilla only,
+CAT-14,Elder Guardian Monument,-95,-70,Catastrophic,Boss fight,Sandbox,4,Flooded prismarine chamber with two Elder Guardians. Mining Fatigue III applied on arrival.,Give one door/conduit escape route.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Elder Guardians are vanilla and apply Mining Fatigue on their own."
+CAT-15,The Crater,-100,-85,Catastrophic,Terrain,Real world (heavy grief),3,A sphere of radius 7 under the player is deleted with no drops. The player falls in.,"Skip bedrock and tile entities; cap depth.",Vanilla only,
+CAT-16,Raid Omen,-90,-65,Catastrophic,Event,Real world (light grief),4,"Player receives Bad Omen V. Raid starts in the nearest village, or a pillager war party spawns if none.",,Vanilla only,
+CAT-17,Nether Fortress Ambush,-100,-75,Catastrophic,Mob ambush,Sandbox,5,Dropped into a fortress corridor with blazes and wither skeletons. Fight to the exit.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Spawn vanilla blazes and wither skeletons from a list of positions saved with the structure."
+CAT-18,The Last Gamble,-100,-90,Catastrophic,Gamble,Player only,3,Health set to half a heart. Survive 60 seconds and receive a Legendary roll.,"Good 'redemption' effect; announce rules on screen.",Vanilla only,
+CAT-19,Cursed Mining,-100,-76,Catastrophic,Curse,Real world (light grief),4,For 5 minutes every block the player breaks has a 25% chance to spawn silverfish or a small explosion.,Track via player capability/attachment.,Vanilla only,
+CAT-20,Empowered Wither,-100,-90,Catastrophic,Boss fight,Sandbox,2,A buffed Wither with extra health and minions in a ruined arena. Huge loot chest if beaten.,Pairs with a high reward to make it feel fair.,Easy custom,"No new entity: spawn a vanilla Wither, add permanent attribute modifiers (max_health x2, armor +6) and heal it to full. A tick task spawns 2 wither skeletons every 20 seconds."
+CAT-21,Herd of Ravagers,-100,-80,Catastrophic,Mob ambush,Real world (light grief),4,Three ravagers with evoker riders charge the player.,Ravagers break leaves/crops - mild grief.,Vanilla only,
+CAT-22,Doomsday Clock,-100,-85,Catastrophic,Delayed,Real world (heavy grief),3,"A countdown boss bar appears. In 30 seconds, a large explosion occurs where the block was broken.","Player can run; good for 'oh no' moments.",Vanilla only,"Use a vanilla ServerBossEvent for the countdown bar, then level.explode() when it runs out."
+VBD-01,Anvil Rain,-75,-45,Very Bad,Hazard,Real world (light grief),6,Anvils fall around and onto the player for 8 seconds.,"Anvils land as blocks; optionally remove after 30s.",Vanilla only,
+VBD-02,Zombie Horde,-75,-40,Very Bad,Mob ambush,Real world (light grief),7,8-12 zombies with mixed armor spawn around the player.,Scale count with how negative the luck is.,Vanilla only,
+VBD-03,Skeleton Snipers,-70,-40,Very Bad,Mob ambush,Real world (temporary),6,Four skeletons appear on temporary cobblestone pillars around the player.,Pillars revert after 60 seconds.,Vanilla only,
+VBD-04,Fused Creeper,-75,-40,Very Bad,Explosion,Real world (heavy grief),7,"A creeper appears directly behind the player, already hissing.",,Vanilla only,
+VBD-05,Block Detonation,-75,-30,Very Bad,Explosion,Real world (light grief),8,The lucky block itself explodes at power 3.,"Classic, simple fallback negative.",Vanilla only,
+VBD-06,Obsidian Cage,-70,-45,Very Bad,Trap,Real world (temporary),5,Player is encased in obsidian with a creeper. Cage dissolves after 30 seconds.,Store and restore replaced blocks.,Vanilla only,
+VBD-07,Spider Web Trap,-65,-35,Very Bad,Trap,Real world (temporary),6,Cobwebs fill the area and cave spiders drop in.,Webs removed after 45s.,Vanilla only,
+VBD-08,Silverfish Infestation,-75,-45,Very Bad,Mob ambush,Real world (light grief),5,Stone in a 6-block radius is converted to infested stone.,,Vanilla only,
+VBD-09,Lava Shower,-75,-50,Very Bad,Hazard,Real world (heavy grief),4,Lava source placed above the player flows down over them.,Auto-remove source after 15s to limit spread.,Vanilla only,
+VBD-10,Witch Coven,-70,-40,Very Bad,Mob ambush,Real world (light grief),5,"Three witches spawn in a triangle, cackling.",,Vanilla only,
+VBD-11,Phantom Squadron,-65,-35,Very Bad,Mob ambush,Player only,5,"Six fire-immune phantoms dive at the player, even in daylight.",Despawn after 90s.,Vanilla only,"Vanilla phantoms with infinite Fire Resistance so they survive daylight. They will still look like they're burning, which fits."
+VBD-12,Durability Shatter,-75,-45,Very Bad,Penalty,Player only,5,Held item loses 50% of its remaining durability.,Never break the item outright.,Vanilla only,
+VBD-13,Hunger Collapse,-65,-35,Very Bad,Status effect,Player only,6,Food set to 1 and Hunger III for 60 seconds.,,Vanilla only,
+VBD-14,Poison Cloud,-60,-30,Very Bad,Status effect,Player only,6,A lingering poison cloud bursts from the block.,,Vanilla only,
+VBD-15,Blind Hedge Maze,-75,-45,Very Bad,Challenge,Sandbox,5,Hedge maze under Blindness with zombies roaming. Find the exit portal.,Pick from 3-5 premade layouts.,Structure (.nbt),Make 3-5 maze layouts as .nbt structures and pick one at random. That's much easier than generating mazes in code.
+VBD-16,Mob Arena Waves,-75,-50,Very Bad,Challenge,Sandbox,5,Survive three waves of increasingly tough mobs in an enclosed arena.,Reward small loot at end to soften.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Waves: a tick task spawns the next list of vanilla mobs once the current wave is dead."
+VBD-17,Skyblock Strand,-75,-50,Very Bad,Challenge,Sandbox,4,Stranded on a tiny floating island. Build a bridge to the exit with the scraps provided.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it."
+VBD-18,Ravager Charge,-75,-50,Very Bad,Mob ambush,Real world (light grief),4,A ravager with a pillager rider barrels toward the player.,,Vanilla only,
+VBD-19,Ghast Bombardment,-75,-45,Very Bad,Mob ambush,Real world (heavy grief),4,A ghast spawns high overhead and starts shooting fireballs.,"Fireballs grief terrain; disable via config.",Vanilla only,
+VBD-20,Hot Potato,-70,-40,Very Bad,Gamble,Real world (light grief),5,Player receives a ticking Hot Potato. It explodes in 15 seconds wherever it is - in the inventory or thrown.,Dropping/throwing it is the counterplay.,Easy custom,"Custom item, not an entity. Store a countdown in a data component and tick it in inventoryTick(). Handle the dropped case in the ItemEntity tick hook (NeoForge: onEntityItemUpdate; Fabric: a small mixin or tracking the tossed entity). Explode at whoever is holding it, or wherever it is lying."
+VBD-21,Fool's Diamonds,-60,-40,Very Bad,Troll,Player only,6,A shower of diamonds that turn into silverfish when picked up.,,Vanilla only,
+VBD-22,Inventory Shuffle,-60,-30,Very Bad,Penalty,Player only,6,Hotbar and inventory are randomly rearranged.,Armor slots untouched.,Vanilla only,
+VBD-23,Slime Split,-60,-35,Very Bad,Mob ambush,Real world (light grief),5,A giant slime spawns and splits into many smaller ones.,,Vanilla only,
+VBD-24,Drowned Pit,-70,-45,Very Bad,Trap,Sandbox,4,Dropped into a deep flooded pit with drowned and tridents. Swim up to exit.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Drowned spawn with tridents set in their main-hand slot."
+VBD-25,Ender Swarm,-70,-45,Very Bad,Mob ambush,Real world (light grief),4,Five angry endermen spawn already aggroed.,Endermen may pick up blocks.,Vanilla only,
+VBD-26,Gravity Well,-65,-40,Very Bad,Movement,Player only,4,"Levitation for 10 seconds, then Slowness and no Slow Falling as the player drops.",,Vanilla only,
+VBD-27,Mob Magnet,-70,-45,Very Bad,Curse,Player only,4,For 3 minutes all hostile mobs within 48 blocks target the player.,,Vanilla only,
+VBD-29,Exploding Chickens,-60,-35,Very Bad,Troll / explosion,Real world (light grief),4,A flock of chickens appears and each explodes 3 seconds later.,,Vanilla only,
+BAD-01,Fake Explosion,-40,-5,Bad,Troll,None,8,"TNT hiss, boom sound and smoke particles - but nothing happens.",Great tension-builder.,Vanilla only,
+BAD-02,Fake Death Message,-35,-10,Bad,Troll,None,5,Chat announces the player was slain by a Lucky Block. They're fine.,Client-side message only.,Vanilla only,
+BAD-03,Chicken Jockey Party,-40,-15,Bad,Mob ambush,Player only,5,Several baby zombie chicken jockeys spawn.,,Vanilla only,
+BAD-04,Angry Bees,-35,-10,Bad,Mob ambush,Player only,6,A bee nest pops out and the bees are immediately angry.,Nest removed after bees despawn.,Vanilla only,
+BAD-05,Sand Drop,-35,-10,Bad,Hazard,Real world (light grief),6,A column of sand/gravel falls onto the player's head.,,Vanilla only,
+BAD-06,Sluggish Brew,-30,-10,Bad,Status effect,Player only,7,Slowness II and Mining Fatigue II for 60 seconds.,,Vanilla only,
+BAD-07,Nausea Spin,-30,-10,Bad,Status effect,Player only,6,Nausea and Weakness for 30 seconds.,,Vanilla only,
+BAD-08,Random Teleport,-40,-10,Bad,Movement,Player only,6,Player is teleported to a random safe spot up to 50 blocks away.,Safe-spot check to avoid lava/void.,Vanilla only,
+BAD-09,Trapdoor Drop,-40,-15,Bad,Trap,Real world (light grief),5,A 10-block-deep hole opens beneath the player.,,Vanilla only,
+BAD-10,Silent Creeper,-40,-20,Bad,Explosion,Real world (light grief),4,An invisible creeper spawns nearby. Listen for the hiss.,Glowing on fuse start for fairness.,Vanilla only,Vanilla creeper with Invisibility. A tick check adds Glowing once its fuse starts (getSwellDir() > 0) so players can react.
+BAD-11,Yeet Held Item,-35,-10,Bad,Penalty,Player only,6,The held item is flung 10 blocks away.,,Vanilla only,
+BAD-12,Pumpkin Head,-30,-10,Bad,Curse,Player only,6,A carved pumpkin with Curse of Binding is stuck on the player's head for 60 seconds.,"Remove automatically after timer; drop their helmet.",Vanilla only,
+BAD-13,Rotten Feast,-25,-10,Bad,Troll,Player only,6,A stack of rotten flesh and poisonous potatoes.,,Vanilla only,
+BAD-14,Vex Swarm,-40,-20,Bad,Mob ambush,Player only,4,Four vexes zip out of the block.,,Vanilla only,
+BAD-15,Endermite Burst,-30,-10,Bad,Mob ambush,Player only,5,A cluster of endermites crawls out.,,Vanilla only,
+BAD-16,Cave Spider Pack,-40,-15,Bad,Mob ambush,Player only,5,Five cave spiders swarm the player.,,Vanilla only,
+BAD-17,Nightfall,-30,-10,Bad,Event,Global,3,Time instantly set to night.,"Server-wide; disable on multiplayer by default.",Vanilla only,
+BAD-18,Single Lightning Bolt,-35,-10,Bad,Weather,Real world (light grief),6,Lightning strikes the player once.,,Vanilla only,
+BAD-19,Ring of Fire,-40,-15,Bad,Hazard,Real world (light grief),5,Fire erupts in a ring around the player.,,Vanilla only,
+BAD-20,Melting Ice Prison,-30,-10,Bad,Trap,Real world (temporary),5,Player is encased in ice that melts over 15 seconds.,Restore original blocks.,Vanilla only,
+BAD-21,Butterfingers,-25,-10,Bad,Curse,Player only,5,For 60 seconds the player randomly drops their held item.,,Vanilla only,
+BAD-22,Itchy Armor,-25,-10,Bad,Curse,Player only,4,For 60 seconds armor randomly unequips into the inventory.,,Vanilla only,
+BAD-23,Squid Ink,-20,-5,Bad,Troll,None,6,Black ink particles and Blindness for 5 seconds.,,Vanilla only,
+BAD-24,Lucky Block Respawn,-25,-10,Bad,Troll,Real world (temporary),5,"The block reappears in place, worse luck. Breaking it again rerolls at luck -20.",Limit chain to 2 times.,Vanilla only,Place the lucky block again with its luck set to -20 and a chain counter in its block entity.
+BAD-25,Tax Collector,-35,-15,Bad,Penalty,Player only,5,A pillager 'tax collector' takes 25% of the player's emeralds/gold and flees. Kill him to get it back.,,Easy custom,"No new entity: vanilla Pillager with a custom name. Move the stolen items into its persistent data and drop them on death. A tick task every 10 ticks sends it away from the player with getNavigation().moveTo(). It despawns after 60 seconds, taking the loot with it."
+NEU-01,Nothing Happens,-10,10,Neutral,Neutral,None,10,The block breaks with a sad little 'poof'.,Keep weight high so the pool isn't always eventful.,Vanilla only,
+NEU-02,Fortune Cookie,-10,10,Neutral,Neutral,None,8,"A random fortune/hint appears in chat, sometimes a real tip about the mod.",Localized string list.,Vanilla only,
+NEU-03,Barnyard,-10,10,Neutral,Mob spawn,Player only,7,A random assortment of passive animals appears.,,Vanilla only,
+NEU-04,Rainbow Sheep,-10,10,Neutral,Mob spawn,Player only,5,"A sheep named jeb_ appears, cycling colors.",,Vanilla only,
+NEU-05,Firework Show,-10,15,Neutral,Celebration,None,7,A burst of fireworks erupts around the player.,,Vanilla only,
+NEU-06,Random Building Blocks,-10,10,Neutral,Loot,Player only,7,A random stack of decorative building blocks.,,Vanilla only,
+NEU-07,Position Swap,-10,10,Neutral,Movement,Player only,5,Player swaps places with the nearest mob.,,Vanilla only,
+NEU-08,Weather Roulette,-10,10,Neutral,Event,Global,4,Weather cycles to a random state.,"Server-wide; config.",Vanilla only,
+NEU-09,Pig Rain,-10,5,Neutral,Troll,None,5,"Pigs fall from the sky (with slow falling, they're fine).",,Vanilla only,
+NEU-10,Mystery Potion,-10,10,Neutral,Status effect,Player only,7,A random positive or negative effect for 30 seconds.,50/50 table.,Vanilla only,
+NEU-11,Size Shift,-10,10,Neutral,Transformation,Player only,5,Player shrinks to half size or grows to double for 60 seconds.,Uses generic.scale attribute (1.20.5+).,Vanilla only,"Vanilla generic.scale attribute modifier (1.20.5+), removed after 60 seconds."
+NEU-12,Coin Flip,-10,10,Neutral,Gamble,Player only,6,"Heads or tails on screen. Heads rerolls at +30, tails at -30.",Good way to keep neutrals spicy.,Vanilla only,"Show the result with a vanilla title/subtitle, then reroll."
+NEU-13,Echo Blocks,-10,10,Neutral,Chain,Real world (temporary),5,Two more lucky blocks pop up nearby with random luck from -20 to +20.,,Vanilla only,
+NEU-14,Wandering Trader,-10,15,Neutral,Mob spawn,Player only,5,A wandering trader and llamas show up.,,Vanilla only,
+NEU-15,Snow Golem Escort,-5,15,Neutral,Mob spawn,Player only,5,Two snow golems spawn to follow the player around.,,Easy custom,"Vanilla snow golems with their UUIDs tracked. A tick task every 20 ticks calls getNavigation().moveTo(player) if they're more than 6 blocks away, for 5 minutes. Snow golems already attack hostile mobs."
+NEU-16,Disco Floor,-10,10,Neutral,Celebration,Real world (temporary),4,Floor around the player flashes colored glass with music for 15 seconds.,Revert blocks afterward.,Vanilla only,
+NEU-17,Llama Spit Party,-10,5,Neutral,Troll,None,4,Llamas appear and spit at the player for no damage.,,Vanilla only,
+NEU-18,Ghast Scream,-10,0,Neutral,Troll,None,5,A loud ghast scream and nothing else.,,Vanilla only,
+NEU-19,Jukebox,-5,15,Neutral,Celebration,Real world (temporary),4,A jukebox appears playing a random disc.,Removes itself after the song.,Vanilla only,
+NEU-20,Message in a Bottle,-5,15,Neutral,Loot,Player only,4,A treasure map pointing to a nearby buried chest.,,Vanilla only,
+NEU-21,Mob Shuffle,-10,10,Neutral,Chaos,Player only,3,All nearby mobs are swapped for random other mobs of the same hostility.,,Vanilla only,
+NEU-22,Time Skip,-10,10,Neutral,Event,Global,3,The clock jumps forward 6000 ticks.,"Server-wide; config.",Vanilla only,
+NEU-23,Parrot Pal,-5,15,Neutral,Mob spawn,Player only,4,A tame parrot lands on the player's shoulder.,,Vanilla only,
+NEU-24,Ghost Block,-10,10,Neutral,Troll,None,4,"The block reappears and vanishes when hit, three times, then breaks normally into a fresh roll.",,Vanilla only,
+GOD-01,Iron Haul,10,40,Good,Loot,Player only,8,16-32 iron ingots burst out.,,Vanilla only,
+GOD-02,Gold Haul,10,40,Good,Loot,Player only,7,16-32 gold ingots.,,Vanilla only,
+GOD-03,Food Basket,10,35,Good,Loot,Player only,8,"Bread, cooked steak, golden carrots and a cake.",,Vanilla only,
+GOD-04,Iron Tool Kit,10,35,Good,Loot,Player only,7,Full set of iron tools.,,Vanilla only,
+GOD-05,XP Fountain,15,40,Good,Experience,Player only,7,A fountain of XP orbs worth ~10 levels.,,Vanilla only,
+GOD-06,Potion Pack,15,40,Good,Loot,Player only,6,"Healing, Speed and Night Vision potions.",,Vanilla only,
+GOD-07,Wolf Pack,15,40,Good,Companion,Player only,5,Three tamed wolves with collars.,,Vanilla only,
+GOD-08,Saddled Horse,15,40,Good,Companion,Player only,5,"A tamed, saddled horse with good stats.",,Vanilla only,
+GOD-09,Random Enchanted Book,15,40,Good,Loot,Player only,6,One random enchanted book.,,Vanilla only,
+GOD-10,Speed Demon,10,35,Good,Buff,Player only,7,Speed II and Haste II for 3 minutes.,,Vanilla only,
+GOD-11,Emerald Pile,15,40,Good,Loot,Player only,6,16-32 emeralds.,,Vanilla only,
+GOD-12,Ore Sampler,10,35,Good,Loot,Player only,7,"Redstone, lapis, coal and copper in small stacks.",,Vanilla only,
+GOD-13,Iron Golem Bodyguard,20,40,Good,Companion,Player only,5,An iron golem that follows and protects the player for 10 minutes.,,Easy custom,"Vanilla iron golem with setPlayerCreated(true). Same follow approach as Snow Golem Escort: every 20 ticks, moveTo(player) if more than 8 blocks away; stop after 10 minutes."
+GOD-14,Dungeon Chest,15,40,Good,Loot,Player only,6,A chest filled from the simple dungeon loot table.,Use vanilla loot tables for easy datapack overrides.,Vanilla only,
+GOD-15,Builder's Bundle,10,30,Good,Loot,Player only,7,"Stacks of logs, stone bricks and glass.",,Vanilla only,
+GOD-16,Bloom Burst,10,30,Good,World gift,Real world (light grief),5,"Bone meal pulse: flowers and grass bloom in a radius, saplings grow.",Benign world change.,Vanilla only,
+GOD-17,Ore Vision,15,40,Good,Buff,Player only,5,Nearby ores glow through walls for 60 seconds.,"Uses glowing Block Display entities; no client rendering code.",Easy custom,"No client code: spawn vanilla Block Display entities copying each ore block within 16 blocks, with setGlowingTag(true), and remove them after 60 seconds. The glow shows through walls. Other players see it too."
+GOD-18,Fortune Pickaxe,20,40,Good,Loot,Player only,5,Iron pickaxe with Fortune II and Efficiency II.,,Vanilla only,
+GOD-19,Lucky Rod,15,35,Good,Loot,Player only,4,Fishing rod with Luck of the Sea III and Lure II.,,Vanilla only,
+GOD-20,Ender Pearl Stash,20,40,Good,Loot,Player only,5,8 ender pearls.,,Vanilla only,
+GOD-21,Rancher Kit,10,30,Good,Loot,Player only,5,"Name tags, leads and a saddle.",,Vanilla only,
+GOD-22,Farmer's Gift,10,30,Good,Loot,Player only,6,"Seeds, carrots, potatoes, beetroot and bone meal.",,Vanilla only,
+GOD-23,Archer's Kit,15,35,Good,Loot,Player only,5,Bow with Power II and 64 arrows.,,Vanilla only,
+GOD-24,Allay Helper,20,40,Good,Companion,Player only,4,An allay that collects items for the player.,,Vanilla only,
+GOD-25,Healing Rain,10,30,Good,Buff,Player only,5,Regeneration and full food bar.,,Vanilla only,
+GOD-26,Mini Golden Apples,20,40,Good,Loot,Player only,5,3 golden apples.,,Vanilla only,
+GOD-27,Cat Companion,10,30,Good,Companion,Player only,4,A tamed cat that scares creepers.,,Vanilla only,
+GOD-28,Bonus Lucky Blocks,15,40,Good,Chain,Real world (temporary),4,Two lucky blocks appear with luck +20 to +50.,,Vanilla only,
+GOD-29,Mystery Item,15,60,Good,"Loot (random, modded)",Player only,6,"Drops one random item that can be crafted or found in the world, from vanilla or any installed mod. Stackable items come as a small stack.",Rebuild the list after every datapack reload.,Easy custom,"Build an allowlist when the server starts and after /reload, and cache it. 1) Recipes: add the result item of every recipe in the RecipeManager. This covers modded recipe types too. On 1.21.2+, read the result from the recipe's display instead of getResultItem(). 2) World loot: for every chest, entity, fishing, archaeology and gameplay loot table, encode it to JSON with LootTable.DIRECT_CODEC and collect the ""name"" of each minecraft:item entry. No access transformers needed. 3) Natural blocks: add the drops of blocks in shared tags such as c:ores, minecraft:logs, minecraft:leaves, minecraft:flowers, minecraft:dirt, minecraft:sand and minecraft:base_stone_overworld. Don't use all block loot tables: many mods' creative blocks drop themselves. Finally, remove anything in the #yourmod:lucky_blacklist tag."
+VGD-01,Diamond Haul,41,75,Very Good,Loot,Player only,7,8-16 diamonds.,Scale count with luck.,Vanilla only,
+VGD-02,Diamond Armor Set,45,75,Very Good,Loot,Player only,5,Full diamond armor with Protection II.,,Vanilla only,
+VGD-03,Enchanted Diamond Sword,45,75,Very Good,Loot,Player only,5,Diamond sword with Sharpness III and Looting II.,,Vanilla only,
+VGD-04,Totem of Undying,50,80,Very Good,Loot,Player only,5,One Totem of Undying.,,Vanilla only,
+VGD-05,Enchanted Golden Apple,55,85,Very Good,Loot,Player only,4,One enchanted golden apple.,,Vanilla only,
+VGD-06,XP Jackpot,45,75,Very Good,Experience,Player only,6,~30 levels of XP.,,Vanilla only,
+VGD-07,Shulker Loot Box,50,80,Very Good,Loot,Player only,4,A shulker box filled with mixed good loot.,,Vanilla only,
+VGD-08,Trident,50,75,Very Good,Loot,Player only,4,Trident with Loyalty II.,,Vanilla only,
+VGD-09,Treasure Vault,45,75,Very Good,Sandbox reward,Sandbox,5,Teleport into a gold-lined vault with loot chests. 60 seconds to grab what you can.,"Loot carried back; timer boss bar.",Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Timer is a vanilla boss bar; teleport the player back when it ends."
+VGD-10,Parkour Course,41,70,Very Good,Challenge,Sandbox,5,Parkour course with a big reward chest at the end. Falling returns you home with nothing.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Falling below a set Y sends the player back without the reward."
+VGD-11,Puzzle Vault,41,70,Very Good,Challenge,Sandbox,4,Redstone/lever puzzle room. Solve it to open the reward chamber.,,Structure (.nbt),"Build the puzzle with vanilla redstone, levers and doors inside the .nbt. The game handles the logic for you."
+VGD-12,Beacon Starter,55,80,Very Good,Loot,Player only,4,Iron blocks for a 1-tier beacon pyramid.,,Vanilla only,
+VGD-13,Mending Book,50,80,Very Good,Loot,Player only,5,Enchanted book: Mending.,,Vanilla only,
+VGD-14,Champion's Brew,41,75,Very Good,Buff,Player only,6,"Strength II, Regeneration II and Resistance II for 5 minutes.",,Vanilla only,
+VGD-15,Golden Rain,41,70,Very Good,Loot,Player only,6,Gold ingots and nuggets rain down for 10 seconds.,,Vanilla only,
+VGD-16,Lucky Fountain,50,75,Very Good,Chain,Real world (temporary),4,Three lucky blocks appear with luck +40 to +80.,,Vanilla only,
+VGD-17,Ancient Debris,55,80,Very Good,Loot,Player only,4,4 ancient debris.,,Vanilla only,
+VGD-18,Warhorse,45,75,Very Good,Companion,Player only,4,Fast horse with diamond horse armor.,,Vanilla only,
+VGD-19,Villager Friends,41,70,Very Good,Companion,Player only,4,Two villagers with strong locked trades.,,Vanilla only,
+VGD-20,Enchanted Bow,45,75,Very Good,Loot,Player only,4,"Bow with Power IV, Punch and Infinity.",,Vanilla only,
+VGD-21,Hero of the Village,41,70,Very Good,Buff,Player only,4,Hero of the Village V for 20 minutes.,,Vanilla only,
+VGD-22,Mob Repellent,45,75,Very Good,Buff,Player only,4,Hostile mobs won't spawn within 32 blocks for 10 minutes.,,Vanilla only,Cancel hostile mob spawns within 32 blocks of the player using the loader's spawn-check event (NeoForge: MobSpawnEvent.PositionCheck).
+VGD-23,Ocean Heart,50,80,Very Good,Loot,Player only,3,Heart of the Sea and nautilus shells for a conduit.,,Vanilla only,
+LEG-01,Netherite Armor Set,80,100,Legendary,Loot,Player only,4,Full netherite armor with Protection IV and Unbreaking III.,,Vanilla only,
+LEG-02,God Sword,85,100,Legendary,Loot,Player only,3,"Netherite sword with Sharpness V, Looting III, Fire Aspect II, Mending.",,Vanilla only,
+LEG-03,Elytra & Rockets,80,100,Legendary,Loot,Player only,4,Elytra with Unbreaking III and 64 rockets.,,Vanilla only,
+LEG-04,Complete Beacon,85,100,Legendary,Loot,Player only,3,Beacon plus enough iron blocks for a full pyramid.,,Vanilla only,
+LEG-05,Nether Star,76,100,Legendary,Loot,Player only,3,One nether star.,,Vanilla only,
+LEG-06,Treasure Island,76,100,Legendary,Sandbox reward,Sandbox,4,Tropical island scattered with loot chests. 3 minutes to explore.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it."
+LEG-07,Boss Bounty,76,100,Legendary,Challenge,Sandbox,3,"Optional prompt: accept a boss arena challenge for a massive reward, or decline and get a smaller one.",Opt-in screen respects player choice.,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it. Ask with clickable chat text: accept/decline buttons that run hidden /luckyblock commands."
+LEG-08,Heart Container,85,100,Legendary,Permanent upgrade,Player only,2,Permanently +1 max heart.,Cap total bonus hearts in config.,Vanilla only,"Permanent vanilla attribute modifier on max_health with a fixed id; add to its amount each time. Cap it in config."
+LEG-09,Genie's Wish,85,100,Legendary,Choice,Player only,3,A GUI offers three Legendary items. Pick one.,,Easy custom,Open a vanilla 9x1 chest menu (SimpleMenuProvider plus a small ChestMenu subclass) showing 3 items. Override clicked(): give the chosen item and close. Block every other click.
+LEG-10,Lucky Piñata,80,100,Legendary,Chain,Real world (temporary),3,Ten lucky blocks erupt with luck +60 to +100.,Limit chains so they can't loop forever.,Vanilla only,
+LEG-11,Phoenix Blessing,80,100,Legendary,Buff,Player only,3,"One-time auto-revive on death, with fire burst.",Stored as a player attachment.,Easy custom,"A boolean data attachment on the player. On the death event, if it's true: cancel the death, set health to 50%, play the totem animation, clear the flag."
+LEG-12,Golden Feast,76,100,Legendary,Buff,Player only,4,Saturation and Regeneration for 10 minutes.,,Vanilla only,
+LEG-13,Enchanter's Study,76,100,Legendary,Loot,Player only,3,"Enchanting table, 15 bookshelves and lapis.",,Vanilla only,
+LEG-14,Perfect Pickaxe,85,100,Legendary,Loot,Player only,3,"Netherite pickaxe with Efficiency V, Fortune III, Unbreaking III, Mending.",,Vanilla only,
+LEG-15,Diamond Pillar,90,100,Legendary,World gift,Real world (light grief),2,A pillar of diamond blocks rises from the ground.,"Benign world change; still places blocks.",Vanilla only,
+LEG-16,Dragon Hatchling,90,100,Legendary,Companion,Player only,2,"A small tame dragon pet that walks with the player and fights mobs, like a wolf. Ground-only, no flight.",Custom entity - signature reward.,Moderate custom,"Re-skin the wolf. class DragonHatchling extends Wolf keeps taming, sit, follow-owner and attack-target goals as they are. Register the EntityType and use Wolf.createAttributes() with more health and damage. Spawn it already tamed: tame(player). Model in Blockbench (Modded Entity → export Java model), renderer extends MobRenderer. Write your own renderer instead of WolfRenderer so the wolf variant/collar/armor layers aren't drawn. Copy setupAnim from WolfModel for the walk cycle. Return null from getBreedOffspring. Ground-only: flight AI is cut as too difficult."
+LEG-17,Shulker Stash,80,100,Legendary,Loot,Player only,3,Five empty shulker boxes in random colors.,,Vanilla only,
+LEG-18,Netherite Ingot Haul,85,100,Legendary,Loot,Player only,3,4 netherite ingots.,,Vanilla only,
+LEG-19,Mystery Treasure,80,100,Legendary,"Loot (random, modded)",Player only,4,"Rolls Mystery Item 3 times: three random items that can be crafted or found in the world, from vanilla or any installed mod.",Reuses the Mystery Item list. No rarity filter.,Easy custom,Call the Mystery Item effect 3 times. No extra code beyond Mystery Item.
+WLD-01,Scaled Loot Chest,-20,100,Wildcard,Loot (scaling),Player only,6,A chest whose loot table quality scales with the block's luck.,Tier loot tables: common/rare/epic/legendary.,Vanilla only,
+WLD-02,Double or Nothing,-50,50,Wildcard,Gamble,Player only,4,"Accept to reroll with luck multiplied by 2 (clamped), or walk away with a small prize.",,Vanilla only,Clickable chat buttons (accept/walk away) that run hidden commands. No GUI needed.
+WLD-03,Mystery Box Mob,-60,60,Wildcard,Mob spawn (scaling),Player only,4,"Spawns a mob from a table weighted by luck: hostile when negative, passive/tame when positive.",,Vanilla only,
+WLD-04,Scaled Explosion,-100,-20,Wildcard,Explosion (scaling),Real world (light grief),4,Explosion whose power scales from 2 to 6 with how negative the luck is.,,Vanilla only,

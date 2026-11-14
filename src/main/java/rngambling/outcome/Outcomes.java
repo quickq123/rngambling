@@ -1,187 +1,188 @@
 package rngambling.outcome;
 
-import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Optional;
-import net.minecraft.ChatFormatting;
+import java.util.Map;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.LightningBolt;
-import net.minecraft.world.entity.item.FallingBlockEntity;
-import net.minecraft.world.entity.item.PrimedTnt;
-import net.minecraft.world.entity.projectile.FireworkRocketEntity;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.FireworkExplosion;
-import net.minecraft.world.item.component.Fireworks;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.phys.Vec3;
-import rngambling.RNGambling;
+import rngambling.RNGamblingConfig;
 import rngambling.luck.Luck;
+import rngambling.luck.LuckZone;
 
 /**
- * Every outcome a lucky block can have, and the luck-weighted draw between them.
- * To add one, add a line to {@link #ALL} and a message to the language file.
+ * Drawing and playing lucky block effects.
+ *
+ * <p>How luck picks an effect (a reconciliation of the catalog's luck bands with "nothing is ever
+ * certain"):
+ * <ol>
+ * <li><b>Good, neutral or bad.</b> A smooth S-curve in luck splits good from bad, never below
+ * {@link #GROUP_FLOOR} either way (so a +100 block can still go wrong and a -100 block can still go
+ * right); neutral is likeliest near 0. Good outcomes get steadily likelier with luck: 7% at -100,
+ * 34% at 0, 80% at +50, 90% at +100.
+ * <li><b>Tier.</b> Within good or bad, by closeness to each tier's home luck ({@link Tier#home}):
+ * {@code exp(-((luck - home) / WIDTH)^2) + 0.02}.
+ * <li><b>Effect.</b> Within the tier, by the catalog's weights, at full weight where the block's luck
+ * is inside the effect's own band and at {@link #OUTSIDE_BAND} of it where it isn't.
+ * <li><b>Wildcards</b> are drawn instead, {@link #WILDCARD_SHARE} of the time, from those whose band
+ * holds the luck.
+ * </ol>
  */
 public final class Outcomes {
     private Outcomes() {
     }
 
-    public static final List<Outcome> ALL = List.of(
-            // ---- Good ----
-            new Outcome("tokens", 14, 4, c -> c.drop(new ItemStack(RNGambling.CASINO_TOKEN.get(), c.between(2, 6)))),
-            new Outcome("token_jackpot", 2, 10, c -> {
-                c.drop(new ItemStack(RNGambling.CASINO_TOKEN.get(), c.between(16, 32)));
-                fireworks(c, 5);
-            }),
-            new Outcome("diamonds", 5, 7, c -> c.drop(new ItemStack(Items.DIAMOND, c.between(1, 3)))),
-            new Outcome("emeralds", 6, 4, c -> c.drop(new ItemStack(Items.EMERALD, c.between(3, 8)))),
-            new Outcome("ingots", 8, 3, c -> {
-                c.drop(new ItemStack(Items.IRON_INGOT, c.between(4, 10)));
-                c.drop(new ItemStack(Items.GOLD_INGOT, c.between(2, 6)));
-            }),
-            new Outcome("golden_apples", 4, 6, c -> c.drop(new ItemStack(Items.GOLDEN_APPLE, c.between(1, 2)))),
-            new Outcome("enchanted_gear", 4, 7, Outcomes::enchantedGear),
-            new Outcome("experience", 8, 3, c -> ExperienceOrb.award(c.level(), Vec3.atCenterOf(c.pos()), c.between(20, 60))),
-            new Outcome("feast", 7, 2, c -> {
-                c.drop(new ItemStack(Items.COOKED_BEEF, c.between(4, 8)));
-                c.drop(new ItemStack(Items.BREAD, c.between(3, 6)));
-                c.drop(new ItemStack(Items.CAKE));
-            }),
-            new Outcome("blessing", 6, 4, c -> {
-                ServerPlayer p = c.player();
-                p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 20 * 15, 1));
-                p.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 60, 1));
-                p.addEffect(new MobEffectInstance(MobEffects.HASTE, 20 * 60, 1));
-                p.addEffect(new MobEffectInstance(MobEffects.LUCK, 20 * 120, 0));
-            }),
+    public static final List<Outcome> ALL = Catalog.ALL;
 
-            // ---- Neither here nor there ----
-            new Outcome("fireworks", 5, 1, c -> fireworks(c, 3)),
-            new Outcome("chickens", 5, 0, c -> {
-                for (int i = c.between(5, 8); i > 0; i--) {
-                    EntityType.CHICKEN.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT);
-                }
-                c.drop(new ItemStack(Items.FEATHER, c.between(3, 8)));
-            }),
+    static final double WIDTH = 40, GROUP_FLOOR = 0.06, SLOPE = 22, OUTSIDE_BAND = 0.25, WILDCARD_SHARE = 0.08;
+    /** A lucky block placed this many deep by other blocks' effects doesn't place more. */
+    public static final int MAX_CHAIN = 2;
 
-            // ---- Bad ----
-            new Outcome("tnt", 6, -5, c -> {
-                PrimedTnt tnt = new PrimedTnt(c.level(), c.pos().getX() + 0.5, c.pos().getY(), c.pos().getZ() + 0.5, null);
-                tnt.setFuse(40);
-                c.level().addFreshEntity(tnt);
-            }).inSandbox(),
-            new Outcome("tnt_ring", 2, -8, c -> {
-                Vec3 at = c.player().position();
-                int count = c.between(4, 6);
-                for (int i = 0; i < count; i++) {
-                    double angle = 2 * Math.PI * i / count;
-                    PrimedTnt tnt = new PrimedTnt(c.level(), at.x + 3 * Math.cos(angle), at.y + 1, at.z + 3 * Math.sin(angle), null);
-                    tnt.setFuse(c.between(60, 80));
-                    c.level().addFreshEntity(tnt);
+    /** The chance of a neutral, good or bad effect at a luck (by {@link Tier#sign}: 0, +1, -1). */
+    public static double groupShare(int sign, int luck) {
+        double l = Luck.clamp(luck);
+        double neutral = 0.30 * Math.exp(-(l / 35) * (l / 35)) + 0.03;
+        if (sign == 0) {
+            return neutral;
+        }
+        double good = (1 - neutral) * (GROUP_FLOOR + (1 - 2 * GROUP_FLOOR) / (1 + Math.exp(-l / SLOPE)));
+        return sign > 0 ? good : 1 - neutral - good;
+    }
+
+    /** A tier's closeness to a luck, for choosing between the tiers of one group. */
+    static double closeness(Tier tier, int luck) {
+        double d = (Luck.clamp(luck) - tier.home) / WIDTH;
+        return Math.exp(-d * d) + 0.02;
+    }
+
+    /** Each present tier's chance at a luck: its group's share, split between the group's present tiers by closeness. */
+    static Map<Tier, Double> tierChances(java.util.Collection<Tier> present, int luck) {
+        Map<Tier, Double> chances = new EnumMap<>(Tier.class);
+        double total = 0;
+        for (Tier tier : present) {
+            double group = 0;
+            for (Tier other : present) {
+                if (other.sign == tier.sign) {
+                    group += closeness(other, luck);
                 }
-            }).inSandbox(),
-            new Outcome("zombies", 6, -5, c -> {
-                for (int i = c.between(3, 5); i > 0; i--) {
-                    EntityType.ZOMBIE.spawn(c.level(), c.freeSpotNear(c.pos(), 3), EntitySpawnReason.EVENT);
-                }
-            }),
-            new Outcome("creeper", 5, -6, c -> EntityType.CREEPER.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT)).inSandbox(),
-            new Outcome("silverfish", 5, -4, c -> {
-                for (int i = c.between(4, 7); i > 0; i--) {
-                    EntityType.SILVERFISH.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT);
-                }
-            }).inSandbox(),
-            new Outcome("curse", 6, -4, c -> {
-                ServerPlayer p = c.player();
-                p.addEffect(new MobEffectInstance(MobEffects.POISON, 20 * 8, 0));
-                p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20 * 30, 1));
-                p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 20 * 8, 0));
-                p.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 20 * 12, 0));
-            }),
-            new Outcome("lightning", 4, -5, c -> {
-                LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(c.level(), EntitySpawnReason.EVENT);
-                if (bolt != null) {
-                    c.spawn(bolt, c.player().position());
-                }
-            }).inSandbox(),
-            new Outcome("anvil", 4, -5, c -> {
-                BlockPos above = c.player().blockPosition().above(8);
-                if (c.level().isEmptyBlock(above)) {
-                    FallingBlockEntity anvil = FallingBlockEntity.fall(c.level(), above, Blocks.ANVIL.defaultBlockState());
-                    anvil.setHurtsEntities(2.0f, 40);
-                }
-            }).inSandbox(),
-            new Outcome("cobwebs", 5, -3, c -> {
-                BlockPos feet = c.player().blockPosition();
-                for (BlockPos spot : BlockPos.betweenClosed(feet.offset(-1, 0, -1), feet.offset(1, 1, 1))) {
-                    if (c.level().isEmptyBlock(spot)) {
-                        c.level().setBlockAndUpdate(spot, Blocks.COBWEB.defaultBlockState());
-                    }
-                }
-            }).inSandbox(),
-            new Outcome("launch", 3, -7, c -> {
-                ServerPlayer p = c.player();
-                p.setDeltaMovement(p.getDeltaMovement().x, 2.4, p.getDeltaMovement().z);
-                p.hurtMarked = true;
-            })
-    );
+            }
+            double chance = groupShare(tier.sign, luck) * closeness(tier, luck) / group;
+            chances.put(tier, chance);
+            total += chance;
+        }
+        for (Map.Entry<Tier, Double> entry : chances.entrySet()) {
+            entry.setValue(entry.getValue() / total);
+        }
+        return chances;
+    }
+
+    /** The effects open to a block: without chain effects deep in a chain, and without server-wide effects where they're off. */
+    public static List<Outcome> available(List<Outcome> outcomes, MinecraftServer server, int chain) {
+        boolean global = server.isSingleplayer() || RNGamblingConfig.GLOBAL_EFFECTS_IN_MULTIPLAYER.getAsBoolean();
+        List<Outcome> open = new ArrayList<>();
+        for (Outcome outcome : outcomes) {
+            if ((chain < MAX_CHAIN || !outcome.has(Outcome.Flag.CHAIN)) && (global || !outcome.has(Outcome.Flag.GLOBAL))) {
+                open.add(outcome);
+            }
+        }
+        return open;
+    }
 
     /**
-     * Picks an outcome for this luck, themed by the luck zone where the block is broken (see
-     * {@link Themes}), and runs it, telling the player what happened.
+     * Picks an effect for this luck, themed by the luck zone where the block is broken (see
+     * {@link Themes}), and plays it.
      */
-    public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck) {
-        String zone = rngambling.luck.LuckZone.name(level, rngambling.luck.LuckZone.at(level, pos));
-        Outcome outcome = pick(level.getRandom(), luck, Themes.outcomesFor(zone));
-        play(level, pos, player, luck, outcome);
+    public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain) {
+        String zone = LuckZone.name(level, LuckZone.at(level, pos));
+        Outcome outcome = pick(level.getRandom(), luck, available(Themes.outcomesFor(zone), level.getServer(), chain));
+        play(level, pos, player, luck, chain, outcome);
         return outcome;
     }
 
-    /** Plays one outcome for a player, in the Sandbox if it's one that would change the world. */
+    public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck) {
+        return roll(level, pos, player, luck, 0);
+    }
+
+    /** A fresh draw at another luck (Coin Flip), leaving out {@code except}. */
+    public static void playRandom(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, String except) {
+        String zone = LuckZone.name(level, LuckZone.at(level, pos));
+        List<Outcome> open = new ArrayList<>(available(Themes.outcomesFor(zone), level.getServer(), chain));
+        open.removeIf(o -> o.id().equals(except));
+        play(level, pos, player, luck, chain, pick(level.getRandom(), luck, open));
+    }
+
+    /** A draw from one tier only (The Last Gamble's Legendary reward). */
+    public static void playTier(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, Tier tier) {
+        String zone = LuckZone.name(level, LuckZone.at(level, pos));
+        List<Outcome> open = new ArrayList<>(available(Themes.outcomesFor(zone), level.getServer(), chain));
+        open.removeIf(o -> o.tier() != tier);
+        if (!open.isEmpty()) {
+            play(level, pos, player, luck, chain, pickWithin(level.getRandom(), luck, open));
+        }
+    }
+
     public static void play(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, Outcome outcome) {
-        // Outcomes that would change the world are played out in the Sandbox instead.
+        play(level, pos, player, luck, 0, outcome);
+    }
+
+    /** Plays one effect for a player, in the Sandbox if it's one that builds or tears things up. */
+    public static void play(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, Outcome outcome) {
         if (outcome.sandbox()) {
-            Sandbox.Arena arena = Sandbox.start(player);
+            Sandbox.Arena arena = Sandbox.start(player, outcome.hold());
             if (arena != null) {
                 level = arena.level();
                 pos = arena.centre();
             }
         }
-        outcome.action().run(new OutcomeContext(level, pos.immutable(), player, level.getRandom(), Luck.clamp(luck)));
-        ChatFormatting colour = outcome.rating() > 0 ? ChatFormatting.GREEN
-                : outcome.rating() < 0 ? ChatFormatting.RED : ChatFormatting.YELLOW;
-        player.sendOverlayMessage(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(colour));
-        level.playSound(null, pos, outcome.rating() > 0 ? SoundEvents.PLAYER_LEVELUP : SoundEvents.WITCH_CELEBRATE,
+        outcome.action().run(new OutcomeContext(level, pos.immutable(), player, level.getRandom(), Luck.clamp(luck), chain));
+        player.sendOverlayMessage(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(outcome.tier().colour));
+        level.playSound(null, pos, outcome.tier().sign > 0 ? SoundEvents.PLAYER_LEVELUP
+                        : outcome.tier().sign < 0 ? SoundEvents.WITCH_CELEBRATE : SoundEvents.NOTE_BLOCK_CHIME.value(),
                 SoundSource.BLOCKS, 0.6f, 1.2f);
     }
 
-    /** A weighted draw, with each outcome's weight tilted by luck (see {@link Luck#weightFactor}). */
     public static Outcome pick(RandomSource random, int luck) {
         return pick(random, luck, ALL);
     }
 
+    /** The two-step draw described above. */
     public static Outcome pick(RandomSource random, int luck, List<Outcome> outcomes) {
+        Map<Tier, List<Outcome>> byTier = new EnumMap<>(Tier.class);
+        for (Outcome outcome : outcomes) {
+            if (outcome.tier() != Tier.WILDCARD || outcome.inBand(luck)) {
+                byTier.computeIfAbsent(outcome.tier(), t -> new ArrayList<>()).add(outcome);
+            }
+        }
+        List<Outcome> wildcards = byTier.remove(Tier.WILDCARD);
+        if (wildcards != null && (byTier.isEmpty() || random.nextDouble() < WILDCARD_SHARE)) {
+            return pickWithin(random, luck, wildcards);
+        }
+        Map<Tier, Double> chances = tierChances(byTier.keySet(), luck);
+        double roll = random.nextDouble();
+        for (Map.Entry<Tier, List<Outcome>> entry : byTier.entrySet()) {
+            roll -= chances.get(entry.getKey());
+            if (roll < 0) {
+                return pickWithin(random, luck, entry.getValue());
+            }
+        }
+        return pickWithin(random, luck, byTier.values().iterator().next());
+    }
+
+    /** Within one tier: by weight, full inside the effect's band, {@link #OUTSIDE_BAND} outside it. */
+    static Outcome pickWithin(RandomSource random, int luck, List<Outcome> outcomes) {
         double total = 0;
         for (Outcome outcome : outcomes) {
-            total += outcome.weight() * Luck.weightFactor(luck, outcome.rating());
+            total += weightWithin(outcome, luck);
         }
         double roll = random.nextDouble() * total;
         for (Outcome outcome : outcomes) {
-            roll -= outcome.weight() * Luck.weightFactor(luck, outcome.rating());
+            roll -= weightWithin(outcome, luck);
             if (roll < 0) {
                 return outcome;
             }
@@ -189,35 +190,14 @@ public final class Outcomes {
         return outcomes.getLast();
     }
 
-    /** Spawns {@code min} to {@code max} of a mob near where the block was. */
-    static void spawnMobs(OutcomeContext c, net.minecraft.world.entity.EntityType<?> type, int min, int max, int radius) {
-        for (int i = c.between(min, max); i > 0; i--) {
-            type.spawn(c.level(), c.freeSpotNear(c.pos(), radius), EntitySpawnReason.EVENT);
-        }
+    private static double weightWithin(Outcome outcome, int luck) {
+        return outcome.weight() * (outcome.inBand(luck) ? 1.0 : OUTSIDE_BAND);
     }
 
-    private static final Item[] GEAR = {
-            Items.DIAMOND_SWORD, Items.DIAMOND_PICKAXE, Items.IRON_SWORD, Items.IRON_PICKAXE, Items.IRON_AXE,
-            Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS, Items.BOW, Items.BOOK,
-    };
-
-    private static void enchantedGear(OutcomeContext c) {
-        ItemStack gear = new ItemStack(GEAR[c.random().nextInt(GEAR.length)]);
-        c.drop(EnchantmentHelper.enchantItem(c.random(), gear, c.between(15, 30), c.level().registryAccess(), Optional.empty()));
-    }
-
-    private static final int[] COLOURS = {0xFF3B3B, 0xFFD23B, 0x3BFF6B, 0x3BB8FF, 0xC43BFF, 0xFFFFFF};
-
-    private static void fireworks(OutcomeContext c, int count) {
-        for (int i = 0; i < count; i++) {
-            ItemStack rocket = new ItemStack(Items.FIREWORK_ROCKET);
-            FireworkExplosion burst = new FireworkExplosion(
-                    c.random().nextBoolean() ? FireworkExplosion.Shape.LARGE_BALL : FireworkExplosion.Shape.STAR,
-                    IntList.of(COLOURS[c.random().nextInt(COLOURS.length)], COLOURS[c.random().nextInt(COLOURS.length)]),
-                    IntList.of(), true, true);
-            rocket.set(DataComponents.FIREWORKS, new Fireworks(c.between(1, 2), List.of(burst)));
-            Vec3 at = Vec3.atBottomCenterOf(c.pos()).add(c.between(-2, 2), 0, c.between(-2, 2));
-            c.level().addFreshEntity(new FireworkRocketEntity(c.level(), at.x, at.y, at.z, rocket));
-        }
+    /** The chance of each tier at a luck (wildcards left out), for tuning and tests. */
+    public static Map<Tier, Double> tierShares(int luck) {
+        List<Tier> tiers = new ArrayList<>(List.of(Tier.values()));
+        tiers.remove(Tier.WILDCARD);
+        return tierChances(tiers, luck);
     }
 }

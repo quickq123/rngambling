@@ -1,87 +1,71 @@
 package rngambling.outcome;
 
+import static rngambling.outcome.Outcome.of;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.BaseFireBlock;
 
 /**
- * Outcomes themed by the luck zone a lucky block is broken in: each theme swaps some of the
- * ordinary outcomes for its own (same weight and rating unless given) and adds a few more. A
- * zone without a theme uses the ordinary outcomes. The theme follows where the block is
- * broken, not where it came from; its luck still sets how good or bad the draw is likely to be.
+ * Effects themed by the luck zone a lucky block is broken in: each theme swaps some catalog
+ * effects for its own (keeping their tier, luck band, weight and flags) and adds a few more. A zone
+ * without a theme uses the plain catalog. The theme follows where the block is broken, not where it
+ * came from; its luck still decides how good or bad the draw is likely to be.
  */
 public final class Themes {
     private Themes() {
     }
 
-    /** A theme: replacements for ordinary outcomes (by id) and extra outcomes of its own. */
-    public record Theme(Map<String, Outcome> replacements, List<Outcome> extras) {
+    /** A theme: replacement actions for catalog effects (by id, with a new id), and extra effects of its own. */
+    public record Theme(Map<String, Swap> swaps, List<Outcome> extras) {
+    }
+
+    public record Swap(String id, Outcome.Action action) {
     }
 
     /** The themes, by luck zone name (the zone's file name). */
     public static final Map<String, Theme> BY_ZONE = Map.of(
             "nether", new Theme(Map.of(
-                    "zombies", new Outcome("blazes", 6, -6, c -> Outcomes.spawnMobs(c, EntityType.BLAZE, 2, 3, 3)).inSandbox(),
-                    "silverfish", new Outcome("magma_cubes", 5, -4, c -> Outcomes.spawnMobs(c, EntityType.MAGMA_CUBE, 2, 4, 3)),
-                    "creeper", new Outcome("wither_skeletons", 4, -6, c -> Outcomes.spawnMobs(c, EntityType.WITHER_SKELETON, 1, 2, 2)),
-                    "lightning", new Outcome("fire_ring", 4, -5, Themes::fireRing).inSandbox(),
-                    "chickens", new Outcome("striders", 5, 0, c -> Outcomes.spawnMobs(c, EntityType.STRIDER, 2, 3, 2)),
-                    "ingots", new Outcome("gold_blocks", 8, 3, c -> c.drop(new ItemStack(Items.GOLD_BLOCK, c.between(1, 3)))),
-                    "feast", new Outcome("nether_feast", 7, 2, c -> c.drop(new ItemStack(Items.COOKED_PORKCHOP, c.between(6, 12))))),
+                    "zombie_horde", new Swap("blaze_horde", c -> c.spawnRing(EntityType.BLAZE, 2 + (int) Math.round(2 * c.strength()), 5)),
+                    "cave_spider_pack", new Swap("magma_cube_pack", c -> c.spawnRing(EntityType.MAGMA_CUBE, 4, 4)),
+                    "witch_coven", new Swap("wither_skeleton_trio", c -> c.spawnRing(EntityType.WITHER_SKELETON, 3, 5)),
+                    "iron_haul", new Swap("gold_block_haul", c -> c.drop(Items.GOLD_BLOCK, 2, 4)),
+                    "food_basket", new Swap("nether_feast", c -> c.drop(Items.COOKED_PORKCHOP, 12, 24))),
                     List.of(
-                            new Outcome("ghast", 2, -7, c -> {
-                                BlockPos up = c.freeSpotNear(c.pos().above(4), 3);
-                                EntityType.GHAST.spawn(c.level(), up, EntitySpawnReason.EVENT);
-                            }).inSandbox(),
-                            new Outcome("netherite_scrap", 2, 8, c -> c.drop(new ItemStack(Items.NETHERITE_SCRAP, c.between(1, 2)))),
-                            new Outcome("quartz_and_glowstone", 5, 2, c -> {
-                                c.drop(new ItemStack(Items.QUARTZ, c.between(8, 16)));
-                                c.drop(new ItemStack(Items.GLOWSTONE_DUST, c.between(8, 16)));
+                            of("", "netherite_scrap", Tier.VERY_GOOD, 45, 80, 3, c -> c.drop(Items.NETHERITE_SCRAP, 1, 3)),
+                            of("", "quartz_and_glowstone", Tier.GOOD, 10, 35, 5, c -> {
+                                c.drop(Items.QUARTZ, 16, 32);
+                                c.drop(Items.GLOWSTONE_DUST, 16, 32);
                             }))),
             "end", new Theme(Map.of(
-                    "zombies", new Outcome("endermites", 6, -5, c -> Outcomes.spawnMobs(c, EntityType.ENDERMITE, 4, 6, 2)),
-                    "creeper", new Outcome("angry_endermen", 4, -6, c -> {
-                        for (int i = c.between(1, 2); i > 0; i--) {
-                            EnderMan enderman = EntityType.ENDERMAN.spawn(c.level(), c.freeSpotNear(c.pos(), 3), EntitySpawnReason.EVENT);
-                            if (enderman != null) {
-                                enderman.setTarget(c.player());
-                            }
-                        }
-                    }).inSandbox(),
-                    "silverfish", new Outcome("shulker", 4, -5, c -> EntityType.SHULKER.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT)),
-                    "launch", new Outcome("levitation", 3, -7, c -> c.player().addEffect(new MobEffectInstance(MobEffects.LEVITATION, 20 * 7, 1))),
-                    "lightning", new Outcome("void_gaze", 4, -4, c -> {
-                        c.player().addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 20 * 10, 0));
-                        c.player().addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20 * 10, 1));
-                    }),
-                    "feast", new Outcome("chorus_feast", 7, 1, c -> c.drop(new ItemStack(Items.CHORUS_FRUIT, c.between(6, 12))))),
+                    "zombie_horde", new Swap("endermite_horde", c -> c.spawnRing(EntityType.ENDERMITE, 8, 4)),
+                    "fused_creeper", new Swap("shulker_ambush", c -> c.spawnNear(EntityType.SHULKER, 2, 3)),
+                    "orbital_launch", new Swap("levitation_lift", c -> c.effect(MobEffects.LEVITATION, 12, 2)),
+                    "food_basket", new Swap("chorus_feast", c -> c.drop(Items.CHORUS_FRUIT, 12, 24)),
+                    "single_lightning_bolt", new Swap("void_gaze", c -> {
+                        c.effect(MobEffects.BLINDNESS, 10, 0);
+                        c.effect(MobEffects.SLOWNESS, 10, 1);
+                    })),
                     List.of(
-                            new Outcome("ender_pearls", 6, 4, c -> c.drop(new ItemStack(Items.ENDER_PEARL, c.between(4, 8)))),
-                            new Outcome("shulker_shells", 3, 7, c -> c.drop(new ItemStack(Items.SHULKER_SHELL, 2))),
-                            new Outcome("elytra", 1, 10, c -> c.drop(new ItemStack(Items.ELYTRA))))),
+                            of("", "shulker_shells", Tier.VERY_GOOD, 50, 80, 3, c -> c.drop(Items.SHULKER_SHELL, 2, 4)),
+                            of("", "dragons_breath", Tier.GOOD, 15, 40, 4, c -> c.drop(Items.DRAGON_BREATH, 3, 6)))),
             "ancient_city", new Theme(Map.of(
-                    "zombies", new Outcome("shriek", 6, -5, c -> {
-                        c.player().addEffect(new MobEffectInstance(MobEffects.DARKNESS, 20 * 15, 0));
+                    "zombie_horde", new Swap("shriek", c -> {
+                        c.effect(MobEffects.DARKNESS, 15, 0);
                         c.level().playSound(null, c.pos(), SoundEvents.SCULK_SHRIEKER_SHRIEK, SoundSource.BLOCKS, 2.0f, 1.0f);
                     })),
-                    List.of(new Outcome("echo_shards", 4, 6, c -> c.drop(new ItemStack(Items.ECHO_SHARD, c.between(2, 4)))))),
+                    List.of(of("", "echo_shards", Tier.VERY_GOOD, 45, 80, 4, c -> c.drop(Items.ECHO_SHARD, 2, 4)))),
             "mushroom_fields", new Theme(Map.of(
-                    "chickens", new Outcome("mooshrooms", 5, 0, c -> Outcomes.spawnMobs(c, EntityType.MOOSHROOM, 2, 3, 2)),
-                    "feast", new Outcome("mushroom_feast", 7, 2, c -> {
-                        for (int i = c.between(2, 4); i > 0; i--) {
+                    "barnyard", new Swap("mooshrooms", c -> c.spawnNear(EntityType.MOOSHROOM, 3, 3)),
+                    "food_basket", new Swap("mushroom_feast", c -> {
+                        for (int i = c.between(3, 5); i > 0; i--) {
                             c.drop(new ItemStack(Items.MUSHROOM_STEW));
                         }
                     })),
@@ -89,7 +73,7 @@ public final class Themes {
 
     private static final Map<String, List<Outcome>> CACHE = new ConcurrentHashMap<>();
 
-    /** The outcomes for a luck zone: the ordinary ones with the zone's theme applied, if it has one. */
+    /** The effects for a luck zone: the catalog with the zone's theme applied, if it has one. */
     public static List<Outcome> outcomesFor(String zone) {
         return CACHE.computeIfAbsent(zone, name -> {
             Theme theme = BY_ZONE.get(name);
@@ -98,27 +82,11 @@ public final class Themes {
             }
             List<Outcome> outcomes = new ArrayList<>();
             for (Outcome outcome : Outcomes.ALL) {
-                outcomes.add(theme.replacements().getOrDefault(outcome.id(), outcome));
+                Swap swap = theme.swaps().get(outcome.id());
+                outcomes.add(swap == null ? outcome : outcome.swapped(swap.id(), swap.action()));
             }
             outcomes.addAll(theme.extras());
             return List.copyOf(outcomes);
         });
-    }
-
-    /** Fire on the ground in a ring around the player. */
-    private static void fireRing(OutcomeContext c) {
-        ServerPlayer player = c.player();
-        BlockPos feet = player.blockPosition();
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) != 2) {
-                    continue;
-                }
-                BlockPos spot = feet.offset(dx, 0, dz);
-                if (c.level().isEmptyBlock(spot) && BaseFireBlock.canBePlacedAt(c.level(), spot, net.minecraft.core.Direction.UP)) {
-                    c.level().setBlockAndUpdate(spot, BaseFireBlock.getState(c.level(), spot));
-                }
-            }
-        }
     }
 }

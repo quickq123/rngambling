@@ -24,6 +24,8 @@ import rngambling.luck.Luck;
 public class LuckyBlockEntity extends BlockEntity {
     private int luck;
     private @Nullable BlockState mimic;
+    /** How many lucky blocks deep this one was placed by other blocks' effects (0 for an ordinary one). */
+    private int chain;
 
     public LuckyBlockEntity(BlockPos pos, BlockState state) {
         super(RNGambling.LUCKY_BLOCK_ENTITY.get(), pos, state);
@@ -37,6 +39,15 @@ public class LuckyBlockEntity extends BlockEntity {
     public void setLuck(int luck) {
         this.luck = Luck.clamp(luck);
         changed();
+    }
+
+    public int chain() {
+        return chain;
+    }
+
+    public void setChain(int chain) {
+        this.chain = chain;
+        setChanged();
     }
 
     /** The block a disguised lucky block looks like, or null for a plain one. */
@@ -66,6 +77,9 @@ public class LuckyBlockEntity extends BlockEntity {
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         output.putInt("luck", luck);
+        if (chain > 0) {
+            output.putInt("chain", chain);
+        }
         if (mimic != null) {
             output.store("mimic", BlockState.CODEC, mimic);
         }
@@ -75,6 +89,7 @@ public class LuckyBlockEntity extends BlockEntity {
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         luck = Luck.clamp(input.getIntOr("luck", 0));
+        chain = input.getIntOr("chain", 0);
         BlockState before = mimic;
         mimic = input.read("mimic", BlockState.CODEC).orElse(null);
         // In the player's game: the block arrives before its data, so redraw it once the copied block is known.

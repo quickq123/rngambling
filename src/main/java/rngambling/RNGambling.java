@@ -220,6 +220,12 @@ public final class RNGambling {
         MENUS.register(modBus);
         PROFESSIONS.register(modBus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
+        // Effects that play out over time, and react to the game.
+        rngambling.outcome.EffectEvents.register();
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
+                rngambling.outcome.Scheduler.tick(event.getServer()));
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppingEvent event) ->
+                rngambling.outcome.Scheduler.clear());
         // The Sandbox dimension (see rngambling.outcome.Sandbox), and its admin commands.
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event) ->
                 rngambling.outcome.SandboxCommands.register(event.getDispatcher()));

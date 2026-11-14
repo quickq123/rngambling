@@ -636,9 +636,9 @@ public final class ScreenshotRun {
                 player.onUpdateAbilities();
                 player.teleportTo(level, sandboxStart.x, sandboxStart.y, sandboxStart.z, Set.of(), 47f, 5f, false);
                 player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE, 5));
-                // TNT where the "lucky block" is: next to the diamond block.
-                rngambling.outcome.Outcomes.play(level, sandboxMarker.above(), player, 0, outcomeNamed("tnt"));
-                check(rngambling.outcome.Sandbox.inSandbox(player), "a TNT outcome takes the player to the Sandbox");
+                // A Sandbox effect where the "lucky block" is: next to the diamond block.
+                rngambling.outcome.Outcomes.play(level, sandboxMarker.above(), player, 0, outcomeNamed("anvil_rain"));
+                check(rngambling.outcome.Sandbox.inSandbox(player), "a Sandbox effect (Anvil Rain) takes the player to the Sandbox");
                 check(player.level().getBlockState(player.blockPosition().below()).is(net.minecraft.world.level.block.Blocks.BEDROCK),
                         "the player stands on the bedrock plane");
             });
@@ -646,16 +646,16 @@ public final class ScreenshotRun {
         then(20, minecraft -> shot(minecraft, "40-sandbox-tnt"));
         then(170, minecraft -> { });
         then(10, minecraft -> onServer(minecraft, player -> {
-            check(!rngambling.outcome.Sandbox.inSandbox(player), "the player is back once the TNT has gone off");
+            check(!rngambling.outcome.Sandbox.inSandbox(player), "the player is back once the anvils have landed");
             check(player.position().distanceTo(sandboxStart) < 1e-6 && Math.abs(player.getYRot() - 47f) < 0.01,
                     "back exactly where they were: " + player.position() + " vs " + sandboxStart);
             check(player.level().getBlockState(sandboxMarker).is(net.minecraft.world.level.block.Blocks.DIAMOND_BLOCK),
                     "the world where the block was is untouched");
         }));
         then(10, minecraft -> shot(minecraft, "41-sandbox-back"));
-        // A creeper doesn't settle by itself (it won't chase a creative player): an admin brings the player out.
+        // The Obsidian Cage lasts 30 seconds (with a creeper that won't chase a creative player): an admin brings the player out.
         then(10, minecraft -> onServer(minecraft, player ->
-                rngambling.outcome.Outcomes.play(player.level(), sandboxMarker.above(), player, 0, outcomeNamed("creeper"))));
+                rngambling.outcome.Outcomes.play(player.level(), sandboxMarker.above(), player, 0, outcomeNamed("obsidian_cage"))));
         then(40, minecraft -> shot(minecraft, "42-sandbox-creeper"));
         then(10, minecraft -> onServer(minecraft, player -> {
             command(player, "rngambling sandbox list");

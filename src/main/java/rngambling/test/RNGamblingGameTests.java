@@ -541,8 +541,8 @@ public final class RNGamblingGameTests {
         for (Outcome outcome : rngambling.outcome.Themes.outcomesFor("nether")) {
             nether.add(outcome.id());
         }
-        helper.assertTrue(nether.contains("blazes") && !nether.contains("zombies") && nether.contains("netherite_scrap")
-                && nether.contains("diamonds"), "the Nether's outcomes should swap zombies for blazes and keep the rest: " + nether);
+        helper.assertTrue(nether.contains("blaze_horde") && !nether.contains("zombie_horde") && nether.contains("netherite_scrap")
+                && nether.contains("diamond_haul"), "the Nether's outcomes should swap the zombie horde for blazes and keep the rest: " + nether);
         helper.assertTrue(rngambling.outcome.Themes.outcomesFor("overworld") == Outcomes.ALL, "the Overworld uses the ordinary outcomes");
         for (String zone : rngambling.outcome.Themes.BY_ZONE.keySet()) {
             helper.assertTrue(helper.getLevel().registryAccess().lookupOrThrow(rngambling.luck.LuckZone.REGISTRY)
@@ -563,6 +563,7 @@ public final class RNGamblingGameTests {
                 }
             }
         } finally {
+            rngambling.outcome.Scheduler.clear(); // this test only checks which effects are drawn
             for (BlockPos p : BlockPos.betweenClosed(new BlockPos(-6, 95, -6), new BlockPos(6, 110, 6))) {
                 if (!netherLevel.getBlockState(p).isAir() && !netherLevel.getBlockState(p).is(Blocks.NETHERRACK)) {
                     netherLevel.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
@@ -590,10 +591,15 @@ public final class RNGamblingGameTests {
         try {
             BlockPos at = helper.absolutePos(new BlockPos(1, 2, 1));
             player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
-            Outcomes.play(level, at, player, 0, outcome("cobwebs"));
+            Outcomes.play(level, at, player, 0, outcome("spider_web_trap"));
             helper.assertTrue(player.level() == level && !rngambling.outcome.Sandbox.visiting(player),
                     "with no Sandbox the player should stay put");
-            helper.assertBlockPresent(Blocks.COBWEB, new BlockPos(1, 2, 1).east());
+            int webs = 0;
+            for (BlockPos p : BlockPos.betweenClosed(at.offset(-3, 0, -3), at.offset(3, 2, 3))) {
+                webs += level.getBlockState(p).is(Blocks.COBWEB) ? 1 : 0;
+            }
+            helper.assertTrue(webs > 0, "the web trap should have happened right here");
+            rngambling.outcome.Scheduler.clear();
             clearUp(helper, level, player);
         } finally {
             level.getServer().getPlayerList().remove(player);
@@ -665,15 +671,21 @@ public final class RNGamblingGameTests {
             }
         }
         try {
+            rngambling.outcome.Scheduler.clear();
             for (Outcome outcome : all.values()) {
                 try {
                     outcome.action().run(new OutcomeContext(level, pos, player, RandomSource.create(outcome.id().hashCode()), 0));
+                    // Its later steps too (TNT raining, a countdown running out, a curse wearing off).
+                    rngambling.outcome.Scheduler.runAllNow(20);
                 } catch (RuntimeException e) {
                     throw helper.assertionException("outcome " + outcome.id() + " failed: " + e);
                 }
                 clearUp(helper, level, player);
+                player.setHealth(player.getMaxHealth());
+                player.snapTo(pos.getX() + 3.5, pos.getY(), pos.getZ() + 0.5);
             }
         } finally {
+            rngambling.outcome.Scheduler.clear();
             level.getServer().getPlayerList().remove(player);
         }
         helper.succeed();
@@ -698,29 +710,54 @@ public final class RNGamblingGameTests {
         helper.succeed();
     }
 
-    /** More luck means better odds, but bad outcomes never vanish. Logs the shares for tuning. */
+    /**
+     * The two-step draw: better luck means better tiers, but nothing is ever certain (a +100 block
+     * can still go wrong, a -100 block can still go right). Logs the tier shares for tuning, and
+     * checks every effect has a message, a sane band and a catalog ID.
+     */
     private static void luckTiltsTheOdds(GameTestHelper helper) {
         double previousGood = -1;
         for (int luck : new int[] {-100, -50, 0, 50, 100}) {
-            double total = 0, good = 0, bad = 0;
-            for (Outcome outcome : Outcomes.ALL) {
-                double weight = outcome.weight() * Luck.weightFactor(luck, outcome.rating());
-                total += weight;
-                good += outcome.rating() > 0 ? weight : 0;
-                bad += outcome.rating() < 0 ? weight : 0;
+            var shares = Outcomes.tierShares(luck);
+            double good = 0;
+            double bad = 0;
+            StringBuilder line = new StringBuilder();
+            for (var entry : shares.entrySet()) {
+                good += entry.getKey().sign > 0 ? entry.getValue() : 0;
+                bad += entry.getKey().sign < 0 ? entry.getValue() : 0;
+                line.append(String.format(" %s %.0f%%", entry.getKey().name().toLowerCase(), entry.getValue() * 100));
             }
-            LOGGER.info("luck {}: {}% good, {}% bad", luck, Math.round(100 * good / total), Math.round(100 * bad / total));
-            helper.assertTrue(good / total > previousGood, "good outcomes should get likelier with luck " + luck);
-            helper.assertTrue(bad / total > 0.05, "bad outcomes should stay possible at luck " + luck);
-            previousGood = good / total;
+            LOGGER.info("luck {}: {}% good, {}% bad;{}", luck, Math.round(100 * good), Math.round(100 * bad), line);
+            helper.assertTrue(good > previousGood, "good tiers should get likelier with luck " + luck);
+            helper.assertTrue(bad > 0.04 && good > 0.04, "nothing should be certain at luck " + luck);
+            previousGood = good;
         }
-        // The draw itself follows the weights: at +100, a thousand draws are mostly good.
+        // The draw follows the shares: at +100 a thousand draws are mostly good, at -100 mostly bad.
         RandomSource random = RandomSource.create(42);
-        int goodDraws = 0;
+        int goodAtTop = 0;
+        int badAtBottom = 0;
         for (int i = 0; i < 1000; i++) {
-            goodDraws += Outcomes.pick(random, 100).rating() > 0 ? 1 : 0;
+            goodAtTop += Outcomes.pick(random, 100).tier().sign > 0 ? 1 : 0;
+            badAtBottom += Outcomes.pick(random, -100).tier().sign < 0 ? 1 : 0;
         }
-        helper.assertTrue(goodDraws > 650, "at +100 luck, only " + goodDraws + " of 1000 draws were good");
+        LOGGER.info("1000 draws: {} good at +100, {} bad at -100", goodAtTop, badAtBottom);
+        helper.assertTrue(goodAtTop > 750 && badAtBottom > 750, "draws should follow luck: " + goodAtTop + " / " + badAtBottom);
+        // Every effect (themes too) has a message and a sane band; catalog IDs are unique.
+        var language = net.minecraft.locale.Language.getInstance();
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        java.util.List<Outcome> all = new java.util.ArrayList<>(Outcomes.ALL);
+        for (String zone : rngambling.outcome.Themes.BY_ZONE.keySet()) {
+            all.addAll(rngambling.outcome.Themes.outcomesFor(zone));
+        }
+        for (Outcome outcome : all) {
+            helper.assertTrue(language.has("outcome.rngambling." + outcome.id()), "no message for " + outcome.id());
+            ids.add(outcome.id());
+        }
+        java.util.Set<String> catalogIds = new java.util.HashSet<>();
+        for (Outcome outcome : Outcomes.ALL) {
+            helper.assertTrue(catalogIds.add(outcome.catalogId()), "catalog ID used twice: " + outcome.catalogId());
+        }
+        LOGGER.info("{} catalog effects, {} with themes", Outcomes.ALL.size(), ids.size());
         helper.succeed();
     }
 

@@ -9,6 +9,9 @@ public final class RNGamblingConfig {
     public static final ModConfigSpec.IntValue SURFACE_RARITY;
     public static final ModConfigSpec.IntValue CAVE_RARITY;
     public static final ModConfigSpec.BooleanValue SANDBOX_ENABLED;
+    public static final ModConfigSpec.BooleanValue GLOBAL_EFFECTS_IN_MULTIPLAYER;
+    public static final ModConfigSpec.DoubleValue MAX_EXPLOSION;
+    public static final ModConfigSpec.IntValue MAX_BONUS_HEARTS;
 
     static {
         BUILDER.comment("Lucky block outcomes.").push("outcomes");
@@ -17,6 +20,16 @@ public final class RNGamblingConfig {
                         "in the Sandbox dimension (an endless bedrock plane under the End sky), and the player is brought back afterwards.",
                         "false: they happen where the lucky block was broken.")
                 .define("sandbox_enabled", true);
+        GLOBAL_EFFECTS_IN_MULTIPLAYER = BUILDER
+                .comment("Effects that change the whole server (Nightfall, Weather Roulette, Time Skip) happen in single player.",
+                        "true: in multiplayer too. false: they're left out of the draw in multiplayer.")
+                .define("global_effects_in_multiplayer", false);
+        MAX_EXPLOSION = BUILDER
+                .comment("The strongest explosion an effect can make (TNT is 4, a charged creeper 6).")
+                .defineInRange("max_explosion_power", 6.0, 0.0, 12.0);
+        MAX_BONUS_HEARTS = BUILDER
+                .comment("The most extra hearts Heart Container can give a player, in all.")
+                .defineInRange("max_bonus_hearts", 10, 0, 100);
         BUILDER.pop();
         BUILDER.comment("Disguised lucky blocks generated in new chunks of the Overworld.").push("world_generation");
         SURFACE_RARITY = BUILDER

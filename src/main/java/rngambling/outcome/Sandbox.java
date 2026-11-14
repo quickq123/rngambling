@@ -101,7 +101,7 @@ public final class Sandbox {
         }
     }
 
-    private record Session(UUID player, BlockPos centre, ReturnPoint back, long startTick) {
+    private record Session(UUID player, BlockPos centre, ReturnPoint back, long startTick, int hold) {
         AABB area() {
             return new AABB(centre).inflate(WATCH, 0, WATCH).expandTowards(0, WATCH_UP, 0);
         }
@@ -125,6 +125,11 @@ public final class Sandbox {
      * null if the Sandbox is switched off or missing (the outcome then happens where it is).
      */
     public static @Nullable Arena start(ServerPlayer player) {
+        return start(player, 0);
+    }
+
+    /** As {@link #start(ServerPlayer)}, the visit lasting at least {@code hold} ticks (for effects that play out over time). */
+    public static @Nullable Arena start(ServerPlayer player, int hold) {
         MinecraftServer server = player.level().getServer();
         ServerLevel sandbox = server.getLevel(LEVEL);
         if (!enabled() || sandbox == null || inSandbox(player) || SESSIONS.containsKey(player.getUUID())) {
@@ -135,7 +140,7 @@ public final class Sandbox {
         BlockPos centre = new BlockPos(SPACING * slot, ARENA_Y, 0);
         prepareArena(sandbox, centre);
         ReturnPoint back = ReturnPoint.of(player);
-        SESSIONS.put(player.getUUID(), new Session(player.getUUID(), centre, back, server.getTickCount()));
+        SESSIONS.put(player.getUUID(), new Session(player.getUUID(), centre, back, server.getTickCount(), Math.max(MIN_TICKS, hold)));
         // Remembered on the player and with the world too, with a copy of the inventory, before they go.
         player.getPersistentData().put(RETURN_TAG, back.toTag());
         SandboxRecords.get(server).start(player, back, System.currentTimeMillis());
@@ -175,8 +180,8 @@ public final class Sandbox {
             ServerPlayer player = server.getPlayerList().getPlayer(session.player());
             long age = server.getTickCount() - session.startTick();
             boolean gone = player == null || player.isRemoved() || player.isDeadOrDying() || !inSandbox(player);
-            boolean settled = age >= MIN_TICKS && sandbox != null && settled(sandbox, session);
-            if (gone || settled || age >= MAX_TICKS) {
+            boolean settled = age >= session.hold() && sandbox != null && settled(sandbox, session);
+            if (gone || settled || age >= Math.max(MAX_TICKS, session.hold() + 200)) {
                 end(server, sandbox, session, player != null && !gone ? player : null);
             }
         }
