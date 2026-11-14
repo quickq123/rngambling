@@ -604,7 +604,7 @@ public final class ScreenshotRun {
 
     /**
      * -PshotsWorld=sandbox: the Sandbox in a real world (the game test server has no datapack
-     * dimensions). Logs each check as "SANDBOX CHECK ok/FAILED" and pictures the box.
+     * dimensions). Logs each check as "SANDBOX CHECK ok/FAILED" and pictures the arena.
      */
     private static final boolean SANDBOX = "sandbox".equals(System.getProperty("rngambling.shotsWorld"));
     private static net.minecraft.world.phys.Vec3 sandboxStart;
@@ -640,7 +640,7 @@ public final class ScreenshotRun {
                 rngambling.outcome.Outcomes.play(level, sandboxMarker.above(), player, 0, outcomeNamed("tnt"));
                 check(rngambling.outcome.Sandbox.inSandbox(player), "a TNT outcome takes the player to the Sandbox");
                 check(player.level().getBlockState(player.blockPosition().below()).is(net.minecraft.world.level.block.Blocks.BEDROCK),
-                        "the player stands on the box's bedrock floor");
+                        "the player stands on the bedrock plane");
             });
         });
         then(20, minecraft -> shot(minecraft, "40-sandbox-tnt"));

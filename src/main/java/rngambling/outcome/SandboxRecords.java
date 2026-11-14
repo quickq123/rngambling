@@ -49,18 +49,29 @@ public final class SandboxRecords extends SavedData {
         }
     }
 
-    private static final Codec<SandboxRecords> CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Visit.CODEC)
-            .xmap(SandboxRecords::new, records -> records.visits);
+    private static final Codec<SandboxRecords> CODEC = RecordCodecBuilder.create(i -> i.group(
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, Visit.CODEC).fieldOf("visits").forGetter(records -> records.visits),
+            Codec.INT.optionalFieldOf("next_slot", 0).forGetter(records -> records.nextSlot)
+    ).apply(i, SandboxRecords::new));
     static final SavedDataType<SandboxRecords> TYPE = new SavedDataType<>(RNGambling.id("sandbox_visits"), SandboxRecords::new, CODEC, null);
 
     private final Map<UUID, Visit> visits;
+    /** The next arena slot on the Sandbox's plane, so arenas aren't reused after a restart. */
+    private int nextSlot;
 
     public SandboxRecords() {
-        this(Map.of());
+        this(Map.of(), 0);
     }
 
-    private SandboxRecords(Map<UUID, Visit> visits) {
+    private SandboxRecords(Map<UUID, Visit> visits, int nextSlot) {
         this.visits = new HashMap<>(visits);
+        this.nextSlot = nextSlot;
+    }
+
+    /** Takes the next arena slot. */
+    int takeSlot() {
+        setDirty();
+        return nextSlot++ & Integer.MAX_VALUE;
     }
 
     public static SandboxRecords get(MinecraftServer server) {

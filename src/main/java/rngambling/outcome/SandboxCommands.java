@@ -15,7 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
  * <li>{@code /rngambling sandbox list}: everyone with a visit on record: whether they're in the
  * Sandbox now, where they'll be brought back to, and how many item stacks their saved inventory copy holds.
  * <li>{@code /rngambling sandbox return <player>}: brings a player out to their exact return point,
- * ending the visit (what's left in their box comes back with them).
+ * ending the visit (what's left in their arena comes back with them).
  * <li>{@code /rngambling sandbox restore <player>}: replaces a player's inventory with the copy
  * taken when their last visit started. It replaces rather than adds, so it can't duplicate items.
  * </ul>

@@ -79,19 +79,23 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
 Outcomes that would change or grief the world (`Outcome.sandbox()`: TNT, TNT ring, creeper,
 ghast, lightning, ring of fire, blazes, anvil, cobwebs, silverfish, angry endermen) are played
-out in the **Sandbox** dimension instead (`rngambling:sandbox`, a void), each in a fresh,
-sealed, lit bedrock box (21 x 10 x 21 inside), far from any other. Everything else happens
+out in the **Sandbox** dimension instead (`rngambling:sandbox`): an endless plane of bedrock
+under the End's sky. Each visit gets its own arena on the plane, 4,096 blocks from any other,
+so players never meet there, even if several get a Sandbox outcome at once (one visit per
+player at a time; a Sandbox outcome while already there plays out where they stand). Arena
+slots are kept with the world, so they aren't reused after a restart, and the ground around
+an arena is cleared before each visit. Everything else happens
 where the block was broken. `config/rngambling-common.toml` `sandbox_enabled = false` turns it
 off (outcomes then happen in place, as they also do if the dimension is missing).
 
-- **Coming back:** once nothing is going on in the box (no mobs, TNT, falling blocks,
+- **Coming back:** once nothing is going on within 64 blocks of the arena (no mobs, TNT, falling blocks,
   lightning or projectiles) and at least 5 seconds have passed, or after 90 seconds at most,
   the player is brought back to **exactly** where they broke the block (dimension, position,
-  facing). Items and experience left in the box come back with them.
+  facing). Items and experience left there come back with them.
 - **Safeguards:** the return point is kept three ways: in the running visit, on the player,
   and with the world (`SandboxRecords`, which survives restarts). A **full copy of the
   player's inventory** (armour and off-hand too) is saved with the world before they go, and
-  kept afterwards. If they die in the box their drops go to their return point. If they log
+  kept afterwards. If they die there their drops go to their return point. If they log
   out or the server stops mid-visit, they're brought back when they next log in.
 - **Admin commands** (operators): `/rngambling sandbox list` (every visit on record: in the
   Sandbox now or back, the return point, the inventory copy's size, when);

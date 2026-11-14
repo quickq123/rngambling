@@ -22,7 +22,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -31,9 +30,10 @@ import rngambling.RNGambling;
 import rngambling.RNGamblingConfig;
 
 /**
- * The Sandbox: a void dimension where outcomes that would change or grief the world
- * ({@link Outcome#sandbox()}: explosions, fire, placed or moved blocks) are played out instead,
- * each in a fresh sealed bedrock box.
+ * The Sandbox: an endless plane of bedrock under the End's sky, where outcomes that would change
+ * or grief the world ({@link Outcome#sandbox()}: explosions, fire, placed or moved blocks) are
+ * played out instead. Each visit gets its own arena on the plane, {@link #SPACING} blocks from any
+ * other, so players never meet there.
  *
  * <p>Safeguards:
  * <ul>
@@ -43,20 +43,28 @@ import rngambling.RNGamblingConfig;
  * (see {@code /rngambling sandbox restore}).
  * <li>They come back once things have settled (no mobs, TNT or falling blocks left; at least
  * {@link #MIN_TICKS}), or after {@link #MAX_TICKS} at the most, with any items and experience left in
- * the box. If they die there, their drops go back to the spot they left from.
+ * their arena. If they die there, their drops go back to the spot they left from.
  * <li>If they log out or the server stops mid-visit, they're brought back when they next log in.
  * <li>Admins can bring anyone back at any time: {@code /rngambling sandbox return <player>}.
  * </ul>
  */
 public final class Sandbox {
     public static final ResourceKey<Level> LEVEL = ResourceKey.create(Registries.DIMENSION, RNGambling.id("sandbox"));
-    /** At least this long in the box, so the player sees where they are. */
+    /** At least this long there, so the player sees where they are. */
     public static final int MIN_TICKS = 100;
     /** At most this long; then they're brought back and what's left is cleared away. */
     public static final int MAX_TICKS = 20 * 90;
 
-    /** The box: inside, 21 x 10 x 21 around the centre (y 0-9 above the floor). */
-    private static final int HALF = 10, HEIGHT = 10, ARENA_Y = 64, SPACING = 512;
+    /** Arenas are this far apart: further than anyone can go in a visit. */
+    public static final int SPACING = 4096;
+    /** How far around an arena counts as part of it (for "has it settled?" and gathering what's left). */
+    private static final int WATCH = 64, WATCH_UP = 64;
+    /** Around the centre, the ground is cleared of anything left on it before each visit. */
+    private static final int CLEAR = 12, CLEAR_UP = 12;
+    /** The plane is one layer of bedrock at y 0; arenas stand on it. */
+    private static final int ARENA_Y = 1;
+    /** Arena slots run along x; they wrap round after this many (well inside the world border). */
+    private static final int SLOTS = 7000;
     private static final String RETURN_TAG = "rngambling_sandbox_return";
 
     /** Where an outcome is played out: the level, and the spot standing in for the broken block. */
@@ -94,14 +102,12 @@ public final class Sandbox {
     }
 
     private record Session(UUID player, BlockPos centre, ReturnPoint back, long startTick) {
-        AABB inside() {
-            return new AABB(centre.getX() - HALF, centre.getY(), centre.getZ() - HALF,
-                    centre.getX() + HALF + 1, centre.getY() + HEIGHT, centre.getZ() + HALF + 1);
+        AABB area() {
+            return new AABB(centre).inflate(WATCH, 0, WATCH).expandTowards(0, WATCH_UP, 0);
         }
     }
 
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
-    private static int nextSlot;
 
     private Sandbox() {
     }
@@ -115,7 +121,7 @@ public final class Sandbox {
     }
 
     /**
-     * Takes a player to a fresh box in the Sandbox and returns where to play the outcome out, or
+     * Takes a player to a fresh arena in the Sandbox and returns where to play the outcome out, or
      * null if the Sandbox is switched off or missing (the outcome then happens where it is).
      */
     public static @Nullable Arena start(ServerPlayer player) {
@@ -124,8 +130,10 @@ public final class Sandbox {
         if (!enabled() || sandbox == null || inSandbox(player) || SESSIONS.containsKey(player.getUUID())) {
             return null;
         }
-        BlockPos centre = new BlockPos(SPACING * (nextSlot++ % 4000), ARENA_Y, 0);
-        buildBox(sandbox, centre);
+        // A fresh arena each time: slots are kept with the world, so they aren't reused after a restart.
+        int slot = SandboxRecords.get(server).takeSlot() % SLOTS;
+        BlockPos centre = new BlockPos(SPACING * slot, ARENA_Y, 0);
+        prepareArena(sandbox, centre);
         ReturnPoint back = ReturnPoint.of(player);
         SESSIONS.put(player.getUUID(), new Session(player.getUUID(), centre, back, server.getTickCount()));
         // Remembered on the player and with the world too, with a copy of the inventory, before they go.
@@ -137,22 +145,22 @@ public final class Sandbox {
         return new Arena(sandbox, centre);
     }
 
-    /** Builds (or rebuilds) a sealed, lit bedrock box around {@code centre}, empty inside. */
-    private static void buildBox(ServerLevel level, BlockPos centre) {
+    /** Makes sure the ground is there and clear around {@code centre}, with nothing left from an earlier visit. */
+    private static void prepareArena(ServerLevel level, BlockPos centre) {
         BlockState bedrock = Blocks.BEDROCK.defaultBlockState();
         BlockState air = Blocks.AIR.defaultBlockState();
-        BlockState light = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15);
-        for (int dx = -HALF - 1; dx <= HALF + 1; dx++) {
-            for (int dz = -HALF - 1; dz <= HALF + 1; dz++) {
-                for (int dy = -1; dy <= HEIGHT; dy++) {
-                    boolean shell = Math.abs(dx) == HALF + 1 || Math.abs(dz) == HALF + 1 || dy == -1 || dy == HEIGHT;
-                    boolean lamp = !shell && dy == HEIGHT - 1 && dx % 5 == 0 && dz % 5 == 0;
-                    level.setBlock(centre.offset(dx, dy, dz), shell ? bedrock : lamp ? light : air, Block.UPDATE_CLIENTS);
+        for (int dx = -CLEAR; dx <= CLEAR; dx++) {
+            for (int dz = -CLEAR; dz <= CLEAR; dz++) {
+                level.setBlock(centre.offset(dx, -1, dz), bedrock, Block.UPDATE_CLIENTS);
+                for (int dy = 0; dy < CLEAR_UP; dy++) {
+                    BlockPos pos = centre.offset(dx, dy, dz);
+                    if (!level.getBlockState(pos).isAir()) {
+                        level.setBlock(pos, air, Block.UPDATE_CLIENTS);
+                    }
                 }
             }
         }
-        AABB box = new AABB(centre).inflate(HALF + 2, HEIGHT + 2, HALF + 2);
-        for (Entity entity : level.getEntities((Entity) null, box, e -> !(e instanceof Player))) {
+        for (Entity entity : level.getEntities((Entity) null, new AABB(centre).inflate(WATCH, WATCH_UP, WATCH), e -> !(e instanceof Player))) {
             entity.discard();
         }
     }
@@ -174,13 +182,13 @@ public final class Sandbox {
         }
     }
 
-    /** Nothing left going on in the box: no mobs, TNT, falling blocks, lightning or projectiles. */
+    /** Nothing left going on in the arena: no mobs, TNT, falling blocks, lightning or projectiles. */
     private static boolean settled(ServerLevel sandbox, Session session) {
-        return sandbox.getEntities((Entity) null, session.inside(),
+        return sandbox.getEntities((Entity) null, session.area(),
                 e -> !(e instanceof Player) && !(e instanceof ItemEntity) && !(e instanceof ExperienceOrb)).isEmpty();
     }
 
-    /** Ends a session: brings the player back (if they're still there), with what's left in the box. */
+    /** Ends a session: brings the player back (if they are still there), with what is left in the arena. */
     private static void end(MinecraftServer server, @Nullable ServerLevel sandbox, Session session, @Nullable ServerPlayer player) {
         SESSIONS.remove(session.player());
         ServerLevel home = levelOf(server, session.back());
@@ -197,9 +205,9 @@ public final class Sandbox {
         if (sandbox == null) {
             return;
         }
-        // Items and experience in the box (loot, or a dead player's drops) go back to where the block was broken.
+        // Items and experience in the arena (loot, or a dead player's drops) go back to where the block was broken.
         Vec3 to = session.back().pos();
-        for (Entity entity : sandbox.getEntities((Entity) null, session.inside().inflate(1), e -> !(e instanceof Player))) {
+        for (Entity entity : sandbox.getEntities((Entity) null, session.area(), e -> !(e instanceof Player))) {
             if (entity instanceof ItemEntity item) {
                 home.addFreshEntity(new ItemEntity(home, to.x, to.y + 0.5, to.z, item.getItem().copy()));
             } else if (entity instanceof ExperienceOrb orb) {

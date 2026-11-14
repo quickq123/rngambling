@@ -14,7 +14,7 @@ public final class RNGamblingConfig {
         BUILDER.comment("Lucky block outcomes.").push("outcomes");
         SANDBOX_ENABLED = BUILDER
                 .comment("true: outcomes that would change or grief the world (explosions, fire, placed or moved blocks) are played out",
-                        "in the Sandbox dimension, in a sealed bedrock box, and the player is brought back afterwards.",
+                        "in the Sandbox dimension (an endless bedrock plane under the End sky), and the player is brought back afterwards.",
                         "false: they happen where the lucky block was broken.")
                 .define("sandbox_enabled", true);
         BUILDER.pop();
