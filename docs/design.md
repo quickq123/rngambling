@@ -25,9 +25,11 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (174 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (177 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
-  Dragon Hatchling (below), plus one added since: **Wear and Tear** (VBD-30).
+  Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
+  **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
+  **Casino Invitation** (GOD-31, a casino room in the Sandbox).
 - **Grief:** explosions and fire happen in the world. Effects that build or place blocks (or
   would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop, The
   Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
@@ -204,6 +206,7 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 | Parkour Course (VGD-10) | 14 jumps in the sky, an End City chest at the end | the way out; falling fails, and you keep nothing |
 | Puzzle Vault (VGD-11) | 5 levers, 5 lamps: each lever flips its lamp and its neighbours'; light them all and the vault door opens to an End City chest | the way out in the vault (4 min) |
 | Treasure Island (LEG-06) | sand island with palms and a moat, 4 treasure chests; anything can be broken | 3 min timer bar |
+| Casino Invitation (GOD-31) | a casino hall: four slot machines, a roulette and a blackjack table, a Casino Dealer to trade with; 8 tokens on the house; nothing in it can be broken or taken | the way out just outside the front door, whenever (10 min max); winnings come home |
 | Boss Bounty (LEG-07) | an offer in chat, [Accept] / [Decline] (`/rngambling bounty accept|decline`; a minute's silence declines). Accepted: an Illager Warlord (evoker on a ravager) and 3 vindicators; won, 2 netherite ingots and two Legendary rolls. Declined: a Good roll | 15 s after the fight (5 min max) |
 
 Rooms are left out of the draw when the Sandbox is off or missing. Tests: `rooms_build` builds

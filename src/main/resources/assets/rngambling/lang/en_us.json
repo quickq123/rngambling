@@ -548,5 +548,12 @@
   "message.rngambling.room.rising_lava_tomb.title": "The lava is coming!",
   "message.rngambling.room.rising_lava_tomb.subtitle": "Find the cracked brick that breaks",
   "message.rngambling.room.rising_lava_tomb.bar": "Lava in %s seconds",
-  "message.rngambling.room.rising_lava_tomb.rising": "The lava is rising!"
+  "message.rngambling.room.rising_lava_tomb.rising": "The lava is rising!",
+  "outcome.rngambling.token_toss": "Token Toss",
+  "outcome.rngambling.token_toss.quip": "The house is feeling generous. Don't get used to it.",
+  "outcome.rngambling.token_jackpot": "Token Jackpot",
+  "outcome.rngambling.token_jackpot.quip": "Ding ding ding! The house loses. This once.",
+  "outcome.rngambling.casino_invitation": "Casino Invitation",
+  "outcome.rngambling.casino_invitation.quip": "Your table is ready.",
+  "message.rngambling.room.casino.rules": "Welcome to the casino! 8 tokens on the house. Play as long as you like (up to 10 minutes); leave by the door and your winnings come home with you."
 }

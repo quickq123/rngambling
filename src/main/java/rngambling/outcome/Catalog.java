@@ -739,6 +739,8 @@ public final class Catalog {
                 c.placeLuckyBlock(c.pos().west(2), c.between(20, 50));
             }).chain(),
 
+            of("GOD-30", "token_toss", GOOD, 10, 40, 7, CustomEffects::tokenToss),
+            of("GOD-31", "casino_invitation", GOOD, 15, 45, 4, c -> room(c, new Rooms.CasinoRoom())).room(),
             of("GOD-13", "iron_golem_bodyguard", GOOD, 20, 40, 5, CustomEffects::ironGolemBodyguard),
             of("GOD-17", "ore_vision", GOOD, 15, 40, 5, CustomEffects::oreVision),
             of("GOD-29", "mystery_item", GOOD, 15, 60, 6, CustomEffects::mysteryItem),
@@ -799,6 +801,7 @@ public final class Catalog {
                 c.drop(Items.NAUTILUS_SHELL, 8);
             }),
 
+            of("VGD-24", "token_jackpot", VERY_GOOD, 45, 80, 4, CustomEffects::tokenJackpot),
             of("VGD-19", "villager_friends", VERY_GOOD, 41, 70, 4, CustomEffects::villagerFriends),
 
             // ================= Legendary =================

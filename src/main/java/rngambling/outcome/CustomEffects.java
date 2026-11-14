@@ -94,6 +94,22 @@ public final class CustomEffects {
         return shuffles(mob);
     }
 
+    // ---------------------------------------------------------------- Casino Tokens
+
+    /** GOD-30 Token Toss: a handful of Casino Tokens, more the luckier the block. */
+    static void tokenToss(OutcomeContext c) {
+        c.drop(RNGambling.CASINO_TOKEN.get(), c.between(8, 16) + (int) Math.round(8 * c.strength()));
+        c.level().playSound(null, c.pos(), SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 1f, 1.6f);
+    }
+
+    /** VGD-24 Token Jackpot: Piles of Tokens, and the casino's jackpot fanfare. */
+    static void tokenJackpot(OutcomeContext c) {
+        c.drop(RNGambling.TOKEN_PILE.get(), c.between(2, 4));
+        c.drop(RNGambling.CASINO_TOKEN.get(), c.between(4, 8));
+        c.level().playSound(null, c.pos(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 0.8f, 1f);
+        Catalog.fireworks(c, 2);
+    }
+
     // ---------------------------------------------------------------- VBD-20 Hot Potato
 
     static void hotPotato(OutcomeContext c) {

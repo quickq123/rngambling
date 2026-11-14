@@ -33,6 +33,7 @@ import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import rngambling.RNGambling;
 
 /**
  * The effect catalog's Sandbox rooms, built in code (each visit gets a fresh one on the
@@ -713,6 +714,73 @@ public final class Rooms {
         }
     }
 
+    /**
+     * GOD-31 Casino Invitation: a casino in the Sandbox. Red carpet and gold trim, two slot
+     * machines, a roulette table and a blackjack table, and a Casino Dealer to trade with; 8
+     * tokens on the house. Nothing in it can be broken or taken. Leave by the way out just
+     * outside the front door, whenever (up to 10 minutes): winnings come home with you.
+     */
+    public static final class CasinoRoom extends Room {
+        public static final int TOKENS = 8;
+
+        @Override
+        protected Vec3 build() {
+            // A 13 x 11 hall (inside), 5 high, door in the south wall.
+            box(-7, -1, -6, 7, 5, 6, Blocks.DARK_OAK_PLANKS, true);
+            box(-6, -1, -5, 6, -1, 5, Blocks.RED_CONCRETE, false);
+            box(-6, 4, -5, 6, 4, 5, Blocks.DARK_OAK_PLANKS, false);
+            for (int x = -6; x <= 6; x++) {
+                set(x, 3, -6, Blocks.YELLOW_CONCRETE); // gold-coloured trim (nothing worth mining)
+                set(x, 3, 6, Blocks.YELLOW_CONCRETE);
+            }
+            for (int z = -5; z <= 5; z++) {
+                set(-7, 3, z, Blocks.YELLOW_CONCRETE);
+                set(7, 3, z, Blocks.YELLOW_CONCRETE);
+            }
+            for (int x : new int[] {-4, 0, 4}) {
+                for (int z : new int[] {-3, 2}) {
+                    set(x, 4, z, Blocks.SEA_LANTERN);
+                }
+            }
+            // The games: slot machines on the north wall, the tables in the middle.
+            BlockState slots = RNGambling.SLOT_MACHINE.get().defaultBlockState()
+                    .setValue(rngambling.casino.SlotMachineBlock.FACING, Direction.SOUTH);
+            set(-3, 0, -5, slots);
+            set(-1, 0, -5, slots);
+            set(1, 0, -5, slots);
+            set(3, 0, -5, slots);
+            set(-4, 0, 0, RNGambling.ROULETTE_TABLE.get());
+            set(4, 0, 0, RNGambling.BLACKJACK_TABLE.get());
+            // The doorway, and the way out just outside it.
+            set(0, 0, 6, Blocks.AIR);
+            set(0, 1, 6, Blocks.AIR);
+            box(-2, -1, 7, 2, -1, 9, Blocks.RED_CONCRETE, false);
+            set(-1, 0, 7, Blocks.LANTERN);
+            set(1, 0, 7, Blocks.LANTERN);
+            exit(0, 0, 8);
+            // The dealer, at the back corner.
+            var dealer = spawn(EntityType.VILLAGER, -5, 0, -4);
+            if (dealer != null) {
+                var profession = level.registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION).getOrThrow(RNGambling.DEALER.getKey());
+                dealer.setVillagerData(dealer.getVillagerData().withProfession(profession).withLevel(1));
+                dealer.setVillagerXp(1); // some experience, so it keeps its job without claiming a workstation
+            }
+            player.getInventory().placeItemBackInInventory(new ItemStack(RNGambling.CASINO_TOKEN.get(), TOKENS));
+            message("message.rngambling.room.casino.rules");
+            return Vec3.atBottomCenterOf(at(0, 0, 4));
+        }
+
+        @Override
+        protected float startYaw() {
+            return 180f; // facing into the hall (north)
+        }
+
+        @Override
+        protected int maxTicks() {
+            return 20 * 60 * 10;
+        }
+    }
+
     // ======================= Very good =======================
 
     /** VGD-09: a gold-lined vault of loot chests; 60 seconds to grab what you can. */
@@ -1000,7 +1068,8 @@ public final class Rooms {
     public static List<java.util.function.Supplier<Room>> all() {
         return List.of(WitherArena::new, EmpoweredWither::new, WardensHollow::new, VoidPlatform::new, RisingLavaTomb::new,
                 ElderGuardianMonument::new, FortressAmbush::new, BlindHedgeMaze::new, MobArenaWaves::new, SkyblockStrand::new,
-                DrownedPit::new, TreasureVault::new, ParkourCourse::new, PuzzleVault::new, TreasureIsland::new, BossBounty::new);
+                DrownedPit::new, TreasureVault::new, ParkourCourse::new, PuzzleVault::new, TreasureIsland::new, BossBounty::new,
+                CasinoRoom::new);
     }
 
 }

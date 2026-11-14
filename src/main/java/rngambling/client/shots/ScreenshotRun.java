@@ -502,6 +502,7 @@ public final class ScreenshotRun {
     /** -PshotsWorld=villages: how many of the nearest villages have a casino (from their layouts only). */
     private static final boolean VILLAGES = "villages".equals(System.getProperty("rngambling.shotsWorld"));
 
+
     private static void planVillages() {
         java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
         int[] counts = new int[3]; // villages, with a casino, casinos

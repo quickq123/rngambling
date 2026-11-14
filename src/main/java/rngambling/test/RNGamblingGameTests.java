@@ -1030,6 +1030,15 @@ public final class RNGamblingGameTests {
             helper.assertTrue(dragons.get(0).getBreedOffspring(level, dragons.get(0)) == null, "hatchlings don't breed");
             clearUp(helper, level, second);
 
+            // Tokens: Token Toss and Token Jackpot drop them.
+            outcome("token_toss").action().run(c);
+            outcome("token_jackpot").action().run(c);
+            var dropped = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(pos).inflate(6));
+            helper.assertTrue(dropped.stream().anyMatch(e -> e.getItem().is(RNGambling.CASINO_TOKEN.get()))
+                    && dropped.stream().anyMatch(e -> e.getItem().is(RNGambling.TOKEN_PILE.get())), "tokens and piles should drop");
+            clearUp(helper, level, second);
+            second.getInventory().clearContent();
+
             // Mob Shuffle: wild mobs only.
             var zombie = net.minecraft.world.entity.EntityType.ZOMBIE.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
             var wolf = net.minecraft.world.entity.EntityType.WOLF.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
