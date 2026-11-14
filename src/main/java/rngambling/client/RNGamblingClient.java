@@ -15,6 +15,7 @@ public final class RNGamblingClient {
     public RNGamblingClient(IEventBus modBus) {
         modBus.addListener(MimicModel::wrap);
         modBus.addListener(MimicTint::register);
+        modBus.addListener(LuckOverlay::register);
         if (ScreenshotRun.enabled()) {
             NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ScreenshotRun.tick(Minecraft.getInstance()));
         }

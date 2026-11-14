@@ -153,7 +153,20 @@ public final class ScreenshotRun {
         view("04-slant", new Vec3(-1.0, 3.5, 4.0), new Vec3(8.0, 1.5, 0.0));
         // Disguised grass blocks in the ground, from above.
         view("05-ground", new Vec3(9.5, 5.0, 7.5), new Vec3(9.5, 0.0, 3.5));
-        then(5, minecraft -> onServer(minecraft, player -> player.level().getServer().execute(() -> { })));
+        // The Luck Glasses: worn, every lucky block's luck shows, the buried one through the ground.
+        then(5, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD,
+                    new net.minecraft.world.item.ItemStack(RNGambling.LUCK_GLASSES.get())));
+        });
+        view("06-glasses", new Vec3(9.5, 3.0, 9.0), new Vec3(9.5, 1.0, 0.0));
+        // Worn, seen from the front.
+        then(5, minecraft -> {
+            minecraft.options.hideGui = true;
+            minecraft.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+        });
+        view("07-glasses-worn", new Vec3(9.5, 2.6, 8.0), new Vec3(9.5, 2.6, 0.0));
+        then(5, minecraft -> minecraft.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
         then(20, Minecraft::stop);
     }
 
@@ -171,7 +184,15 @@ public final class ScreenshotRun {
             BlockState real = KINDS[i].defaultBlockState();
             level.setBlockAndUpdate(column.above(1), real);
             disguise(level, column.above(2), real);
+            if (level.getBlockEntity(column.above(2)) instanceof LuckyBlockEntity lucky) {
+                lucky.setLuck(-90 + 20 * i); // a spread of luck for the glasses to show
+            }
             level.setBlockAndUpdate(column.above(3), real);
+        }
+        // A lucky block buried in the ground, which only the glasses reveal.
+        level.setBlockAndUpdate(base.offset(4, -2, 4), RNGambling.LUCKY_BLOCK.get().defaultBlockState());
+        if (level.getBlockEntity(base.offset(4, -2, 4)) instanceof LuckyBlockEntity buried) {
+            buried.setLuck(77);
         }
         level.setBlockAndUpdate(base.offset(2 * KINDS.length + 1, 2, 0), RNGambling.LUCKY_BLOCK.get().defaultBlockState());
         // The ground of a flat world is grass at base.y; disguise a few blocks of it.

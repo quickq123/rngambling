@@ -35,6 +35,11 @@ import rngambling.block.LuckyBlockItem;
 import rngambling.block.MimicLuckyBlock;
 import rngambling.item.MimicWandItem;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.equipment.EquipmentAssets;
+import net.minecraft.world.item.equipment.Equippable;
 import rngambling.luck.Luck;
 
 @Mod(RNGambling.MOD_ID)
@@ -79,6 +84,17 @@ public final class RNGambling {
     /** The casino's currency: won from lucky blocks, gambled in the casino, traded with its villager. */
     public static final DeferredItem<Item> CASINO_TOKEN = ITEMS.registerSimpleItem("casino_token");
 
+    /**
+     * Creative only: worn as a helmet, shows every nearby lucky block's luck through walls.
+     * Drawn by the client's LuckOverlay.
+     */
+    public static final DeferredItem<Item> LUCK_GLASSES = ITEMS.registerItem("luck_glasses", Item::new,
+            () -> new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).component(DataComponents.EQUIPPABLE,
+                    Equippable.builder(EquipmentSlot.HEAD)
+                            .setAsset(ResourceKey.create(EquipmentAssets.ROOT_ID, id("luck_glasses")))
+                            .setEquipSound(SoundEvents.ARMOR_EQUIP_GENERIC)
+                            .build()));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CREATIVE_TAB = CREATIVE_TABS.register(MOD_ID,
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.rngambling"))
@@ -90,6 +106,7 @@ public final class RNGambling {
                         }
                         output.accept(CASINO_TOKEN.get());
                         output.accept(MIMIC_WAND.get());
+                        output.accept(LUCK_GLASSES.get());
                     })
                     .build());
 

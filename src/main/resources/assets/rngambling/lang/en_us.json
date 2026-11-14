@@ -4,6 +4,7 @@
   "block.rngambling.mimic_lucky_block": "Lucky Block",
   "item.rngambling.casino_token": "Casino Token",
   "item.rngambling.mimic_wand": "Mimic Wand",
+  "item.rngambling.luck_glasses": "Luck Glasses",
   "tooltip.rngambling.luck": "Luck: %s",
 
   "message.rngambling.wand.creative_only": "The Mimic Wand only works in creative mode.",

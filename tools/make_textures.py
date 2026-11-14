@@ -12,7 +12,7 @@ TEXTURES = "/mod/src/main/resources/assets/rngambling/textures"
 
 
 def write_png(path, pixels):
-    """pixels: 16 rows of 16 (r, g, b) tuples. A pixel of None is see-through."""
+    """pixels: rows of (r, g, b) tuples (usually 16 x 16). A pixel of None is see-through."""
     full = os.path.join(TEXTURES, path)
     os.makedirs(os.path.dirname(full), exist_ok=True)
     rows = [[(0, 0, 0, 0) if px is None else tuple(px) + (255,) for px in row] for row in pixels]
@@ -23,7 +23,7 @@ def write_png(path, pixels):
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
 
     png = (b"\x89PNG\r\n\x1a\n"
-           + chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
+           + chunk(b"IHDR", struct.pack(">IIBBBBB", len(pixels[0]), len(pixels), 8, 6, 0, 0, 0))
            + chunk(b"IDAT", zlib.compress(raw, 9))
            + chunk(b"IEND", b""))
     with open(full, "wb") as f:
@@ -101,7 +101,58 @@ def mimic_wand():
     return px
 
 
+def luck_glasses_item():
+    """Glasses seen from the front: gold frames, emerald lenses."""
+    gold, gold_dark = (232, 186, 64), (168, 122, 30)
+    lens, lens_bright = (40, 170, 90), (150, 240, 170)
+    px = [[None] * 16 for _ in range(16)]
+    for (x0, x1) in ((1, 6), (9, 14)):
+        for x in range(x0, x1 + 1):
+            px[5][x] = gold
+            px[10][x] = gold_dark
+        for y in range(5, 11):
+            px[y][x0] = gold
+            px[y][x1] = gold_dark
+        for y in range(6, 10):
+            for x in range(x0 + 1, x1):
+                px[y][x] = lens
+        px[6][x0 + 1] = lens_bright
+        px[7][x0 + 1] = lens_bright
+        px[6][x0 + 2] = lens_bright
+    for x in (7, 8):
+        px[6][x] = gold
+    px[5][0] = gold_dark
+    px[5][15] = gold_dark
+    return px
+
+
+def luck_glasses_worn():
+    """The 64 x 32 humanoid equipment texture: glasses across the head's front, arms along its sides."""
+    gold, gold_dark = (232, 186, 64), (168, 122, 30)
+    lens, lens_bright = (40, 170, 90), (150, 240, 170)
+    px = [[None] * 64 for _ in range(32)]
+    # Head front face: x 8..15, y 8..15. Eyes are on row 12 of the skin (y = 12).
+    fx, fy = 8, 8
+    for x in range(8):
+        px[fy + 3][fx + x] = gold
+    for (x0, x1) in ((0, 2), (5, 7)):
+        for x in range(x0, x1 + 1):
+            px[fy + 4][fx + x] = lens
+            px[fy + 5][fx + x] = gold_dark
+        px[fy + 4][fx + x0] = lens_bright
+    px[fy + 4][fx + 3] = gold
+    px[fy + 4][fx + 4] = gold
+    # The arms: along the right side (x 0..7) and left side (x 16..23) of the head, row y = 11.
+    for x in range(0, 8):
+        px[fy + 3][x] = gold_dark
+    for x in range(16, 24):
+        px[fy + 3][x] = gold_dark
+    return px
+
+
 write_png("block/lucky_block.png", lucky_block())
+write_png("item/luck_glasses.png", luck_glasses_item())
+write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())
 write_png("item/casino_token.png", casino_token())
 print("textures written")
