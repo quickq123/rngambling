@@ -15,11 +15,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import rngambling.RNGambling;
 import rngambling.block.LuckyBlockEntity;
 import rngambling.block.MimicLuckyBlock;
-import rngambling.luck.Luck;
+import rngambling.luck.LuckZone;
 
 /**
  * Creative only. Right-click a block to turn it into a disguised lucky block that copies it,
- * with luck rolled the way world-generated ones will be. Right-click a disguised one to see what
+ * with luck rolled by the luck zone there, as world generation would. Right-click a disguised one to see what
  * it copies and its luck; sneak and right-click to turn it back into the block it copied.
  */
 public class MimicWandItem extends Item {
@@ -51,7 +51,8 @@ public class MimicWandItem extends Item {
             }
             int luck = lucky == null ? 0 : lucky.luck();
             tell(player, Component.translatable("message.rngambling.wand.info",
-                    mimic == null ? Component.literal("?") : mimic.getBlock().getName(), signed(luck)), colour(luck));
+                    mimic == null ? Component.literal("?") : mimic.getBlock().getName(), signed(luck),
+                    LuckZone.name(level, LuckZone.at(level, pos))), colour(luck));
             return InteractionResult.SUCCESS;
         }
 
@@ -62,12 +63,14 @@ public class MimicWandItem extends Item {
             tell(player, Component.translatable("message.rngambling.wand.cannot", state.getBlock().getName()), ChatFormatting.RED);
             return InteractionResult.FAIL;
         }
+        // Luck is rolled by the luck zone here, just as world generation would.
+        LuckZone zone = LuckZone.at(level, pos);
         level.setBlock(pos, RNGambling.MIMIC_LUCKY_BLOCK.get().defaultBlockState(), Block.UPDATE_ALL);
         if (level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky) {
             lucky.setMimic(state);
-            lucky.setLuck(Luck.rollNatural(level.getRandom()));
-            tell(player, Component.translatable("message.rngambling.wand.disguised", state.getBlock().getName(), signed(lucky.luck())),
-                    colour(lucky.luck()));
+            lucky.setLuck(zone.luck().roll(level.getRandom()));
+            tell(player, Component.translatable("message.rngambling.wand.disguised", state.getBlock().getName(), signed(lucky.luck()),
+                    LuckZone.name(level, zone)), colour(lucky.luck()));
         }
         level.playSound(null, pos, SoundEvents.ILLUSIONER_CAST_SPELL, SoundSource.PLAYERS, 0.5f, 1.4f);
         return InteractionResult.SUCCESS;

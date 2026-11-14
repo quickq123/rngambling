@@ -8,8 +8,8 @@
   "tooltip.rngambling.luck": "Luck: %s",
 
   "message.rngambling.wand.creative_only": "The Mimic Wand only works in creative mode.",
-  "message.rngambling.wand.disguised": "%s is now a disguised lucky block (luck %s)",
-  "message.rngambling.wand.info": "Disguised as %s, luck %s. Sneak + use to undo.",
+  "message.rngambling.wand.disguised": "%s is now a disguised lucky block (luck %s, zone: %s)",
+  "message.rngambling.wand.info": "Disguised as %s, luck %s (zone: %s). Sneak + use to undo.",
   "message.rngambling.wand.restored": "Turned back into %s",
   "message.rngambling.wand.cannot": "%s can't be disguised: only plain full solid blocks can.",
 

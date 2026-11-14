@@ -116,6 +116,12 @@ public record LuckZone(
         return best;
     }
 
+    /** A zone's name (its file name), or "none" for the fallback. */
+    public static String name(WorldGenLevel level, LuckZone zone) {
+        net.minecraft.resources.Identifier id = level.registryAccess().lookupOrThrow(REGISTRY).getKey(zone);
+        return id == null ? "none" : id.getNamespace().equals(RNGambling.MOD_ID) ? id.getPath() : id.toString();
+    }
+
     /** The structure look-up for a level being generated (or, in tests, a finished level). */
     public static StructureManager structures(WorldGenLevel level) {
         ServerLevel server = level.getLevel();

@@ -76,6 +76,26 @@ public final class RNGamblingGameTests {
         helper.assertTrue(Math.abs(mushroomTotal / 1000 - 20) < 4, "Mushroom Fields luck should average about +20: " + mushroomTotal / 1000);
         helper.assertTrue(nether.caveRarity() == 6 && nether.surfaceRarity() == 0 && end.surfaceRarity() == 6,
                 "zone rarities should come from the files");
+
+        // The Mimic Wand follows the zone too: used in the Nether, it never gives middling luck.
+        ServerLevel netherLevel = level.getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+        BlockPos spot = new BlockPos(0, 100, 0);
+        ServerPlayer creative = player(helper, GameType.CREATIVE);
+        try {
+            for (int i = 0; i < 20; i++) {
+                netherLevel.setBlockAndUpdate(spot, Blocks.NETHERRACK.defaultBlockState());
+                ItemStack wand = new ItemStack(RNGambling.MIMIC_WAND.get());
+                creative.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, wand);
+                wand.useOn(new net.minecraft.world.item.context.UseOnContext(netherLevel, creative, net.minecraft.world.InteractionHand.MAIN_HAND,
+                        wand, new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(spot),
+                        net.minecraft.core.Direction.UP, spot, false)));
+                helper.assertTrue(netherLevel.getBlockEntity(spot) instanceof LuckyBlockEntity lucky && Math.abs(lucky.luck()) >= 50,
+                        "the wand in the Nether should give luck of ±50 or more");
+            }
+        } finally {
+            netherLevel.setBlockAndUpdate(spot, Blocks.AIR.defaultBlockState());
+            level.getServer().getPlayerList().remove(creative);
+        }
         helper.succeed();
     }
 

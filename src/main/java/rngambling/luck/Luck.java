@@ -23,14 +23,6 @@ public final class Luck {
         return Math.max(MIN, Math.min(MAX, luck));
     }
 
-    /**
-     * Luck for a lucky block found in the world (or made with the Mimic Wand): clustered around 0,
-     * so very lucky or very cursed blocks are rare (beyond ±60 about 1 in 20).
-     */
-    public static int rollNatural(net.minecraft.util.RandomSource random) {
-        return clamp((int) Math.round(random.nextGaussian() * 30));
-    }
-
     /** The factor an outcome's base weight is multiplied by at this luck. */
     public static double weightFactor(int luck, int rating) {
         return Math.exp(TILT * (clamp(luck) / 100.0) * (rating / 10.0));

@@ -32,8 +32,8 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
     noticeable on deepslate as 12% darkening is on stone), since
     a tint can only darken and darkening a dark texture barely shows. It also sounds, mines and resists explosions like the copied block, and creative
     middle-click gives the copied block. Only plain, full, solid, opaque blocks without a block
-    entity can be copied. The Mimic Wand rolls luck clustered around 0 (`Luck.rollNatural`);
-    world generation rolls it by luck zone (below).
+    entity can be copied. Its luck is rolled by the luck zone it's in (below), by world
+    generation and the Mimic Wand alike.
     **World generation** (done): always with a side open to air, so every one can be
     spotted. Surface: the top ground block (grass, sand, gravel...), never water. Caves: a
     floor, ceiling or wall block next to roofed air (Overworld y -56 to 56; Nether 32 to 118).
@@ -57,8 +57,9 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | Ancient City | extremes ±70-100, half good | 20 of its chunks | 11 inside |
 
   Later: themed outcomes per zone (blazes instead of zombies in the Nether, and so on).
-- **Mimic Wand** (creative only, done): right-click a block to disguise it; right-click a
-  disguised one to see what it copies and its luck; sneak + right-click to turn it back.
+- **Mimic Wand** (creative only, done): right-click a block to disguise it, with luck rolled by
+  the luck zone there; right-click a disguised one to see what it copies, its luck and its
+  zone; sneak + right-click to turn it back.
 
 ## Plan
 
