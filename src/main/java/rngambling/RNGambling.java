@@ -261,7 +261,10 @@ public final class RNGambling {
                 rngambling.outcome.Scheduler.clear());
         // The Sandbox dimension (see rngambling.outcome.Sandbox), and its admin commands.
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event) ->
-                rngambling.outcome.SandboxCommands.register(event.getDispatcher()));
+        {
+            rngambling.outcome.SandboxCommands.register(event.getDispatcher());
+            rngambling.outcome.EffectCommands.register(event.getDispatcher());
+        });
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
                 rngambling.outcome.Sandbox.tick(event.getServer()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) -> {

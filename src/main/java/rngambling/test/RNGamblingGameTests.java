@@ -57,7 +57,8 @@ public final class RNGamblingGameTests {
             Map.entry("sandbox_fallback", RNGamblingGameTests::sandboxFallback),
             Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords),
             Map.entry("rooms_build", RNGamblingGameTests::roomsBuild),
-            Map.entry("custom_effects", RNGamblingGameTests::customEffects));
+            Map.entry("custom_effects", RNGamblingGameTests::customEffects),
+            Map.entry("effect_commands", RNGamblingGameTests::effectCommands));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -919,6 +920,46 @@ public final class RNGamblingGameTests {
     }
 
 
+    /**
+     * The admin commands: play a named effect for a named player (luck given or the band's middle),
+     * a real draw, the list; an unknown effect is refused. (Run as the server, which is how an
+     * operator's command runs; with no player named, the caller is the target.)
+     */
+    private static void effectCommands(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        var dispatcher = level.getServer().getCommands().getDispatcher();
+        var source = level.getServer().createCommandSourceStack().withSuppressedOutput();
+        try {
+            BlockPos at = helper.absolutePos(new BlockPos(2, 2, 2));
+            player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+            String who = player.getGameProfile().name();
+            helper.assertTrue(dispatcher.execute("rngambling effect play iron_haul " + who + " 25", source) == 1, "play by player");
+            var ingots = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(at).inflate(6),
+                    e -> e.getItem().is(net.minecraft.world.item.Items.IRON_INGOT));
+            helper.assertFalse(ingots.isEmpty(), "Iron Haul should have dropped iron");
+            clearUp(helper, level, player);
+            helper.assertTrue(dispatcher.execute("rngambling effect play blaze_horde " + who, source) == 1, "a theme's effect, default luck");
+            clearUp(helper, level, player);
+            helper.assertTrue(dispatcher.execute("rngambling effect roll " + who + " 100", source) == 1, "a real draw");
+            rngambling.outcome.Scheduler.clear();
+            clearUp(helper, level, player);
+            helper.assertTrue(dispatcher.execute("rngambling effect list", source) == rngambling.outcome.Outcomes.everyEffect().size(),
+                    "the list should name every effect");
+            helper.assertTrue(dispatcher.execute("rngambling effect play no_such_effect " + who, source) == 0, "an unknown effect is refused");
+            // The caller as target: a command run as the player themselves.
+            helper.assertTrue(dispatcher.execute("rngambling effect play nothing_happens",
+                    player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.OWNER)
+                            .withSuppressedOutput()) == 1, "with no player named, the caller");
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+            throw helper.assertionException("command failed: " + e.getMessage());
+        } finally {
+            rngambling.outcome.Scheduler.clear();
+            level.getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
     /** Only a real survival player sets off an outcome: not creative, spectators or machines' fake players. */
     private static void breakRules(GameTestHelper helper) {
         ServerPlayer survival = player(helper, GameType.SURVIVAL);
@@ -979,6 +1020,7 @@ public final class RNGamblingGameTests {
         }
         for (Outcome outcome : all) {
             helper.assertTrue(language.has("outcome.rngambling." + outcome.id()), "no message for " + outcome.id());
+            helper.assertTrue(language.has("outcome.rngambling." + outcome.id() + ".quip"), "no chat one-liner for " + outcome.id());
             ids.add(outcome.id());
         }
         java.util.Set<String> catalogIds = new java.util.HashSet<>();
@@ -1024,7 +1066,7 @@ public final class RNGamblingGameTests {
     /** A test player in the given game mode (the test helper's own is always creative). */
     private static ServerPlayer player(GameTestHelper helper, GameType mode) {
         ServerLevel level = helper.getLevel();
-        CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "test-" + mode.getName()), false);
+        CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "t-" + mode.getName() + "-" + Integer.toHexString(new java.util.Random().nextInt(0x10000))), false);
         ServerPlayer player = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation()) {
             @Override
             public GameType gameMode() {

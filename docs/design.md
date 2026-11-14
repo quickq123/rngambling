@@ -121,6 +121,24 @@ Temporary entities (Ore Vision's glows, the llamas, the Tax Collector) are remov
 after a restart. Tests: `custom_effects`; `runClientShots -PshotsWorld=effects` pictures Ore
 Vision, the Disco Floor, the llamas, the Dragon Hatchling, Genie's Wish and the Hot Potato.
 
+### Announcements and testing effects
+
+Every effect says in the player's chat what it is: `[Lucky Block] Name: one-liner`, coloured by
+tier (the one-liners, some snarky, are the `outcome.rngambling.<id>.quip` lines in
+`lang/en_us.json`; the fake-outs' don't give the joke away). The name also shows above the hotbar.
+
+Operators can set off effects to test them. The target is a player by name, or whoever runs
+the command when no name is given:
+
+- `/rngambling effect play <effect> [player] [luck]`: one effect, catalog or theme (tab completes
+  the ids). Luck defaults to the middle of the effect's band. Rooms need the Sandbox.
+- `/rngambling effect roll [player] [luck]`: a real draw, as a lucky block of that luck (default
+  0) broken there would make, themed by the luck zone.
+- `/rngambling effect list [tier]`: the effect ids, by tier.
+
+The "lucky block" is taken to be two blocks in front of the player (if that's open), so drops
+and placed blocks land beside them.
+
 ## The Sandbox
 
 Effects that build or place blocks, or would tear a lot up (`Outcome.sandbox()`: Anvil Rain,

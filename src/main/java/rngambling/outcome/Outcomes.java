@@ -135,6 +135,7 @@ public final class Outcomes {
 
     /** Plays one effect for a player, in the Sandbox if it's one that builds or tears things up. */
     public static void play(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, Outcome outcome) {
+        announce(player, outcome);
         if (outcome.sandbox()) {
             Sandbox.Arena arena = Sandbox.start(player, outcome.hold());
             if (arena != null) {
@@ -147,6 +148,33 @@ public final class Outcomes {
         level.playSound(null, pos, outcome.tier().sign > 0 ? SoundEvents.PLAYER_LEVELUP
                         : outcome.tier().sign < 0 ? SoundEvents.WITCH_CELEBRATE : SoundEvents.NOTE_BLOCK_CHIME.value(),
                 SoundSource.BLOCKS, 0.6f, 1.2f);
+    }
+
+    /**
+     * Tells the player in chat what they got: "[Lucky Block] Name: a one-liner" (the one-liners,
+     * some of them snarky, are the {@code outcome.rngambling.<id>.quip} lines in the language file).
+     * Sent before the effect plays, so effects with a message of their own follow it.
+     */
+    static void announce(ServerPlayer player, Outcome outcome) {
+        player.sendSystemMessage(Component.translatable("outcome.rngambling.announce").withStyle(net.minecraft.ChatFormatting.GOLD)
+                .append(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(outcome.tier().colour, net.minecraft.ChatFormatting.BOLD))
+                .append(Component.literal(": ").withStyle(net.minecraft.ChatFormatting.GRAY))
+                .append(Component.translatable("outcome.rngambling." + outcome.id() + ".quip")
+                        .withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC)));
+    }
+
+    /** Every effect there is: the catalog's and every theme's own, by id. */
+    public static java.util.Map<String, Outcome> everyEffect() {
+        java.util.Map<String, Outcome> all = new java.util.LinkedHashMap<>();
+        for (Outcome outcome : ALL) {
+            all.put(outcome.id(), outcome);
+        }
+        for (String zone : Themes.BY_ZONE.keySet()) {
+            for (Outcome outcome : Themes.outcomesFor(zone)) {
+                all.putIfAbsent(outcome.id(), outcome);
+            }
+        }
+        return all;
     }
 
     public static Outcome pick(RandomSource random, int luck) {
