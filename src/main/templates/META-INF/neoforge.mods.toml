@@ -21,3 +21,6 @@ Lucky blocks with good and bad outcomes, some hidden in the world as near-perfec
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[accessTransformers]]
+    file="META-INF/accesstransformer.cfg"

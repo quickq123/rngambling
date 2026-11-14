@@ -1,0 +1,12 @@
+{
+  "wants": {
+    "id": "rngambling:casino_token",
+    "count": 16.0
+  },
+  "gives": {
+    "id": "rngambling:four_leaf_clover"
+  },
+  "max_uses": 8.0,
+  "reputation_discount": 0.05,
+  "xp": 10.0
+}

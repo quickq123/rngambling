@@ -1,0 +1,8 @@
+{
+  "amount": 2.0,
+  "random_sequence": "rngambling:trade_set/dealer/level_1",
+  "trades": [
+    "rngambling:dealer/1/emerald_tokens",
+    "rngambling:dealer/1/tokens_lucky_block"
+  ]
+}

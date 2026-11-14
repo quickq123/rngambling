@@ -24,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import rngambling.RNGambling;
 import rngambling.block.LuckyBlockEntity;
+import rngambling.casino.SlotMachineBlock;
 
 /**
  * A development aid: with {@code -Drngambling.screenshots=true} (gradlew runClientShots) the game
@@ -76,8 +77,8 @@ public final class ScreenshotRun {
                     minecraft.options.onboardAccessibility = false;
                     LevelSettings settings = new LevelSettings(WORLD, GameType.CREATIVE,
                             new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), true, WorldDataConfiguration.DEFAULT);
-                    minecraft.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(1L, NORMAL_WORLD || ZONES, false),
-                            NORMAL_WORLD || ZONES ? WorldPresets::createNormalWorldDimensions : WorldPresets::createFlatWorldDimensions,
+                    minecraft.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(1L, NORMAL_WORLD || ZONES || VILLAGES, false),
+                            NORMAL_WORLD || ZONES || VILLAGES ? WorldPresets::createNormalWorldDimensions : WorldPresets::createFlatWorldDimensions,
                             new TitleScreen());
                 }
                 return;
@@ -399,7 +400,123 @@ public final class ScreenshotRun {
                 lucks.isEmpty() ? "-" : lucks.getFirst(), lucks.isEmpty() ? "-" : lucks.getLast(), good, middle, lucks);
     }
 
+    /** -PshotsWorld=casino: the plains casino and a villager who should take the job. */
+    private static final boolean CASINO = "casino".equals(System.getProperty("rngambling.shotsWorld"));
+    private static net.minecraft.world.entity.npc.villager.Villager dealer;
+    private static net.minecraft.core.Direction machineFacing = net.minecraft.core.Direction.SOUTH;
+
+    /**
+     * The casino: places the plains casino in the flat world, puts an unemployed villager inside,
+     * waits for it to take the Slot Machine as its job, then pictures the house, the dealer and
+     * its trades.
+     */
+    private static void planCasino() {
+        then(10, minecraft -> {
+            minecraft.options.hideGui = true;
+            onServer(minecraft, player -> {
+                ServerLevel level = player.level();
+                base = player.blockPosition().offset(-4, -1, -12);
+                level.getServer().getCommands().performPrefixedCommand(
+                        level.getServer().createCommandSourceStack().withSuppressedOutput(), "time set noon");
+                var template = level.getStructureManager().getOrCreate(RNGambling.id("village/plains/casino"));
+                template.placeInWorld(level, base, base, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(),
+                        level.getRandom(), net.minecraft.world.level.block.Block.UPDATE_ALL);
+                BlockPos machine = template.filterBlocks(base, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(),
+                        RNGambling.SLOT_MACHINE.get()).getFirst().pos();
+                LOGGER.info("Screenshot run: casino placed at {}, slot machine at {}", base.toShortString(), machine.toShortString());
+                dealer = net.minecraft.world.entity.EntityType.VILLAGER.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+                machineFacing = level.getBlockState(machine).getValue(SlotMachineBlock.FACING);
+                BlockPos inside = machine.relative(machineFacing);
+                dealer.snapTo(Vec3.atBottomCenterOf(inside));
+                level.addFreshEntity(dealer);
+            });
+        });
+        // Wait for the villager to take the job: check every 5 seconds, for up to 2 minutes.
+        for (int i = 0; i < 6; i++) {
+            int seconds = 5 * (i + 1);
+            then(100, minecraft -> onServer(minecraft, player -> {
+                if (dealer != null && !dealer.isRemoved()) {
+                    var profession = dealer.getVillagerData().profession();
+                    if (seconds % 15 == 0 || profession.is(RNGambling.DEALER.getKey())) {
+                        LOGGER.info("Screenshot run: after {} s the villager is a {}", seconds, profession.getRegisteredName());
+                    }
+                }
+            }));
+        }
+        view("20-casino-outside", new Vec3(4, 6, 18), new Vec3(4, 2, 4));
+        then(30, minecraft -> onServer(minecraft, player -> {
+            if (dealer != null) {
+                // The room is too small for a portrait: freeze the dealer out on the grass, facing south, and look from the front.
+                dealer.setNoAi(true);
+                Vec3 spot = Vec3.atBottomCenterOf(base.offset(4, 1, 16));
+                dealer.snapTo(spot.x, spot.y, spot.z, 0, 0);
+                dealer.setYHeadRot(0);
+                dealer.setYBodyRot(0);
+                look(player, spot.add(0, 1.6, 2.4), spot.add(0, 1.2, 0));
+            }
+        }));
+        then(10, minecraft -> shot(minecraft, "21-dealer"));
+        then(10, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> {
+                if (dealer != null) {
+                    dealer.mobInteract(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+                }
+            });
+        });
+        then(30, minecraft -> shot(minecraft, "22-dealer-trades"));
+        then(20, Minecraft::stop);
+    }
+
+    /** -PshotsWorld=villages: how many of the nearest villages have a casino (from their layouts only). */
+    private static final boolean VILLAGES = "villages".equals(System.getProperty("rngambling.shotsWorld"));
+
+    private static void planVillages() {
+        java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
+        int[] counts = new int[3]; // villages, with a casino, casinos
+        then(5, minecraft -> onServer(minecraft, player -> candidates.addAll(
+                findStructure(player.level().getServer().overworld(), "village_plains", "villages", 64))));
+        for (int i = 0; i < 60; i++) {
+            int index = i;
+            then(2, minecraft -> onServer(minecraft, player -> {
+                if (index >= candidates.size()) {
+                    return;
+                }
+                ServerLevel overworld = player.level().getServer().overworld();
+                var villages = overworld.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                        .getOrThrow(net.minecraft.tags.StructureTags.VILLAGE);
+                var found = overworld.getChunkSource().getGenerator().findNearestMapStructure(overworld, villages, candidates.get(index), 0, false);
+                if (found == null) {
+                    return;
+                }
+                net.minecraft.world.level.ChunkPos chunk = net.minecraft.world.level.ChunkPos.containing(found.getFirst());
+                var starts = overworld.getChunk(chunk.x(), chunk.z(), net.minecraft.world.level.chunk.status.ChunkStatus.STRUCTURE_STARTS).getAllStarts();
+                for (var start : starts.values()) {
+                    if (!start.isValid() || !found.getSecond().value().equals(start.getStructure())) {
+                        continue;
+                    }
+                    long casinos = start.getPieces().stream().filter(p -> p.toString().contains("rngambling:village")).count();
+                    counts[0]++;
+                    counts[1] += casinos > 0 ? 1 : 0;
+                    counts[2] += (int) casinos;
+                    LOGGER.info("Screenshot run: {} at {}: {} pieces, {} casino(s)", found.getSecond().getRegisteredName(),
+                            found.getFirst().toShortString(), start.getPieces().size(), casinos);
+                }
+            }));
+        }
+        then(5, minecraft -> LOGGER.info("Screenshot run: {} villages, {} with a casino ({} casinos)", counts[0], counts[1], counts[2]));
+        then(20, Minecraft::stop);
+    }
+
     private static void plan() {
+        if (VILLAGES) {
+            planVillages();
+            return;
+        }
+        if (CASINO) {
+            planCasino();
+            return;
+        }
         if (ZONES) {
             planZones();
             return;

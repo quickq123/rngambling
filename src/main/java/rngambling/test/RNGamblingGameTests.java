@@ -45,7 +45,86 @@ public final class RNGamblingGameTests {
             "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing,
             "mimic_wand", RNGamblingGameTests::mimicWand,
             "world_generation", RNGamblingGameTests::worldGeneration,
-            "luck_zones", RNGamblingGameTests::luckZones);
+            "luck_zones", RNGamblingGameTests::luckZones,
+            "casino", RNGamblingGameTests::casino,
+            "luck_charms", RNGamblingGameTests::luckCharms);
+
+    /**
+     * The casino's pieces: the dealer's trades load (with luck on the lucky blocks they sell), the
+     * Slot Machine is the dealer's job site, and every village type has a casino house with a
+     * Slot Machine in it.
+     */
+    private static void casino(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        var tradeSets = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TRADE_SET);
+        java.util.Set<Integer> lucks = new java.util.TreeSet<>();
+        for (int tier = 1; tier <= 5; tier++) {
+            var set = tradeSets.getValue(RNGambling.id("dealer/level_" + tier));
+            helper.assertTrue(set != null && set.getTrades().size() == 2, "dealer level " + tier + " should have 2 trades");
+            for (var trade : set.getTrades()) {
+                // The trade's fields are private, so read it back as JSON.
+                var json = net.minecraft.world.item.trading.VillagerTrade.CODEC.encodeStart(
+                        level.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE), trade.value())
+                        .getOrThrow().getAsJsonObject().getAsJsonObject("gives");
+                if (json.get("id").getAsString().equals("rngambling:lucky_block")) {
+                    var components = json.getAsJsonObject("components");
+                    lucks.add(components == null || !components.has("rngambling:luck") ? 0 : components.get("rngambling:luck").getAsInt());
+                }
+            }
+        }
+        helper.assertTrue(lucks.equals(new java.util.TreeSet<>(java.util.List.of(0, 15, 30, 50, 75))),
+                "the dealer's lucky blocks should have luck 0, 15, 30, 50 and 75, not " + lucks);
+
+        var poi = net.minecraft.world.entity.ai.village.poi.PoiTypes.forState(RNGambling.SLOT_MACHINE.get().defaultBlockState());
+        helper.assertTrue(poi.isPresent() && RNGambling.DEALER.get().acquirableJobSite().test(poi.get()),
+                "the Slot Machine should be the Casino Dealer's job site");
+        helper.assertTrue(poi.get().is(net.minecraft.tags.PoiTypeTags.ACQUIRABLE_JOB_SITE), "villagers should look for it as a job site");
+
+        var pools = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TEMPLATE_POOL);
+        for (String village : new String[] {"plains", "desert", "savanna", "snowy", "taiga"}) {
+            var pool = pools.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + village + "/houses"));
+            helper.assertTrue(pool.templates.stream().anyMatch(e -> e.toString().contains("rngambling:village/" + village + "/casino")),
+                    "the " + village + " village houses should include the casino");
+            var template = level.getStructureManager().get(RNGambling.id("village/" + village + "/casino"));
+            helper.assertTrue(template.isPresent(), "the " + village + " casino structure should load");
+            boolean hasMachine = template.get().filterBlocks(BlockPos.ZERO,
+                    new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(), RNGambling.SLOT_MACHINE.get()).size() == 1;
+            helper.assertTrue(hasMachine, "the " + village + " casino should have one Slot Machine");
+        }
+        helper.succeed();
+    }
+
+    /** Charms raise a lucky block's luck by their amount, stop at the most there is, and are used up. */
+    private static void luckCharms(GameTestHelper helper) {
+        ServerPlayer survival = player(helper, GameType.SURVIVAL);
+        try {
+            BlockPos pos = new BlockPos(1, 1, 1);
+            helper.setBlock(pos, RNGambling.LUCKY_BLOCK.get());
+            LuckyBlockEntity lucky = helper.getBlockEntity(pos, LuckyBlockEntity.class);
+            int[] expected = {10, 35, 85, 100};
+            net.minecraft.world.item.Item[] charms = {RNGambling.FOUR_LEAF_CLOVER.get(), RNGambling.GOLDEN_HORSESHOE.get(),
+                    RNGambling.LUCKY_SEVEN.get(), RNGambling.LUCKY_SEVEN.get()};
+            for (int i = 0; i < charms.length; i++) {
+                ItemStack charm = new ItemStack(charms[i], 2);
+                survival.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, charm);
+                BlockPos abs = helper.absolutePos(pos);
+                charm.useOn(new net.minecraft.world.item.context.UseOnContext(survival, net.minecraft.world.InteractionHand.MAIN_HAND,
+                        new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(abs), net.minecraft.core.Direction.UP, abs, false)));
+                helper.assertTrue(lucky.luck() == expected[i], "after charm " + (i + 1) + " luck should be " + expected[i] + ", not " + lucky.luck());
+                helper.assertTrue(charm.getCount() == 1, "a charm should be used up");
+            }
+            // At the most there is, a charm isn't used.
+            ItemStack spare = new ItemStack(RNGambling.FOUR_LEAF_CLOVER.get());
+            survival.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, spare);
+            BlockPos abs = helper.absolutePos(pos);
+            spare.useOn(new net.minecraft.world.item.context.UseOnContext(survival, net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(abs), net.minecraft.core.Direction.UP, abs, false)));
+            helper.assertTrue(spare.getCount() == 1 && lucky.luck() == Luck.MAX, "a charm shouldn't be used on a block already at the most luck");
+        } finally {
+            helper.getLevel().getServer().getPlayerList().remove(survival);
+        }
+        helper.succeed();
+    }
 
     /** The shipped zone files load, the Overworld zone applies here, and each zone's rolls stay in its range. */
     private static void luckZones(GameTestHelper helper) {

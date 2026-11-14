@@ -1,0 +1,12 @@
+{
+  "wants": {
+    "id": "rngambling:casino_token",
+    "count": 48.0
+  },
+  "gives": {
+    "id": "rngambling:lucky_seven"
+  },
+  "max_uses": 3.0,
+  "reputation_discount": 0.05,
+  "xp": 30.0
+}

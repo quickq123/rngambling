@@ -37,6 +37,11 @@ import rngambling.item.MimicWandItem;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import rngambling.worldgen.LuckyBlockFeature;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
+import rngambling.casino.CasinoHouses;
+import rngambling.casino.SlotMachineBlock;
+import rngambling.item.LuckCharmItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -97,6 +102,38 @@ public final class RNGambling {
                             .setEquipSound(SoundEvents.ARMOR_EQUIP_GENERIC)
                             .build()));
 
+    /** The Casino Dealer's job site. Not craftable: found only in village casinos. */
+    public static final DeferredBlock<SlotMachineBlock> SLOT_MACHINE = BLOCKS.registerBlock("slot_machine", SlotMachineBlock::new,
+            properties -> properties.mapColor(MapColor.COLOR_RED).strength(3.5f).sound(SoundType.METAL).requiresCorrectToolForDrops());
+    public static final DeferredItem<BlockItem> SLOT_MACHINE_ITEM = ITEMS.registerSimpleBlockItem(SLOT_MACHINE);
+
+    /** One-use luck charms, sold by the Casino Dealer. */
+    public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
+            properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));
+    public static final DeferredItem<LuckCharmItem> GOLDEN_HORSESHOE = ITEMS.registerItem("golden_horseshoe",
+            properties -> new LuckCharmItem(25, properties), () -> new Item.Properties().rarity(Rarity.RARE));
+    public static final DeferredItem<LuckCharmItem> LUCKY_SEVEN = ITEMS.registerItem("lucky_seven",
+            properties -> new LuckCharmItem(50, properties), () -> new Item.Properties().rarity(Rarity.EPIC));
+
+    private static final DeferredRegister<PoiType> POI_TYPES = DeferredRegister.create(Registries.POINT_OF_INTEREST_TYPE, MOD_ID);
+    /** Casino machines, as places a villager can work. */
+    public static final DeferredHolder<PoiType, PoiType> CASINO_MACHINE = POI_TYPES.register("casino_machine",
+            () -> new PoiType(com.google.common.collect.ImmutableSet.copyOf(SLOT_MACHINE.get().getStateDefinition().getPossibleStates()), 1, 1));
+
+    private static final DeferredRegister<VillagerProfession> PROFESSIONS = DeferredRegister.create(Registries.VILLAGER_PROFESSION, MOD_ID);
+    /** Works a casino machine; trades Casino Tokens for lucky blocks and luck charms (data/rngambling/trade_set/dealer). */
+    public static final DeferredHolder<VillagerProfession, VillagerProfession> DEALER = PROFESSIONS.register("dealer", () -> {
+        it.unimi.dsi.fastutil.ints.Int2ObjectMap<ResourceKey<net.minecraft.world.item.trading.TradeSet>> trades =
+                new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
+        for (int level = 1; level <= 5; level++) {
+            trades.put(level, ResourceKey.create(Registries.TRADE_SET, id("dealer/level_" + level)));
+        }
+        return new VillagerProfession(Component.translatable("entity.rngambling.villager.dealer"),
+                poi -> poi.is(CASINO_MACHINE.getKey()), poi -> poi.is(CASINO_MACHINE.getKey()),
+                com.google.common.collect.ImmutableSet.of(), com.google.common.collect.ImmutableSet.of(),
+                SoundEvents.VILLAGER_WORK_CLERIC, trades);
+    });
+
     private static final DeferredRegister<Feature<?>> FEATURES = DeferredRegister.create(Registries.FEATURE, MOD_ID);
     /** World generation (see LuckyBlockFeature, and data/rngambling/worldgen and neoforge/biome_modifier). */
     public static final DeferredHolder<Feature<?>, LuckyBlockFeature> SURFACE_LUCKY_BLOCK = FEATURES.register("surface_lucky_block",
@@ -116,6 +153,10 @@ public final class RNGambling {
                             output.accept(LuckyBlockItem.withLuck(luck));
                         }
                         output.accept(CASINO_TOKEN.get());
+                        output.accept(FOUR_LEAF_CLOVER.get());
+                        output.accept(GOLDEN_HORSESHOE.get());
+                        output.accept(LUCKY_SEVEN.get());
+                        output.accept(SLOT_MACHINE_ITEM.get());
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
                     })
@@ -128,6 +169,9 @@ public final class RNGambling {
         BLOCK_ENTITY_TYPES.register(modBus);
         CREATIVE_TABS.register(modBus);
         FEATURES.register(modBus);
+        POI_TYPES.register(modBus);
+        PROFESSIONS.register(modBus);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RNGamblingConfig.SPEC);
         // Luck zones: datapack files in data/<namespace>/rngambling/luck_zone/ (see LuckZone).
         modBus.addListener((net.neoforged.neoforge.registries.DataPackRegistryEvent.NewRegistry event) ->

@@ -61,6 +61,31 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   the luck zone there; right-click a disguised one to see what it copies, its luck and its
   zone; sneak + right-click to turn it back.
 
+## The casino
+
+- **Casino buildings** (done): each village type's vanilla Fletcher House with its fletching
+  table swapped for a Slot Machine facing into the room (`tools/make_structures.py` makes
+  them from the vanilla files; `CasinoHouses` adds them to the village house pools at three
+  times the Fletcher House's weight). In a survey, 9 of 19 villages had one (some two).
+- **Slot Machine** (job site done; playing it is step 5): can't be crafted, mined with a
+  pickaxe and drops itself (open: should it?).
+- **Casino Dealer** (done): a villager profession whose job site is any casino machine (the
+  `rngambling:casino_machine` point of interest). Black vest, white shirt, red bow tie, green
+  visor. Trades (data files: `data/rngambling/villager_trade/dealer/<level>/`, and
+  `trade_set/dealer/level_<n>.json`), two per level:
+
+  | Level | Trades |
+  |---|---|
+  | Novice | 1 emerald for 3 tokens; 8 tokens for a lucky block (luck 0) |
+  | Apprentice | 12 tokens for a lucky block (+15); 16 tokens for a Four-Leaf Clover |
+  | Journeyman | 20 tokens for a lucky block (+30); 24 tokens for a Golden Horseshoe |
+  | Expert | 32 tokens for a lucky block (+50); 6 tokens for an emerald |
+  | Master | 40 tokens for a lucky block (+75); 48 tokens for a Lucky Seven |
+
+- **Luck charms** (done): one use each, on any lucky block (bought or disguised): Four-Leaf
+  Clover +10, Golden Horseshoe +25, Lucky Seven +50, up to +100. Survival players are only
+  told the block "feels luckier"; a charm isn't used on a block already at +100.
+
 ## Plan
 
 1. ~~Bought lucky block, luck, 23 outcomes, the break rules.~~ Done.
@@ -68,9 +93,9 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
    blocks within 32 blocks show their luck through walls, red to white to green (drawn on
    the HUD, since the game doesn't draw underground spaces the player can't see).
 3. ~~The disguised block, the Mimic Wand and world generation.~~ Done.
-4. Casino tokens (done as an item), the casino villager (the machines are its job sites) and its
-   trades: tokens for lucky blocks, then one-use luck boosters.
-5. Slot machine and the casino hut in villages. Machines can't be crafted.
+4. ~~Casino tokens, the Casino Dealer and its trades, the luck charms, and the casino
+   buildings in villages.~~ Done.
+5. Playing the Slot Machine. Machines can't be crafted.
 6. Roulette, then blackjack. All game logic runs on the server.
 7. Themed outcomes per luck zone (Nether: blazes instead of zombies, fire; End: shulkers,
    levitation, ender pearls; ...).
@@ -87,5 +112,10 @@ Open: what happens when a casino machine is broken; the machines' house edge.
   the chunks around the player, and pictures one on the surface and one in a cave.
   `-PshotsWorld=zones` surveys each luck zone: the Overworld, the Nether, the End, then the
   nearest Ancient City and Woodland Mansion (`-PstructuresOnly` for just those two).
+  `-PshotsWorld=casino` places the plains casino with a villager, checks it becomes a Casino
+  Dealer, and pictures it and its trades. `-PshotsWorld=villages` counts the casinos in the
+  nearest villages (from their layouts, without generating terrain).
+- Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla
+  houses it starts from).
 - Textures: `tools/make_textures.py`, run in Docker (see its header).
 - Add an outcome: one line in `Outcomes.ALL` and its message in `lang/en_us.json`.

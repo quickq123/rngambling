@@ -1,0 +1,12 @@
+{
+  "wants": {
+    "id": "rngambling:casino_token",
+    "count": 24.0
+  },
+  "gives": {
+    "id": "rngambling:golden_horseshoe"
+  },
+  "max_uses": 6.0,
+  "reputation_discount": 0.05,
+  "xp": 15.0
+}
