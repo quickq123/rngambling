@@ -25,11 +25,10 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
     private static final int ANIMATION_TICKS = 60;
 
     private static final Roulette.Bet[] KIND_BUTTONS = {
-            Roulette.Bet.RED, Roulette.Bet.BLACK, Roulette.Bet.ODD, Roulette.Bet.EVEN,
-            Roulette.Bet.LOW, Roulette.Bet.HIGH, Roulette.Bet.DOZEN_1, Roulette.Bet.DOZEN_2,
-            Roulette.Bet.DOZEN_3};
+            Roulette.Bet.RED, Roulette.Bet.BLACK, Roulette.Bet.GREEN, Roulette.Bet.ODD, Roulette.Bet.EVEN,
+            Roulette.Bet.LOW, Roulette.Bet.HIGH, Roulette.Bet.DOZEN_1, Roulette.Bet.DOZEN_2, Roulette.Bet.DOZEN_3};
     private final Button[] kinds = new Button[KIND_BUTTONS.length];
-    private final Button[] bets = new Button[Roulette.BETS.length];
+    private final BetControls bets = new BetControls(rngambling.casino.Bets.ROULETTE, 32, 140);
     private Button numberDown, numberUp, number, spin;
 
     private int ticks;
@@ -51,7 +50,7 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
         for (int i = 0; i < KIND_BUTTONS.length; i++) {
             int id = RouletteMenu.BUTTON_KIND + KIND_BUTTONS[i].ordinal();
             kinds[i] = addRenderableWidget(Button.builder(Component.empty(), b -> click(id))
-                    .bounds(leftPos + 12 + (i % 4) * 45, topPos + 74 + (i / 4) * 20, 44, 18).build());
+                    .bounds(leftPos + 12 + (i % 5) * 36, topPos + 74 + (i / 5) * 20, 35, 18).build());
         }
         numberDown = addRenderableWidget(Button.builder(Component.literal("<"), b -> click(RouletteMenu.BUTTON_NUMBER_DOWN))
                 .bounds(leftPos + 57, topPos + 114, 14, 18).build());
@@ -59,11 +58,7 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
                 .bounds(leftPos + 72, topPos + 114, 70, 18).build());
         numberUp = addRenderableWidget(Button.builder(Component.literal(">"), b -> click(RouletteMenu.BUTTON_NUMBER_UP))
                 .bounds(leftPos + 143, topPos + 114, 14, 18).build());
-        for (int i = 0; i < bets.length; i++) {
-            int id = i;
-            bets[i] = addRenderableWidget(Button.builder(Component.empty(), b -> click(id))
-                    .bounds(leftPos + 34 + i * 25, topPos + 140, 24, 18).build());
-        }
+        bets.init(leftPos, topPos, this::addRenderableWidget, this::click);
         spin = addRenderableWidget(Button.builder(Component.translatable("screen.rngambling.slot_machine.spin"), b -> click(RouletteMenu.BUTTON_SPIN))
                 .bounds(leftPos + 128, topPos + 138, 64, 22).build());
     }
@@ -129,10 +124,7 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
         numberDown.active = numberUp.active = number.active = !busy;
         number.setMessage(chosen(Component.translatable("screen.rngambling.roulette.bet.number", menu.data(RouletteMenu.NUMBER)),
                 menu.kind() == Roulette.Bet.NUMBER));
-        for (int i = 0; i < bets.length; i++) {
-            bets[i].active = !busy;
-            bets[i].setMessage(chosen(Component.literal(String.valueOf(Roulette.BETS[i])), Roulette.BETS[i] == menu.bet()));
-        }
+        bets.update(!busy, menu.bet());
         spin.active = !busy && menu.data(RouletteMenu.TOKENS) >= menu.bet();
     }
 
@@ -186,13 +178,14 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
             Component landed = Component.translatable(number == 0 ? "screen.rngambling.roulette.green"
                     : Roulette.isRed(number) ? "screen.rngambling.roulette.red" : "screen.rngambling.roulette.black", number);
             int win = menu.data(RouletteMenu.LAST_WIN);
-            result = win > 0 ? Component.translatable("screen.rngambling.roulette.win", landed, win)
+            result = win > 0 ? Component.translatable("screen.rngambling.roulette.win", landed, win, win - menu.data(RouletteMenu.LAST_BET))
                     : Component.translatable("screen.rngambling.roulette.lose", landed);
             colour = win > 0 ? 0xFF7CFF7C : 0xFFFFB0B0;
         }
         graphics.centeredText(font, result, WIDTH / 2, 50, colour);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.tokens", menu.data(RouletteMenu.TOKENS)), 12, 62, WHITE, false);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.bet"), 12, 145, GOLD, false);
+        bets.drawAmount(graphics, font, menu.bet(), WHITE);
         Roulette.Bet kind = menu.kind();
         graphics.text(font, Component.translatable("screen.rngambling.roulette.pays", menu.bet(),
                 kind == Roulette.Bet.NUMBER ? Component.translatable("screen.rngambling.roulette.bet.number", menu.data(RouletteMenu.NUMBER)) : kindLabel(kind),

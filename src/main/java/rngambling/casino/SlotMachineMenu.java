@@ -19,12 +19,12 @@ import rngambling.RNGambling;
  */
 public class SlotMachineMenu extends AbstractContainerMenu {
     public static final int BUTTON_SPIN = 10;
-    /** Buttons 0, 1, 2 choose {@link SlotMachine#BETS}. */
+    /** Buttons 0 to 3 change the bet (see {@link Bets}). */
     public static final int SPIN_TICKS = 32;
 
     // Data slots, synced to the screen.
-    public static final int REEL_0 = 0, REEL_1 = 1, REEL_2 = 2, SPINS = 3, LAST_WIN = 4, BET = 5, TOKENS = 6, PAID = 7;
-    private static final int DATA_SIZE = 8;
+    public static final int REEL_0 = 0, REEL_1 = 1, REEL_2 = 2, SPINS = 3, LAST_WIN = 4, BET = 5, TOKENS = 6, PAID = 7, LAST_BET = 8;
+    private static final int DATA_SIZE = 9;
 
     private final BlockPos pos;
     private final Player player;
@@ -40,6 +40,7 @@ public class SlotMachineMenu extends AbstractContainerMenu {
         this.player = inventory.player;
         this.data = new SimpleContainerData(DATA_SIZE);
         addDataSlots(data);
+        data.set(BET, Bets.SLOTS.start());
         data.set(REEL_0, SlotMachine.Symbol.SEVEN.ordinal());
         data.set(REEL_1, SlotMachine.Symbol.SEVEN.ordinal());
         data.set(REEL_2, SlotMachine.Symbol.SEVEN.ordinal());
@@ -54,7 +55,7 @@ public class SlotMachineMenu extends AbstractContainerMenu {
     }
 
     public int bet() {
-        return SlotMachine.BETS[Math.floorMod(data.get(BET), SlotMachine.BETS.length)];
+        return Bets.SLOTS.clamp(data.get(BET));
     }
 
     /** Whether a spin's win is still to be paid (the reels are still turning on the screen). */
@@ -64,9 +65,9 @@ public class SlotMachineMenu extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id >= 0 && id < SlotMachine.BETS.length) {
+        if (Bets.isButton(id)) {
             if (!spinning()) {
-                data.set(BET, id);
+                data.set(BET, Bets.SLOTS.adjust(bet(), id));
             }
             return true;
         }
@@ -91,6 +92,7 @@ public class SlotMachineMenu extends AbstractContainerMenu {
         pendingPrize = SlotMachine.winsLuckyBlock(reels);
         payAt = player.level().getGameTime() + SPIN_TICKS;
         data.set(LAST_WIN, 0);
+        data.set(LAST_BET, bet);
         data.set(SPINS, data.get(SPINS) + 1);
         player.level().playSound(null, pos, SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 0.8f, 0.7f);
     }
@@ -153,8 +155,10 @@ public class SlotMachineMenu extends AbstractContainerMenu {
     /** Runs every tick while the screen is open, on the server: pays wins when due, and keeps the token count current. */
     @Override
     public void broadcastChanges() {
-        if (player instanceof ServerPlayer) {
+        if (player instanceof ServerPlayer serverPlayer) {
             payOut(player, false);
+            // Bets and wins change the inventory while this screen is open: keep the hotbar showing it.
+            serverPlayer.inventoryMenu.broadcastChanges();
             data.set(TOKENS, countTokens(player.getInventory()));
         }
         super.broadcastChanges();

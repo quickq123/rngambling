@@ -15,7 +15,6 @@ import net.minecraft.util.RandomSource;
  */
 public final class Blackjack {
     /** Bets a player can choose, in tokens: even, so a 3 to 2 blackjack pays whole tokens. */
-    public static final int[] BETS = {2, 6, 10};
 
     private Blackjack() {
     }

@@ -49,6 +49,7 @@ public class BlackjackMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.player = inventory.player;
         addDataSlots(data);
+        data.set(BET, Bets.BLACKJACK.start());
     }
 
     public int data(int index) {
@@ -56,7 +57,7 @@ public class BlackjackMenu extends AbstractContainerMenu {
     }
 
     public int bet() {
-        return Blackjack.BETS[Math.floorMod(data.get(BET), Blackjack.BETS.length)];
+        return Bets.BLACKJACK.clamp(data.get(BET));
     }
 
     public Phase phase() {
@@ -85,8 +86,8 @@ public class BlackjackMenu extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return true;
         }
-        if (id >= 0 && id < Blackjack.BETS.length && phase == Phase.BETTING) {
-            data.set(BET, id);
+        if (Bets.isButton(id) && phase == Phase.BETTING) {
+            data.set(BET, Bets.BLACKJACK.adjust(bet(), id));
         } else if (id == BUTTON_DEAL && phase == Phase.BETTING) {
             deal(serverPlayer);
         } else if (id == BUTTON_HIT && phase == Phase.PLAYER) {
@@ -193,8 +194,10 @@ public class BlackjackMenu extends AbstractContainerMenu {
 
     @Override
     public void broadcastChanges() {
-        if (player instanceof ServerPlayer) {
+        if (player instanceof ServerPlayer serverPlayer) {
             dealerStep(player, false);
+            // Bets and wins change the inventory while this screen is open: keep the hotbar showing it.
+            serverPlayer.inventoryMenu.broadcastChanges();
             sync();
             data.set(TOKENS, Tokens.count(player.getInventory()));
         }

@@ -22,7 +22,7 @@ public class BlackjackScreen extends AbstractContainerScreen<BlackjackMenu> {
     private static final int CARD_W = 24, CARD_H = 32;
     private static final String[] RANKS = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
 
-    private final Button[] bets = new Button[Blackjack.BETS.length];
+    private final BetControls bets = new BetControls(rngambling.casino.Bets.BLACKJACK, 32, 160);
     private Button deal, hit, stand, doubleDown;
 
     public BlackjackScreen(BlackjackMenu menu, Inventory inventory, Component title) {
@@ -36,11 +36,7 @@ public class BlackjackScreen extends AbstractContainerScreen<BlackjackMenu> {
         hit = addRenderableWidget(button("hit", BlackjackMenu.BUTTON_HIT, 58, 136, 42));
         stand = addRenderableWidget(button("stand", BlackjackMenu.BUTTON_STAND, 104, 136, 42));
         doubleDown = addRenderableWidget(button("double", BlackjackMenu.BUTTON_DOUBLE, 150, 136, 42));
-        for (int i = 0; i < bets.length; i++) {
-            int id = i;
-            bets[i] = addRenderableWidget(Button.builder(Component.empty(), b -> click(id))
-                    .bounds(leftPos + 34 + i * 25, topPos + 160, 24, 18).build());
-        }
+        bets.init(leftPos, topPos, this::addRenderableWidget, this::click);
     }
 
     private Button button(String name, int id, int x, int y, int width) {
@@ -63,12 +59,7 @@ public class BlackjackScreen extends AbstractContainerScreen<BlackjackMenu> {
         deal.active = phase == BlackjackMenu.Phase.BETTING && tokens >= menu.bet();
         hit.active = stand.active = phase == BlackjackMenu.Phase.PLAYER;
         doubleDown.active = phase == BlackjackMenu.Phase.PLAYER && menu.cards(false).size() == 2 && tokens >= menu.data(BlackjackMenu.STAKE);
-        for (int i = 0; i < bets.length; i++) {
-            bets[i].active = phase == BlackjackMenu.Phase.BETTING;
-            String label = String.valueOf(Blackjack.BETS[i]);
-            bets[i].setMessage(Blackjack.BETS[i] == menu.bet()
-                    ? Component.literal("[" + label + "]").withStyle(ChatFormatting.YELLOW) : Component.literal(label));
-        }
+        bets.update(phase == BlackjackMenu.Phase.BETTING, menu.bet());
     }
 
     @Override
@@ -137,11 +128,13 @@ public class BlackjackScreen extends AbstractContainerScreen<BlackjackMenu> {
             line = Component.translatable("screen.rngambling.slot_machine.ready");
         } else {
             int win = menu.data(BlackjackMenu.LAST_WIN);
-            line = Component.translatable("screen.rngambling.blackjack.outcome." + outcome.name().toLowerCase(java.util.Locale.ROOT), win);
+            line = Component.translatable("screen.rngambling.blackjack.outcome." + outcome.name().toLowerCase(java.util.Locale.ROOT), win,
+                    win - menu.data(BlackjackMenu.STAKE));
             colour = win > menu.data(BlackjackMenu.STAKE) ? 0xFF7CFF7C : win == menu.data(BlackjackMenu.STAKE) ? WHITE : 0xFFFFB0B0;
         }
         graphics.centeredText(font, line, WIDTH / 2, 118, colour);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.tokens", menu.data(BlackjackMenu.TOKENS)), 120, 165, WHITE, false);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.bet"), 12, 165, GOLD, false);
+        bets.drawAmount(graphics, font, menu.bet(), WHITE);
     }
 }

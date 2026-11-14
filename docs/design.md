@@ -214,15 +214,15 @@ Sandbox, pictures it and leaves by its way out.
   Roulette Table and Blackjack Table (`tools/make_structures.py` makes them from the vanilla
   files; `CasinoHouses` adds them to the village house pools, together at three times the
   Fletcher House's weight). In a survey, 9 of 19 villages had a casino (some two).
-- **Slot Machine** (done): right-click to play. Bet 1, 5 or 10 tokens (taken from the
-  inventory), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
+- **Slot Machine** (done): right-click to play. Bet 1 to 100 tokens (taken from the
+  inventory; see Betting below), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
   decided on the server (`SlotMachine`, `SlotMachineMenu`); the win is paid as the last reel
   stops, or at once if the screen is closed. Like a real casino it's weighted slightly
   against the player: it pays back **91.6%** of tokens bet (an 8.4% house edge; the
   `slot_machine` game test checks the exact figure is 90-94%, and a 300,000-spin simulation
   gave 91.9%). About 1 spin in 4 wins something. Reel weights (out of 24) and pay table:
 
-  | Symbol | On a reel | Three pay (x bet) |
+  | Symbol | On a reel | Three pay (x bet, the bet included) |
   |---|---|---|
   | Cherry | 7 | 8 (any two cherries: 2) |
   | Lemon | 6 | 10 |
@@ -232,18 +232,24 @@ Sandbox, pictures it and leaves by its way out.
   | Lucky block | 2 | 20, plus a Lucky Block |
 
   Mined with a pickaxe.
-- **Roulette Table** (done): European roulette, one zero and 1-36. Bet 1, 5 or 10 on red,
-  black, odd, even, 1-18, 19-36, a dozen (pays 2 to 1) or a single number (35 to 1); even
-  bets pay 1 to 1. The wheel is shown as a strip of its pockets in wheel order, slowing to a
+- **Roulette Table** (done): European roulette, one zero and 1-36. Bet 1 to 100 on red,
+  black, green (the zero, 35 to 1), odd, even, 1-18, 19-36, a dozen (pays 2 to 1) or a single
+  number (35 to 1); even bets pay 1 to 1. The wheel is shown as a strip of its pockets in wheel order, slowing to a
   stop under a marker. The usual casino odds make every bet return exactly 36/37: a
   **2.7%** house edge, as in a real casino (`roulette` game test). Mined with an axe.
 - **Blackjack Table** (done): against the dealer, from an endlessly shuffled deck. Deal, then
   Hit, Stand or Double (first two cards only); no splitting. The dealer hits a soft 17 and
-  plays out one card at a time; blackjack pays 3 to 2; bets are 2, 6 or 10 so that comes to
+  plays out one card at a time; blackjack pays 3 to 2; bets are 2 to 100 in steps of 2 so that comes to
   whole tokens. The dealer's face-down card isn't sent to the player's game until it's
   turned over. Closing the screen mid-hand stands. Played perfectly (basic strategy) the
   house keeps **1.2%** of the starting bet (a million simulated hands in the `blackjack`
   game test); played carelessly, more. Mined with an axe.
+- **Betting** (all three games): « and » change the bet by 10, − and + by one (2 at
+  blackjack), between the least bet and 100 (`Bets`). The bet is taken, and the result decided,
+  the moment Spin or Deal is pressed: closing the screen can't take it back (a pending win is
+  paid at once; a blackjack hand mid-play stands). Results read "Paid X tokens (+profit)": what
+  comes back, the bet included. The player's own inventory is kept up to date while a game is
+  open (the `tables` pictures check it).
 - **Casino Dealer** (done): a villager profession whose job site is any casino machine (the
   `rngambling:casino_machine` point of interest). Black vest, white shirt, red bow tie, green
   visor. Trades (data files: `data/rngambling/villager_trade/dealer/<level>/`, and

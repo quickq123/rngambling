@@ -13,12 +13,9 @@ public final class Roulette {
             20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26};
     private static final java.util.Set<Integer> RED = java.util.Set.of(1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36);
 
-    /** Bets a player can choose, in tokens. */
-    public static final int[] BETS = {1, 5, 10};
-
     /** What a bet can be on, and what a winning bet returns, times the bet (the bet itself included). */
     public enum Bet {
-        RED(2), BLACK(2), ODD(2), EVEN(2), LOW(2), HIGH(2), DOZEN_1(3), DOZEN_2(3), DOZEN_3(3), NUMBER(36);
+        RED(2), BLACK(2), GREEN(36), ODD(2), EVEN(2), LOW(2), HIGH(2), DOZEN_1(3), DOZEN_2(3), DOZEN_3(3), NUMBER(36);
 
         public final int returns;
 
@@ -47,6 +44,7 @@ public final class Roulette {
         return switch (bet) {
             case RED -> isRed(number);
             case BLACK -> isBlack(number);
+            case GREEN -> number == 0;
             case ODD -> number != 0 && number % 2 == 1;
             case EVEN -> number != 0 && number % 2 == 0;
             case LOW -> number >= 1 && number <= 18;

@@ -8,9 +8,6 @@ import net.minecraft.util.RandomSource;
  * back about 92% of the tokens bet (see {@link #returnToPlayer()}, checked by a game test).
  */
 public final class SlotMachine {
-    /** Bets a player can choose, in tokens. */
-    public static final int[] BETS = {1, 5, 10};
-
     /** Symbols, with how often each comes up on a reel (out of {@link #TOTAL_WEIGHT}) and what three of them pay, times the bet. */
     public enum Symbol {
         CHERRY(7, 8),

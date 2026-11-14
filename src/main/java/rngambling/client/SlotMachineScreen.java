@@ -27,7 +27,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
     /** When each reel stops on the screen, in ticks after the spin (the win is paid at {@link SlotMachineMenu#SPIN_TICKS}). */
     private static final int[] STOP_TICKS = {14, 22, 30};
 
-    private final Button[] bets = new Button[SlotMachine.BETS.length];
+    private final BetControls bets = new BetControls(rngambling.casino.Bets.SLOTS, 30, 90);
     private Button spin;
     private int ticks;
     private int seenSpins;
@@ -41,11 +41,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
     protected void init() {
         super.init();
         seenSpins = menu.data(SlotMachineMenu.SPINS);
-        for (int i = 0; i < bets.length; i++) {
-            int id = i;
-            bets[i] = addRenderableWidget(Button.builder(Component.literal(String.valueOf(SlotMachine.BETS[i])), b -> click(id))
-                    .bounds(leftPos + 32 + i * 25, topPos + 90, 24, 18).build());
-        }
+        bets.init(leftPos, topPos, this::addRenderableWidget, this::click);
         spin = addRenderableWidget(Button.builder(Component.translatable("screen.rngambling.slot_machine.spin"), b -> click(SlotMachineMenu.BUTTON_SPIN))
                 .bounds(leftPos + 112, topPos + 88, 54, 22).build());
     }
@@ -82,13 +78,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
         }
         boolean busy = menu.spinning() || animating();
         int tokens = menu.data(SlotMachineMenu.TOKENS);
-        for (int i = 0; i < bets.length; i++) {
-            boolean chosen = SlotMachine.BETS[i] == menu.bet();
-            bets[i].active = !busy;
-            bets[i].setMessage(chosen
-                    ? Component.literal("[" + SlotMachine.BETS[i] + "]").withStyle(net.minecraft.ChatFormatting.YELLOW)
-                    : Component.literal(String.valueOf(SlotMachine.BETS[i])));
-        }
+        bets.update(!busy, menu.bet());
         spin.active = !busy && tokens >= menu.bet();
     }
 
@@ -164,7 +154,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
             boolean prize = menu.reel(0) == SlotMachine.Symbol.LUCKY && menu.reel(1) == SlotMachine.Symbol.LUCKY
                     && menu.reel(2) == SlotMachine.Symbol.LUCKY;
             result = Component.translatable(prize ? "screen.rngambling.slot_machine.win_prize" : "screen.rngambling.slot_machine.win",
-                    menu.data(SlotMachineMenu.LAST_WIN));
+                    menu.data(SlotMachineMenu.LAST_WIN), menu.data(SlotMachineMenu.LAST_WIN) - menu.data(SlotMachineMenu.LAST_BET));
             colour = 0xFF7CFF7C;
         } else {
             result = Component.translatable("screen.rngambling.slot_machine.lose");
@@ -172,6 +162,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
         }
         graphics.centeredText(font, result, WIDTH / 2, REELS_Y + REEL_H + 6, colour);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.bet"), 10, 95, GOLD, false);
+        bets.drawAmount(graphics, font, menu.bet(), WHITE);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.tokens", menu.data(SlotMachineMenu.TOKENS)), 10, 79, WHITE, false);
         // Pay table figures, beside their symbols.
         SlotMachine.Symbol[] order = {SlotMachine.Symbol.SEVEN, SlotMachine.Symbol.BAR, SlotMachine.Symbol.LUCKY,

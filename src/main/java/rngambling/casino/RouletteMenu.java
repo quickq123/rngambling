@@ -18,12 +18,12 @@ import rngambling.RNGambling;
  * screen, or at once if the screen is closed.
  */
 public class RouletteMenu extends AbstractContainerMenu {
-    /** Buttons: 0-2 bet size, 10 + {@link Roulette.Bet} ordinal the kind of bet, 30/31 number down/up, 40 spin. */
+    /** Buttons: 0-3 change the bet (see {@link Bets}), 10 + {@link Roulette.Bet} ordinal the kind of bet, 30/31 number down/up, 40 spin. */
     public static final int BUTTON_KIND = 10, BUTTON_NUMBER_DOWN = 30, BUTTON_NUMBER_UP = 31, BUTTON_SPIN = 40;
     public static final int SPIN_TICKS = 70;
 
-    public static final int BET = 0, KIND = 1, NUMBER = 2, RESULT = 3, SPINS = 4, PAID = 5, LAST_WIN = 6, TOKENS = 7;
-    private static final int DATA_SIZE = 8;
+    public static final int BET = 0, KIND = 1, NUMBER = 2, RESULT = 3, SPINS = 4, PAID = 5, LAST_WIN = 6, TOKENS = 7, LAST_BET = 8;
+    private static final int DATA_SIZE = 9;
 
     private final BlockPos pos;
     private final Player player;
@@ -36,6 +36,7 @@ public class RouletteMenu extends AbstractContainerMenu {
         this.pos = pos;
         this.player = inventory.player;
         addDataSlots(data);
+        data.set(BET, Bets.ROULETTE.start());
         data.set(NUMBER, 17);
         data.set(RESULT, -1);
     }
@@ -45,7 +46,7 @@ public class RouletteMenu extends AbstractContainerMenu {
     }
 
     public int bet() {
-        return Roulette.BETS[Math.floorMod(data.get(BET), Roulette.BETS.length)];
+        return Bets.ROULETTE.clamp(data.get(BET));
     }
 
     public Roulette.Bet kind() {
@@ -61,8 +62,8 @@ public class RouletteMenu extends AbstractContainerMenu {
         if (spinning()) {
             return true;
         }
-        if (id >= 0 && id < Roulette.BETS.length) {
-            data.set(BET, id);
+        if (Bets.isButton(id)) {
+            data.set(BET, Bets.ROULETTE.adjust(bet(), id));
         } else if (id >= BUTTON_KIND && id < BUTTON_KIND + Roulette.Bet.values().length) {
             data.set(KIND, id - BUTTON_KIND);
         } else if (id == BUTTON_NUMBER_DOWN || id == BUTTON_NUMBER_UP) {
@@ -86,6 +87,7 @@ public class RouletteMenu extends AbstractContainerMenu {
         pending = bet * Roulette.returns(kind(), data.get(NUMBER), number);
         payAt = player.level().getGameTime() + SPIN_TICKS;
         data.set(LAST_WIN, 0);
+        data.set(LAST_BET, bet);
         data.set(SPINS, data.get(SPINS) + 1);
         player.level().playSound(null, pos, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, 0.6f);
     }
@@ -107,8 +109,10 @@ public class RouletteMenu extends AbstractContainerMenu {
 
     @Override
     public void broadcastChanges() {
-        if (player instanceof ServerPlayer) {
+        if (player instanceof ServerPlayer serverPlayer) {
             payOut(player, false);
+            // Bets and wins change the inventory while this screen is open: keep the hotbar showing it.
+            serverPlayer.inventoryMenu.broadcastChanges();
             data.set(TOKENS, Tokens.count(player.getInventory()));
         }
         super.broadcastChanges();

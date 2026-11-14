@@ -85,16 +85,47 @@ public final class RNGamblingGameTests {
         player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 7));
         player.snapTo(helper.absolutePos(pos).getX() + 1.5, helper.absolutePos(pos).getY(), helper.absolutePos(pos).getZ() + 0.5);
         rngambling.casino.SlotMachineMenu menu = new rngambling.casino.SlotMachineMenu(0, player.getInventory(), helper.absolutePos(pos));
-        menu.clickMenuButton(player, 2); // bet 10: more than the 7 tokens held
+        menu.clickMenuButton(player, rngambling.casino.Bets.UP_BIG); // bet 15: more than the 7 tokens held
         menu.clickMenuButton(player, rngambling.casino.SlotMachineMenu.BUTTON_SPIN);
         helper.assertTrue(menu.data(rngambling.casino.SlotMachineMenu.SPINS) == 0
-                && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 7, "a bet of 10 with 7 tokens shouldn't spin");
-        menu.clickMenuButton(player, 1); // bet 5
+                && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 7, "a bet of 15 with 7 tokens shouldn't spin");
+        menu.clickMenuButton(player, rngambling.casino.Bets.DOWN_BIG); // bet 5
         menu.clickMenuButton(player, rngambling.casino.SlotMachineMenu.BUTTON_SPIN);
         helper.assertTrue(menu.data(rngambling.casino.SlotMachineMenu.SPINS) == 1
                 && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 2, "spinning should take the 5 token bet");
         rngambling.casino.SlotMachine.Symbol[] reels = {menu.reel(0), menu.reel(1), menu.reel(2)};
         int win = 5 * rngambling.casino.SlotMachine.pays(reels);
+
+        // Every spin's books balance: after it, the tokens are what they were, less the bet, plus the win
+        // (three cherries at a bet of 5: 15 + 40 = 55 from 20). 2,000 real spins through the menu, each paid by closing it.
+        ServerPlayer gambler = player(helper, GameType.SURVIVAL);
+        try {
+            gambler.snapTo(helper.absolutePos(pos).getX() + 1.5, helper.absolutePos(pos).getY(), helper.absolutePos(pos).getZ() + 0.5);
+            var machine = new rngambling.casino.SlotMachineMenu(1, gambler.getInventory(), helper.absolutePos(pos));
+            helper.assertTrue(machine.bet() == 5, "a slot machine starts at a bet of 5");
+            int cherryWins = 0;
+            for (int spin = 0; spin < 2000; spin++) {
+                if (rngambling.casino.SlotMachineMenu.countTokens(gambler.getInventory()) < 5) {
+                    gambler.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 20));
+                }
+                int before = rngambling.casino.SlotMachineMenu.countTokens(gambler.getInventory());
+                machine.clickMenuButton(gambler, rngambling.casino.SlotMachineMenu.BUTTON_SPIN);
+                rngambling.casino.SlotMachine.Symbol[] stop = {machine.reel(0), machine.reel(1), machine.reel(2)};
+                machine.removed(gambler); // pays at once
+                int after = rngambling.casino.SlotMachineMenu.countTokens(gambler.getInventory());
+                int pays = 5 * rngambling.casino.SlotMachine.pays(stop);
+                helper.assertTrue(after == before - 5 + pays, "spin " + spin + " " + java.util.Arrays.toString(stop) + ": "
+                        + before + " - 5 + " + pays + " should be " + (before - 5 + pays) + ", not " + after);
+                if (stop[0] == rngambling.casino.SlotMachine.Symbol.CHERRY && stop[1] == stop[0] && stop[2] == stop[0]) {
+                    cherryWins++;
+                }
+            }
+            LOGGER.info("slot accounting: 2000 spins balanced, {} of them three cherries", cherryWins);
+            helper.assertTrue(cherryWins > 0, "some spins should have been three cherries");
+            gambler.getInventory().clearContent();
+        } finally {
+            helper.getLevel().getServer().getPlayerList().remove(gambler);
+        }
         helper.runAfterDelay(rngambling.casino.SlotMachineMenu.SPIN_TICKS + 2, () -> {
             menu.broadcastChanges();
             try {
@@ -272,7 +303,10 @@ public final class RNGamblingGameTests {
         ServerPlayer player = player(helper, GameType.SURVIVAL);
         player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 20));
         rngambling.casino.RouletteMenu menu = new rngambling.casino.RouletteMenu(0, player.getInventory(), helper.absolutePos(pos));
-        menu.clickMenuButton(player, 2); // 10 tokens
+        for (int i = 0; i < 5; i++) {
+            menu.clickMenuButton(player, rngambling.casino.Bets.UP); // 5 up to 10 tokens
+        }
+        helper.assertTrue(menu.bet() == 10, "five steps up from 5 should bet 10, not " + menu.bet());
         menu.clickMenuButton(player, rngambling.casino.RouletteMenu.BUTTON_KIND + rngambling.casino.Roulette.Bet.RED.ordinal());
         menu.clickMenuButton(player, rngambling.casino.RouletteMenu.BUTTON_SPIN);
         int number = menu.data(rngambling.casino.RouletteMenu.RESULT);
@@ -313,6 +347,12 @@ public final class RNGamblingGameTests {
         try {
             player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
             rngambling.casino.BlackjackMenu menu = new rngambling.casino.BlackjackMenu(0, player.getInventory(), helper.absolutePos(pos));
+            menu.clickMenuButton(player, rngambling.casino.Bets.DOWN_BIG); // 10 down to the least, 2
+            menu.clickMenuButton(player, rngambling.casino.Bets.DOWN); // and no lower
+            helper.assertTrue(menu.bet() == 2, "blackjack's least bet is 2, not " + menu.bet());
+            menu.clickMenuButton(player, rngambling.casino.Bets.UP);
+            helper.assertTrue(menu.bet() == 4, "blackjack steps by 2 (bets stay even), not " + menu.bet());
+            menu.clickMenuButton(player, rngambling.casino.Bets.DOWN);
             int played = 0;
             int hiddenSeen = 0;
             for (int hand = 0; hand < 40; hand++) {

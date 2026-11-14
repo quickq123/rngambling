@@ -579,7 +579,7 @@ public final class ScreenshotRun {
             minecraft.options.hideGui = false;
             onServer(minecraft, player -> openTable(player, tablePos[0]));
         });
-        then(4, minecraft -> button(minecraft, 1));
+        then(4, minecraft -> button(minecraft, rngambling.casino.Bets.UP_BIG)); // 15
         then(4, minecraft -> button(minecraft, rngambling.casino.RouletteMenu.BUTTON_KIND + rngambling.casino.Roulette.Bet.RED.ordinal()));
         then(10, minecraft -> shot(minecraft, "31-roulette-ready"));
         then(30, minecraft -> button(minecraft, rngambling.casino.RouletteMenu.BUTTON_SPIN));
@@ -587,7 +587,7 @@ public final class ScreenshotRun {
         then(4, minecraft -> shot(minecraft, "33-roulette-result"));
         // Blackjack: bet 6, deal, picture, stand, picture the result.
         then(20, minecraft -> onServer(minecraft, player -> openTable(player, tablePos[1])));
-        then(4, minecraft -> button(minecraft, 1));
+        then(4, minecraft -> button(minecraft, rngambling.casino.Bets.UP)); // 12
         then(10, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_DEAL));
         then(4, minecraft -> shot(minecraft, "34-blackjack-dealt"));
         then(70, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_STAND));
@@ -598,6 +598,13 @@ public final class ScreenshotRun {
             then(10, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_HIT));
             then(70, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_STAND));
             then(4, minecraft -> shot(minecraft, "36-blackjack-hand-" + n));
+            // While the table is open, the hotbar the player sees holds what the server says they have.
+            then(10, minecraft -> {
+                int client = rngambling.casino.Tokens.count(minecraft.player.getInventory());
+                onServer(minecraft, player -> check(rngambling.casino.Tokens.count(player.getInventory()) == client,
+                        "the player's own inventory shows the right tokens with the table open: client " + client
+                                + ", server " + rngambling.casino.Tokens.count(player.getInventory())));
+            });
         }
         then(20, Minecraft::stop);
     }
