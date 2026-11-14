@@ -60,7 +60,17 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | Woodland Mansion | spread around +30 (±25) | 4 of its chunks | 2-8 inside at rates 5-3 |
   | Ancient City | extremes ±70-100, half good | 20 of its chunks | 11 inside |
 
-  Later: themed outcomes per zone (blazes instead of zombies in the Nether, and so on).
+- **Themed outcomes** (done, `rngambling.outcome.Themes`): the outcome list depends on the
+  luck zone where a lucky block is **broken** (not where it came from); its own luck still
+  sets how good or bad the draw is likely to be. A theme swaps some ordinary outcomes and
+  adds its own; zones without one use the ordinary 23:
+
+  | Zone | Swapped | Added |
+  |---|---|---|
+  | Nether | zombies -> blazes, silverfish -> magma cubes, creeper -> wither skeletons, lightning -> ring of fire, chickens -> striders, ingots -> gold blocks, feast -> porkchops | ghast (bad), netherite scrap, quartz and glowstone |
+  | End | zombies -> endermites, creeper -> angry endermen, silverfish -> a shulker, launch -> levitation, lightning -> blindness and slowness, feast -> chorus fruit | ender pearls, shulker shells, elytra (very rare) |
+  | Ancient City | zombies -> a sculk shriek and Darkness | echo shards |
+  | Mushroom Fields | chickens -> mooshrooms, feast -> mushroom stew | |
 - **Mimic Wand** (creative only, done): right-click a block to disguise it, with luck rolled by
   the luck zone there; right-click a disguised one to see what it copies, its luck and its
   zone; sneak + right-click to turn it back.
@@ -135,8 +145,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
    buildings in villages.~~ Done.
 5. ~~Playing the Slot Machine.~~ Done.
 6. ~~Roulette and blackjack.~~ Done.
-7. Themed outcomes per luck zone (Nether: blazes instead of zombies, fire; End: shulkers,
-   levitation, ender pearls; ...).
+7. ~~Themed outcomes per luck zone.~~ Done.
 
 House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
 
@@ -157,4 +166,5 @@ House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
 - Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla
   houses it starts from).
 - Textures: `tools/make_textures.py`, run in Docker (see its header).
-- Add an outcome: one line in `Outcomes.ALL` and its message in `lang/en_us.json`.
+- Add an outcome: one line in `Outcomes.ALL` (or a theme in `Themes.BY_ZONE`) and its message
+  in `lang/en_us.json`.

@@ -140,9 +140,13 @@ public final class Outcomes {
             })
     );
 
-    /** Picks an outcome for this luck and runs it, telling the player what happened. */
+    /**
+     * Picks an outcome for this luck, themed by the luck zone where the block is broken (see
+     * {@link Themes}), and runs it, telling the player what happened.
+     */
     public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck) {
-        Outcome outcome = pick(level.getRandom(), luck);
+        String zone = rngambling.luck.LuckZone.name(level, rngambling.luck.LuckZone.at(level, pos));
+        Outcome outcome = pick(level.getRandom(), luck, Themes.outcomesFor(zone));
         outcome.action().run(new OutcomeContext(level, pos.immutable(), player, level.getRandom(), Luck.clamp(luck)));
         ChatFormatting colour = outcome.rating() > 0 ? ChatFormatting.GREEN
                 : outcome.rating() < 0 ? ChatFormatting.RED : ChatFormatting.YELLOW;
@@ -154,18 +158,29 @@ public final class Outcomes {
 
     /** A weighted draw, with each outcome's weight tilted by luck (see {@link Luck#weightFactor}). */
     public static Outcome pick(RandomSource random, int luck) {
+        return pick(random, luck, ALL);
+    }
+
+    public static Outcome pick(RandomSource random, int luck, List<Outcome> outcomes) {
         double total = 0;
-        for (Outcome outcome : ALL) {
+        for (Outcome outcome : outcomes) {
             total += outcome.weight() * Luck.weightFactor(luck, outcome.rating());
         }
         double roll = random.nextDouble() * total;
-        for (Outcome outcome : ALL) {
+        for (Outcome outcome : outcomes) {
             roll -= outcome.weight() * Luck.weightFactor(luck, outcome.rating());
             if (roll < 0) {
                 return outcome;
             }
         }
-        return ALL.getLast();
+        return outcomes.getLast();
+    }
+
+    /** Spawns {@code min} to {@code max} of a mob near where the block was. */
+    static void spawnMobs(OutcomeContext c, net.minecraft.world.entity.EntityType<?> type, int min, int max, int radius) {
+        for (int i = c.between(min, max); i > 0; i--) {
+            type.spawn(c.level(), c.freeSpotNear(c.pos(), radius), EntitySpawnReason.EVENT);
+        }
     }
 
     private static final Item[] GEAR = {

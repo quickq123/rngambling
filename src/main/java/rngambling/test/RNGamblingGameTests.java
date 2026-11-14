@@ -52,7 +52,8 @@ public final class RNGamblingGameTests {
             Map.entry("roulette", RNGamblingGameTests::roulette),
             Map.entry("blackjack", RNGamblingGameTests::blackjack),
             Map.entry("machines_drop_themselves", RNGamblingGameTests::machinesDropThemselves),
-            Map.entry("placing_rolls_luck", RNGamblingGameTests::placingRollsLuck));
+            Map.entry("placing_rolls_luck", RNGamblingGameTests::placingRollsLuck),
+            Map.entry("themes", RNGamblingGameTests::themes));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -527,14 +528,66 @@ public final class RNGamblingGameTests {
         return wand.useOn(new net.minecraft.world.item.context.UseOnContext(player, net.minecraft.world.InteractionHand.MAIN_HAND, hit));
     }
 
+    /**
+     * Themes swap outcomes by the zone a block is broken in: the Nether's list has blazes, not
+     * zombies, and a block broken in the Nether draws from it; zones without a theme use the
+     * ordinary list.
+     */
+    private static void themes(GameTestHelper helper) {
+        java.util.Set<String> nether = new java.util.HashSet<>();
+        for (Outcome outcome : rngambling.outcome.Themes.outcomesFor("nether")) {
+            nether.add(outcome.id());
+        }
+        helper.assertTrue(nether.contains("blazes") && !nether.contains("zombies") && nether.contains("netherite_scrap")
+                && nether.contains("diamonds"), "the Nether's outcomes should swap zombies for blazes and keep the rest: " + nether);
+        helper.assertTrue(rngambling.outcome.Themes.outcomesFor("overworld") == Outcomes.ALL, "the Overworld uses the ordinary outcomes");
+        for (String zone : rngambling.outcome.Themes.BY_ZONE.keySet()) {
+            helper.assertTrue(helper.getLevel().registryAccess().lookupOrThrow(rngambling.luck.LuckZone.REGISTRY)
+                    .containsKey(RNGambling.id(zone)), "theme " + zone + " should match a luck zone");
+        }
+        // Breaking in the Nether: every draw comes from the Nether's list.
+        ServerLevel netherLevel = helper.getLevel().getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+        ServerPlayer player = player(helper, GameType.CREATIVE);
+        try {
+            BlockPos spot = new BlockPos(0, 100, 0);
+            netherLevel.setBlockAndUpdate(spot.below(), Blocks.NETHERRACK.defaultBlockState());
+            for (int i = 0; i < 30; i++) {
+                Outcome outcome = Outcomes.roll(netherLevel, spot, player, 0);
+                helper.assertTrue(nether.contains(outcome.id()), outcome.id() + " isn't a Nether outcome");
+                for (var entity : netherLevel.getEntities((net.minecraft.world.entity.Entity) null,
+                        new net.minecraft.world.phys.AABB(spot).inflate(20), e -> !(e instanceof net.minecraft.world.entity.player.Player))) {
+                    entity.discard();
+                }
+            }
+        } finally {
+            for (BlockPos p : BlockPos.betweenClosed(new BlockPos(-6, 95, -6), new BlockPos(6, 110, 6))) {
+                if (!netherLevel.getBlockState(p).isAir() && !netherLevel.getBlockState(p).is(Blocks.NETHERRACK)) {
+                    netherLevel.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
+                }
+            }
+            helper.getLevel().getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
     /** Each outcome runs without error on a survival player. */
     private static void everyOutcomeRuns(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         ServerPlayer player = player(helper, GameType.SURVIVAL);
         BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
         player.snapTo(pos.getX() + 3.5, pos.getY(), pos.getZ() + 0.5);
+        // The ordinary outcomes and every theme's own.
+        java.util.Map<String, Outcome> all = new java.util.LinkedHashMap<>();
+        for (Outcome outcome : Outcomes.ALL) {
+            all.put(outcome.id(), outcome);
+        }
+        for (String zone : rngambling.outcome.Themes.BY_ZONE.keySet()) {
+            for (Outcome outcome : rngambling.outcome.Themes.outcomesFor(zone)) {
+                all.put(outcome.id(), outcome);
+            }
+        }
         try {
-            for (Outcome outcome : Outcomes.ALL) {
+            for (Outcome outcome : all.values()) {
                 try {
                     outcome.action().run(new OutcomeContext(level, pos, player, RandomSource.create(outcome.id().hashCode()), 0));
                 } catch (RuntimeException e) {
@@ -617,7 +670,7 @@ public final class RNGamblingGameTests {
         }
         for (BlockPos spot : BlockPos.betweenClosed(BlockPos.containing(area.getMinPosition()), BlockPos.containing(area.getMaxPosition()))) {
             BlockState state = level.getBlockState(spot);
-            if (state.is(Blocks.COBWEB)) {
+            if (state.is(Blocks.COBWEB) || state.is(Blocks.FIRE)) {
                 level.setBlockAndUpdate(spot, Blocks.AIR.defaultBlockState());
             }
         }
