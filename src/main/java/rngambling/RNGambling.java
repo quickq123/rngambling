@@ -71,9 +71,22 @@ public final class RNGambling {
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
+    /**
+     * Lucky blocks as items: the block's luck is rolled from the item's range when it's placed
+     * (see LuckyBlockItem). The variants are sold by the Casino Dealer at higher levels.
+     */
     public static final DeferredItem<LuckyBlockItem> LUCKY_BLOCK_ITEM = ITEMS.registerItem("lucky_block",
-            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties),
+            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties, rngambling.block.LuckyBlock.RANDOM, "random", true),
             () -> new Item.Properties().useBlockDescriptionPrefix());
+    public static final DeferredItem<LuckyBlockItem> SAFE_LUCKY_BLOCK_ITEM = ITEMS.registerItem("safe_lucky_block",
+            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties, new rngambling.luck.LuckRoll.Even(-50, 50), "safe", false),
+            () -> new Item.Properties().rarity(Rarity.UNCOMMON));
+    public static final DeferredItem<LuckyBlockItem> EXTREME_LUCKY_BLOCK_ITEM = ITEMS.registerItem("extreme_lucky_block",
+            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties, new rngambling.luck.LuckRoll.Extremes(50, 100, 0.5f), "extreme", false),
+            () -> new Item.Properties().rarity(Rarity.RARE));
+    public static final DeferredItem<LuckyBlockItem> BLESSED_LUCKY_BLOCK_ITEM = ITEMS.registerItem("blessed_lucky_block",
+            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties, new rngambling.luck.LuckRoll.Even(80, 100), "blessed", false),
+            () -> new Item.Properties().rarity(Rarity.EPIC));
     /**
      * The disguised lucky block: copies another block's look (a few percent darker), sound and
      * hardness. It has no item; it's made by world generation (later) or the Mimic Wand.
@@ -90,6 +103,8 @@ public final class RNGambling {
 
     /** The casino's currency: won from lucky blocks, gambled in the casino, traded with its villager. */
     public static final DeferredItem<Item> CASINO_TOKEN = ITEMS.registerSimpleItem("casino_token");
+    /** Nine Casino Tokens, crafted together (and back apart), for the dealer's dearest trades. */
+    public static final DeferredItem<Item> TOKEN_PILE = ITEMS.registerSimpleItem("token_pile");
 
     /**
      * Creative only: worn as a helmet, shows every nearby lucky block's luck through walls.
@@ -173,11 +188,16 @@ public final class RNGambling {
                     .title(Component.translatable("itemGroup.rngambling"))
                     .icon(() -> new ItemStack(LUCKY_BLOCK_ITEM.get()))
                     .displayItems((parameters, output) -> {
-                        // One lucky block at each test luck, so outcomes at the extremes are easy to try.
+                        output.accept(LUCKY_BLOCK_ITEM.get());
+                        output.accept(SAFE_LUCKY_BLOCK_ITEM.get());
+                        output.accept(EXTREME_LUCKY_BLOCK_ITEM.get());
+                        output.accept(BLESSED_LUCKY_BLOCK_ITEM.get());
+                        // Test blocks with a fixed luck (kept only when a creative player places them).
                         for (int luck : new int[] {0, 50, 100, -50, -100}) {
                             output.accept(LuckyBlockItem.withLuck(luck));
                         }
                         output.accept(CASINO_TOKEN.get());
+                        output.accept(TOKEN_PILE.get());
                         output.accept(FOUR_LEAF_CLOVER.get());
                         output.accept(GOLDEN_HORSESHOE.get());
                         output.accept(LUCKY_SEVEN.get());

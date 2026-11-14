@@ -10,6 +10,7 @@ import net.minecraft.util.RandomSource;
  * <pre>
  *   "luck": {"type": "spread", "mean": 0, "spread": 30}
  *   "luck": {"type": "extremes", "min": 50, "max": 100, "good_chance": 0.5}
+ *   "luck": {"type": "even", "min": -100, "max": 100}
  * </pre>
  */
 public sealed interface LuckRoll {
@@ -20,6 +21,7 @@ public sealed interface LuckRoll {
     Codec<LuckRoll> CODEC = Codec.STRING.dispatch("type", LuckRoll::type, type -> switch (type) {
         case "spread" -> Spread.CODEC;
         case "extremes" -> Extremes.CODEC;
+        case "even" -> Even.CODEC;
         default -> throw new IllegalArgumentException("Unknown luck roll type " + type + "; use spread or extremes");
     });
 
@@ -41,6 +43,24 @@ public sealed interface LuckRoll {
         @Override
         public String type() {
             return "spread";
+        }
+    }
+
+    /** Any luck from {@code min} to {@code max}, each equally likely. */
+    record Even(int min, int max) implements LuckRoll {
+        static final MapCodec<Even> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.intRange(Luck.MIN, Luck.MAX).fieldOf("min").forGetter(Even::min),
+                Codec.intRange(Luck.MIN, Luck.MAX).fieldOf("max").forGetter(Even::max)
+        ).apply(i, Even::new));
+
+        @Override
+        public int roll(RandomSource random) {
+            return min + random.nextInt(max - min + 1);
+        }
+
+        @Override
+        public String type() {
+            return "even";
         }
     }
 

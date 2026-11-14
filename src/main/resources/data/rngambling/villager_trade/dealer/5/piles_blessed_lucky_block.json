@@ -1,0 +1,12 @@
+{
+  "wants": {
+    "id": "rngambling:token_pile",
+    "count": 16.0
+  },
+  "gives": {
+    "id": "rngambling:blessed_lucky_block"
+  },
+  "max_uses": 2.0,
+  "reputation_discount": 0.05,
+  "xp": 30.0
+}

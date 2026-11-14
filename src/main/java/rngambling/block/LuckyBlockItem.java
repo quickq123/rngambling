@@ -1,5 +1,6 @@
 package rngambling.block;
 
+import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -11,33 +12,61 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.block.Block;
 import rngambling.RNGambling;
 import rngambling.luck.Luck;
+import rngambling.luck.LuckRoll;
 
-/** A lucky block as an item. Its luck is hidden from survival players: that's part of the gamble. */
+/**
+ * A lucky block as an item. Its luck isn't fixed: it's rolled from the item's range when a
+ * player places it (see {@link LuckyBlock#setPlacedBy}), so carrying blocks somewhere
+ * favourable gains nothing. The variants differ only in range: the plain Lucky Block (-100 to
+ * +100), Safe (-50 to +50), Extreme (50 to 100, good or bad) and Blessed (+80 to +100).
+ *
+ * <p>A fixed luck ({@link RNGambling#LUCK} on the item) is kept only when a creative player
+ * places it: it's for testing.
+ */
 public class LuckyBlockItem extends BlockItem {
-    public LuckyBlockItem(Block block, Item.Properties properties) {
+    private final LuckRoll roll;
+    private final String rangeKey;
+    private final boolean canonical;
+
+    /**
+     * @param canonical whether this is the item the block is known by (picked, dropped): only the
+     *                  plain Lucky Block; the variants place the same block
+     */
+    public LuckyBlockItem(Block block, Item.Properties properties, LuckRoll roll, String rangeKey, boolean canonical) {
         super(block, properties);
+        this.roll = roll;
+        this.rangeKey = rangeKey;
+        this.canonical = canonical;
     }
 
+    public LuckRoll roll() {
+        return roll;
+    }
+
+    @Override
+    public void registerBlocks(Map<Block, Item> blockToItemMap, Item item) {
+        if (canonical) {
+            super.registerBlocks(blockToItemMap, item);
+        }
+    }
+
+    /** A creative test block with a fixed luck. */
     public static ItemStack withLuck(int luck) {
         ItemStack stack = new ItemStack(RNGambling.LUCKY_BLOCK_ITEM.get());
-        if (luck != 0) {
-            stack.set(RNGambling.LUCK.get(), Luck.clamp(luck));
-        }
+        stack.set(RNGambling.LUCK.get(), Luck.clamp(luck));
         return stack;
-    }
-
-    public static int luckOf(ItemStack stack) {
-        return stack.getOrDefault(RNGambling.LUCK.get(), 0);
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
             Consumer<Component> lines, TooltipFlag flag) {
-        if (flag.isCreative()) {
-            int luck = luckOf(stack);
-            lines.accept(Component.translatable("tooltip.rngambling.luck", (luck > 0 ? "+" : "") + luck)
-                    .withStyle(luck > 0 ? ChatFormatting.GREEN : luck < 0 ? ChatFormatting.RED : ChatFormatting.GRAY));
+        Integer fixed = stack.get(RNGambling.LUCK.get());
+        if (fixed != null && flag.isCreative()) {
+            lines.accept(Component.translatable("tooltip.rngambling.luck_fixed", (fixed > 0 ? "+" : "") + fixed)
+                    .withStyle(fixed > 0 ? ChatFormatting.GREEN : fixed < 0 ? ChatFormatting.RED : ChatFormatting.GRAY));
+        } else {
+            lines.accept(Component.translatable("tooltip.rngambling.luck_range." + rangeKey).withStyle(ChatFormatting.GRAY));
         }
     }
 }

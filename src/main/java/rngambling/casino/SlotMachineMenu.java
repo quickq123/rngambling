@@ -11,7 +11,6 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.item.ItemStack;
 import rngambling.RNGambling;
-import rngambling.block.LuckyBlockItem;
 
 /**
  * Playing a slot machine. Everything is decided on the server: the screen only asks to change
@@ -106,7 +105,7 @@ public class SlotMachineMenu extends AbstractContainerMenu {
             give(player, new ItemStack(RNGambling.CASINO_TOKEN.get(), pendingTokens));
         }
         if (pendingPrize) {
-            give(player, LuckyBlockItem.withLuck(SlotMachine.PRIZE_LUCK));
+            give(player, new ItemStack(RNGambling.LUCKY_BLOCK_ITEM.get()));
         }
         if (pendingTokens > 0 || pendingPrize) {
             boolean big = pendingTokens >= bet() * 18 || pendingPrize;

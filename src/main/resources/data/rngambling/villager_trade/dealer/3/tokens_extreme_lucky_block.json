@@ -1,13 +1,10 @@
 {
   "wants": {
     "id": "rngambling:casino_token",
-    "count": 20.0
+    "count": 16.0
   },
   "gives": {
-    "id": "rngambling:lucky_block",
-    "components": {
-      "rngambling:luck": 30
-    }
+    "id": "rngambling:extreme_lucky_block"
   },
   "max_uses": 10.0,
   "reputation_discount": 0.05,

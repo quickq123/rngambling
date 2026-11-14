@@ -19,11 +19,15 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | 0 | 58% | 38% |
   | +100 | 84% | 13% |
 
-- Survival players can't see a block's luck. Creative tooltips show it, and so will the
-  creative-only glasses.
+- Survival players can't see a placed block's luck; the creative-only Luck Glasses show it.
 - Two kinds:
-  - **Bought** (done): a plain casino-styled texture, sold by the casino villager. Its luck is set
-    by the trade, so higher trade levels sell luckier blocks.
+  - **Bought** (done): a plain casino-styled block, sold by the Casino Dealer. **Its luck is
+    rolled when a player places it**, from the item's range, never from the luck zone, so
+    carrying blocks somewhere favourable gains nothing. The item variants (all place the same
+    block; their icons differ): Lucky Block, any luck -100 to +100, each equally likely;
+    Safe, -50 to +50; Extreme, 50 to 100 good or bad; Blessed, +80 to +100. Blocks moved by
+    other mods' block-transport tools keep their saved luck. The creative tab's fixed-luck
+    test blocks keep their luck only when a creative player places them.
   - **Disguised** (`mimic_lucky_block`, done): draws the block it
     copies, 12% darker (`MimicTint.SHADE`), including a copied block's own tint such as grass
     colour. Dark blocks, whose texture averages below 0.36 brightness (`MimicLook.DARK_BELOW`:
@@ -86,7 +90,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | Bell | 4 | 18 |
   | BAR | 3 | 30 |
   | 7 | 2 | 80 |
-  | Lucky block | 2 | 20, plus a lucky block (luck +25) |
+  | Lucky block | 2 | 20, plus a Lucky Block |
 
   Mined with a pickaxe.
 - **Roulette Table** (done): European roulette, one zero and 1-36. Bet 1, 5 or 10 on red,
@@ -108,11 +112,13 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
   | Level | Trades |
   |---|---|
-  | Novice | 1 emerald for 3 tokens; 8 tokens for a lucky block (luck 0) |
-  | Apprentice | 12 tokens for a lucky block (+15); 16 tokens for a Four-Leaf Clover |
-  | Journeyman | 20 tokens for a lucky block (+30); 24 tokens for a Golden Horseshoe |
-  | Expert | 32 tokens for a lucky block (+50); 6 tokens for an emerald |
-  | Master | 40 tokens for a lucky block (+75); 48 tokens for a Lucky Seven |
+  | Novice | 1 emerald for 3 tokens; 8 tokens for a Lucky Block (-100 to +100) |
+  | Apprentice | 12 tokens for a Safe Lucky Block (-50 to +50); 16 tokens for a Four-Leaf Clover |
+  | Journeyman | 16 tokens for an Extreme Lucky Block (50 to 100, good or bad); 24 tokens for a Golden Horseshoe |
+  | Expert | 6 tokens for an emerald; 4 Piles of Tokens for a Lucky Seven |
+  | Master | 16 Piles of Tokens (144 tokens) for a Blessed Lucky Block (+80 to +100); 2 piles for 3 Lucky Blocks |
+
+  **Pile of Tokens**: 9 tokens crafted together (3 x 3), and back into 9, for the dearest trades.
 
 - **Luck charms** (done): one use each, on any lucky block (bought or disguised): Four-Leaf
   Clover +10, Golden Horseshoe +25, Lucky Seven +50, up to +100. Survival players are only

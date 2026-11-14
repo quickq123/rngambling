@@ -51,7 +51,8 @@ public final class RNGamblingGameTests {
             Map.entry("slot_machine", RNGamblingGameTests::slotMachine),
             Map.entry("roulette", RNGamblingGameTests::roulette),
             Map.entry("blackjack", RNGamblingGameTests::blackjack),
-            Map.entry("machines_drop_themselves", RNGamblingGameTests::machinesDropThemselves));
+            Map.entry("machines_drop_themselves", RNGamblingGameTests::machinesDropThemselves),
+            Map.entry("placing_rolls_luck", RNGamblingGameTests::placingRollsLuck));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -109,7 +110,9 @@ public final class RNGamblingGameTests {
     private static void casino(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         var tradeSets = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TRADE_SET);
-        java.util.Set<Integer> lucks = new java.util.TreeSet<>();
+        // Which lucky block each level sells (the first level it appears), and what the Blessed one costs.
+        java.util.Map<String, Integer> firstLevel = new java.util.HashMap<>();
+        String blessedCost = null;
         for (int tier = 1; tier <= 5; tier++) {
             var set = tradeSets.getValue(RNGambling.id("dealer/level_" + tier));
             helper.assertTrue(set != null && set.getTrades().size() == 2, "dealer level " + tier + " should have 2 trades");
@@ -117,15 +120,27 @@ public final class RNGamblingGameTests {
                 // The trade's fields are private, so read it back as JSON.
                 var json = net.minecraft.world.item.trading.VillagerTrade.CODEC.encodeStart(
                         level.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE), trade.value())
-                        .getOrThrow().getAsJsonObject().getAsJsonObject("gives");
-                if (json.get("id").getAsString().equals("rngambling:lucky_block")) {
-                    var components = json.getAsJsonObject("components");
-                    lucks.add(components == null || !components.has("rngambling:luck") ? 0 : components.get("rngambling:luck").getAsInt());
+                        .getOrThrow().getAsJsonObject();
+                String gives = json.getAsJsonObject("gives").get("id").getAsString();
+                if (gives.contains("lucky_block")) {
+                    firstLevel.putIfAbsent(gives, tier);
+                }
+                if (gives.equals("rngambling:blessed_lucky_block")) {
+                    var wants = json.getAsJsonObject("wants");
+                    blessedCost = wants.get("count").getAsInt() + " " + wants.get("id").getAsString();
                 }
             }
         }
-        helper.assertTrue(lucks.equals(new java.util.TreeSet<>(java.util.List.of(0, 15, 30, 50, 75))),
-                "the dealer's lucky blocks should have luck 0, 15, 30, 50 and 75, not " + lucks);
+        helper.assertTrue(firstLevel.equals(java.util.Map.of("rngambling:lucky_block", 1, "rngambling:safe_lucky_block", 2,
+                "rngambling:extreme_lucky_block", 3, "rngambling:blessed_lucky_block", 5)),
+                "the dealer should sell Lucky, Safe, Extreme then Blessed blocks, not " + firstLevel);
+        helper.assertTrue("16 rngambling:token_pile".equals(blessedCost), "a Blessed Lucky Block should cost 16 piles, not " + blessedCost);
+        // Piles: nine tokens make one, and one makes nine.
+        var recipes = level.getServer().getRecipeManager();
+        for (String recipe : new String[] {"token_pile", "casino_tokens_from_token_pile"}) {
+            helper.assertTrue(recipes.byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE,
+                    RNGambling.id(recipe))).isPresent(), "the " + recipe + " recipe should load");
+        }
 
         var poi = net.minecraft.world.entity.ai.village.poi.PoiTypes.forState(RNGambling.SLOT_MACHINE.get().defaultBlockState());
         helper.assertTrue(poi.isPresent() && RNGambling.DEALER.get().acquirableJobSite().test(poi.get()),
@@ -152,6 +167,63 @@ public final class RNGamblingGameTests {
             }
         }
         helper.succeed();
+    }
+
+    /**
+     * A placed lucky block rolls its luck from the item's range (so carrying one somewhere gains
+     * nothing); a creative player's fixed test luck is kept, but a survival player's isn't.
+     */
+    private static void placingRollsLuck(GameTestHelper helper) {
+        ServerPlayer survival = player(helper, GameType.SURVIVAL);
+        ServerPlayer creative = player(helper, GameType.CREATIVE);
+        try {
+            BlockPos ground = new BlockPos(2, 1, 2);
+            helper.setBlock(ground, Blocks.STONE);
+            BlockPos pos = ground.above();
+            Object[][] kinds = {{RNGambling.LUCKY_BLOCK_ITEM.get(), -100, 100}, {RNGambling.SAFE_LUCKY_BLOCK_ITEM.get(), -50, 50},
+                    {RNGambling.EXTREME_LUCKY_BLOCK_ITEM.get(), -100, 100}, {RNGambling.BLESSED_LUCKY_BLOCK_ITEM.get(), 80, 100}};
+            for (Object[] kind : kinds) {
+                net.minecraft.world.item.Item item = (net.minecraft.world.item.Item) kind[0];
+                java.util.Set<Integer> seen = new java.util.HashSet<>();
+                for (int i = 0; i < 40; i++) {
+                    int luck = place(helper, survival, new ItemStack(item), ground);
+                    helper.assertTrue(luck >= (int) kind[1] && luck <= (int) kind[2], item + " rolled " + luck);
+                    if (item == RNGambling.EXTREME_LUCKY_BLOCK_ITEM.get()) {
+                        helper.assertTrue(Math.abs(luck) >= 50, "an Extreme Lucky Block rolled " + luck);
+                    }
+                    seen.add(luck);
+                    helper.setBlock(pos, Blocks.AIR);
+                }
+                helper.assertTrue(seen.size() > 5, item + " should roll a different luck each time: " + seen);
+            }
+            // Fixed test luck: kept in creative, rolled over in survival.
+            helper.assertTrue(place(helper, creative, rngambling.block.LuckyBlockItem.withLuck(-77), ground) == -77,
+                    "a creative player's fixed test luck should be kept");
+            helper.setBlock(pos, Blocks.AIR);
+            int rolled = 0;
+            for (int i = 0; i < 10; i++) {
+                rolled += place(helper, survival, rngambling.block.LuckyBlockItem.withLuck(-77), ground) == -77 ? 1 : 0;
+                helper.setBlock(pos, Blocks.AIR);
+            }
+            helper.assertTrue(rolled < 3, "a survival player shouldn't keep a fixed luck");
+        } finally {
+            helper.getLevel().getServer().getPlayerList().remove(survival);
+            helper.getLevel().getServer().getPlayerList().remove(creative);
+        }
+        helper.succeed();
+    }
+
+    /** Places a lucky block item on top of {@code ground} as {@code player} would, and returns its luck. */
+    private static int place(GameTestHelper helper, ServerPlayer player, ItemStack stack, BlockPos ground) {
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, stack);
+        BlockPos abs = helper.absolutePos(ground);
+        stack.useOn(new net.minecraft.world.item.context.UseOnContext(player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                new net.minecraft.world.phys.BlockHitResult(Vec3OnTop(abs), net.minecraft.core.Direction.UP, abs, false)));
+        return helper.getBlockEntity(ground.above(), LuckyBlockEntity.class).luck();
+    }
+
+    private static net.minecraft.world.phys.Vec3 Vec3OnTop(BlockPos pos) {
+        return new net.minecraft.world.phys.Vec3(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5);
     }
 
     /** Every casino machine drops itself when broken, so a player can take it home. */
@@ -533,7 +605,7 @@ public final class RNGamblingGameTests {
         helper.assertTrue(lucky.luck() == Luck.MAX, "luck should be capped at " + Luck.MAX);
         ItemStack back = new ItemStack(RNGambling.LUCKY_BLOCK_ITEM.get());
         back.applyComponents(lucky.collectComponents());
-        helper.assertTrue(rngambling.block.LuckyBlockItem.luckOf(back) == Luck.MAX, "the item should carry the block's luck");
+        helper.assertTrue(back.getOrDefault(RNGambling.LUCK.get(), 0) == Luck.MAX, "the item should carry the block's luck");
         helper.succeed();
     }
 

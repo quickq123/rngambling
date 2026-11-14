@@ -18,7 +18,7 @@ public final class SlotMachine {
         BELL(4, 18),
         BAR(3, 30),
         SEVEN(2, 80),
-        /** Three lucky blocks also win a lucky block, {@link #PRIZE_LUCK} luck. */
+        /** Three lucky blocks also win a Lucky Block. */
         LUCKY(2, 20);
 
         public final int weight;
@@ -32,8 +32,6 @@ public final class SlotMachine {
 
     /** Any two cherries (and no three of a kind) pay this, times the bet. */
     public static final int TWO_CHERRIES_PAY = 2;
-    /** The luck of the lucky block won with three lucky blocks. */
-    public static final int PRIZE_LUCK = 25;
 
     public static final int TOTAL_WEIGHT;
 

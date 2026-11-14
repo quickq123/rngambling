@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.PushReaction;
 import org.jspecify.annotations.Nullable;
+import net.minecraft.world.entity.LivingEntity;
+import rngambling.luck.LuckRoll;
 import rngambling.outcome.Outcomes;
 
 /**
@@ -41,6 +43,27 @@ public class LuckyBlock extends Block implements EntityBlock {
         }
         return removed;
     }
+
+    /**
+     * A placed lucky block rolls its luck from the item's range. Only a creative player keeps a
+     * fixed test luck. Blocks moved by other mods' transport tools keep their saved luck (they
+     * aren't "placed" from an item).
+     */
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.isClientSide() || !(level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky)) {
+            return;
+        }
+        boolean keepFixed = stack.has(rngambling.RNGambling.LUCK.get()) && placer instanceof Player player && player.isCreative();
+        if (!keepFixed) {
+            LuckRoll roll = stack.getItem() instanceof LuckyBlockItem item ? item.roll() : LuckyBlock.RANDOM;
+            lucky.setLuck(roll.roll(level.getRandom()));
+        }
+    }
+
+    /** The plain Lucky Block's roll: any luck from -100 to +100, each equally likely. */
+    public static final LuckRoll RANDOM = new LuckRoll.Even(rngambling.luck.Luck.MIN, rngambling.luck.Luck.MAX);
 
     /** Only a real player in survival or adventure sets off an outcome. */
     public static boolean countsAsPlayerBreak(Player player) {

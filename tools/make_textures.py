@@ -34,10 +34,10 @@ def shade(colour, amount):
     return tuple(max(0, min(255, c + amount)) for c in colour)
 
 
-def lucky_block():
-    """Crimson felt with a gold rim and a gold die face (five pips)."""
+def lucky_block(red=(150, 20, 32), gold=(232, 186, 64), gold_dark=(168, 122, 30)):
+    """Crimson felt with a gold rim and a gold die face (five pips). The colours can be changed
+    for the bought variants' item icons."""
     rng = random.Random(7)
-    red, gold, gold_dark = (150, 20, 32), (232, 186, 64), (168, 122, 30)
     px = [[shade(red, rng.randint(-10, 10)) for _ in range(16)] for _ in range(16)]
     for i in range(16):
         for (x, y) in ((i, 0), (i, 15), (0, i), (15, i)):
@@ -449,6 +449,32 @@ def card_suits():
     return px
 
 
+def token_pile():
+    """A short stack of casino chips."""
+    red, white, gold = (196, 28, 40), (240, 240, 236), (236, 190, 70)
+    px = [[None] * 16 for _ in range(16)]
+    for layer in range(5):
+        y0 = 12 - layer * 2
+        x_shift = (layer % 2) - 0
+        for y in (y0, y0 + 1):
+            for x in range(3 + x_shift, 13 + x_shift):
+                edge = (x - x_shift) in (3, 12)
+                stripe = (x - x_shift) % 3 == 0
+                px[y][x] = shade(red if not stripe else white, -40 if y == y0 + 1 or edge else 0)
+    # The top chip's face.
+    for x in range(4, 13):
+        px[3][x] = red
+        px[2][x] = shade(red, 20)
+    for x in range(7, 10):
+        px[2][x] = gold
+        px[3][x] = gold
+    return px
+
+
+write_png("block/safe_lucky_block.png", lucky_block((30, 70, 150), (200, 210, 225), (130, 140, 160)))
+write_png("block/extreme_lucky_block.png", lucky_block((70, 20, 90), (230, 40, 60), (140, 20, 40)))
+write_png("block/blessed_lucky_block.png", lucky_block((235, 230, 210), (240, 190, 50), (190, 140, 20)))
+write_png("item/token_pile.png", token_pile())
 write_png("block/roulette_table_top.png", roulette_top())
 write_png("block/blackjack_table_top.png", blackjack_top())
 write_png("block/casino_table_side.png", table_side())
