@@ -37,6 +37,8 @@ neoForge {
             client()
             gameDirectory = project.file('runs/shots')
             systemProperty 'rngambling.screenshots', 'true'
+            // -PshotsWorld=normal: a normal world, to look at world generation.
+            systemProperty 'rngambling.shotsWorld', (project.findProperty('shotsWorld') ?: 'flat').toString()
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 

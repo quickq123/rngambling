@@ -49,6 +49,12 @@ public class LuckyBlockEntity extends BlockEntity {
         changed();
     }
 
+    /** For world generation: sets both without telling anyone, since no one is watching a chunk being made. */
+    public void initialise(@Nullable BlockState mimic, int luck) {
+        this.mimic = mimic;
+        this.luck = Luck.clamp(luck);
+    }
+
     private void changed() {
         setChanged();
         if (level != null && !level.isClientSide()) {

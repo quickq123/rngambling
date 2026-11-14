@@ -43,7 +43,55 @@ public final class RNGamblingGameTests {
             "break_rules", RNGamblingGameTests::breakRules,
             "luck_tilts_the_odds", RNGamblingGameTests::luckTiltsTheOdds,
             "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing,
-            "mimic_wand", RNGamblingGameTests::mimicWand);
+            "mimic_wand", RNGamblingGameTests::mimicWand,
+            "world_generation", RNGamblingGameTests::worldGeneration);
+
+    /**
+     * The placement rules on a built scene: a cave placement finds the one block that opens onto
+     * a sealed pocket of air, and a surface placement copies the ground but not water.
+     */
+    private static void worldGeneration(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        // A sealed flat cave, 15 x 15: stone floor, a layer of cave air, a stone roof (so it can't see the sky).
+        for (int x = 0; x < 15; x++) {
+            for (int z = 0; z < 15; z++) {
+                helper.setBlock(new BlockPos(x, 1, z), Blocks.STONE);
+                helper.setBlock(new BlockPos(x, 2, z), Blocks.CAVE_AIR);
+                helper.setBlock(new BlockPos(x, 3, z), Blocks.DEEPSLATE);
+            }
+        }
+        for (int attempt = 0; attempt < 5; attempt++) {
+            helper.assertTrue(rngambling.worldgen.LuckyBlockFeature.tryPlace(rngambling.worldgen.LuckyBlockFeature.Kind.CAVE, level,
+                    RandomSource.create(attempt), helper.absolutePos(new BlockPos(7, 2, 7))), "a cave placement should find the cave");
+        }
+        int disguised = 0;
+        for (int x = 0; x < 15; x++) {
+            for (int z = 0; z < 15; z++) {
+                for (int y : new int[] {1, 3}) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (helper.getBlockState(pos).is(RNGambling.MIMIC_LUCKY_BLOCK.get())) {
+                        disguised++;
+                        LuckyBlockEntity lucky = helper.getBlockEntity(pos, LuckyBlockEntity.class);
+                        helper.assertTrue(lucky.mimic() != null && lucky.mimic().is(y == 1 ? Blocks.STONE : Blocks.DEEPSLATE),
+                                "it should copy the block it replaced");
+                    }
+                }
+            }
+        }
+        helper.assertTrue(disguised == 5, "five cave placements should make five disguised floor or roof blocks, not " + disguised);
+
+        // Surface: dirt under open air is copied; water is not.
+        BlockPos dirt = new BlockPos(16, 1, 1);
+        helper.setBlock(dirt, Blocks.DIRT);
+        helper.assertTrue(rngambling.worldgen.LuckyBlockFeature.tryPlace(rngambling.worldgen.LuckyBlockFeature.Kind.SURFACE, level,
+                RandomSource.create(2), helper.absolutePos(dirt.above())), "dirt under air should be disguised");
+        helper.assertBlockPresent(RNGambling.MIMIC_LUCKY_BLOCK.get(), dirt);
+        BlockPos water = new BlockPos(16, 1, 3);
+        helper.setBlock(water, Blocks.WATER);
+        helper.assertFalse(rngambling.worldgen.LuckyBlockFeature.tryPlace(rngambling.worldgen.LuckyBlockFeature.Kind.SURFACE, level,
+                RandomSource.create(3), helper.absolutePos(water.above())), "water can't be disguised");
+        helper.succeed();
+    }
 
     /** The Mimic Wand disguises plain blocks, reports and undoes, refuses the rest, and is creative only. */
     private static void mimicWand(GameTestHelper helper) {

@@ -77,7 +77,8 @@ public final class ScreenshotRun {
                     LevelSettings settings = new LevelSettings(WORLD, GameType.CREATIVE,
                             new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), true, WorldDataConfiguration.DEFAULT);
                     minecraft.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(1L, false, false),
-                            WorldPresets::createFlatWorldDimensions, new TitleScreen());
+                            NORMAL_WORLD ? WorldPresets::createNormalWorldDimensions : WorldPresets::createFlatWorldDimensions,
+                            new TitleScreen());
                 }
                 return;
             }
@@ -141,7 +142,112 @@ public final class ScreenshotRun {
         then(8, minecraft -> shot(minecraft, name));
     }
 
+    /** -PshotsWorld=normal: a normal world instead, to look at world generation. */
+    private static final boolean NORMAL_WORLD = "normal".equals(System.getProperty("rngambling.shotsWorld"));
+    private static BlockPos surfaceFound;
+    private static BlockPos caveFound;
+    private static BlockPos caveAir;
+
+    /**
+     * World generation: counts the disguised lucky blocks in the chunks around the player, logs
+     * them, then pictures the nearest surface one and the nearest cave one with the glasses on.
+     */
+    private static void planWorldGeneration() {
+        then(400, minecraft -> { }); // let the chunks around the player generate
+        then(10, minecraft -> onServer(minecraft, ScreenshotRun::survey));
+        then(5, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> {
+                player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD,
+                        new net.minecraft.world.item.ItemStack(RNGambling.LUCK_GLASSES.get()));
+                player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.NIGHT_VISION, 20 * 600, 0, false, false));
+            });
+        });
+        then(40, minecraft -> onServer(minecraft, player -> {
+            if (surfaceFound != null) {
+                look(player, Vec3.atCenterOf(surfaceFound).add(2.5, 2.0, 2.5), Vec3.atCenterOf(surfaceFound));
+            }
+        }));
+        then(10, minecraft -> shot(minecraft, "10-surface"));
+        then(60, minecraft -> onServer(minecraft, player -> {
+            if (caveFound != null) {
+                look(player, Vec3.atCenterOf(caveAir), Vec3.atCenterOf(caveFound));
+            }
+        }));
+        then(10, minecraft -> shot(minecraft, "11-cave"));
+        then(20, Minecraft::stop);
+    }
+
+    private static void look(ServerPlayer player, Vec3 from, Vec3 to) {
+        Vec3 look = to.subtract(from);
+        float yaw = (float) Math.toDegrees(Math.atan2(-look.x, look.z));
+        float pitch = (float) -Math.toDegrees(Math.atan2(look.y, Math.sqrt(look.x * look.x + look.z * look.z)));
+        player.getAbilities().mayfly = true;
+        player.getAbilities().flying = true;
+        player.onUpdateAbilities();
+        player.teleportTo(player.level(), from.x, from.y - player.getEyeHeight(), from.z, Set.of(), yaw, pitch, false);
+    }
+
+    private static void survey(ServerPlayer player) {
+        ServerLevel level = player.level();
+        int radius = 6;
+        int chunks = 0;
+        int surface = 0;
+        int cave = 0;
+        double bestSurface = Double.MAX_VALUE;
+        double bestCave = Double.MAX_VALUE;
+        int cx0 = player.blockPosition().getX() >> 4;
+        int cz0 = player.blockPosition().getZ() >> 4;
+        for (int cx = cx0 - radius; cx <= cx0 + radius; cx++) {
+            for (int cz = cz0 - radius; cz <= cz0 + radius; cz++) {
+                net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) {
+                    continue;
+                }
+                chunks++;
+                for (net.minecraft.world.level.block.entity.BlockEntity entity : chunk.getBlockEntities().values()) {
+                    if (!(entity instanceof LuckyBlockEntity lucky)) {
+                        continue;
+                    }
+                    BlockPos pos = lucky.getBlockPos();
+                    int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
+                    boolean onSurface = pos.getY() >= top - 1;
+                    double distance = pos.distSqr(player.blockPosition());
+                    LOGGER.info("Screenshot run: {} lucky block at {} copying {} with luck {}", onSurface ? "surface" : "cave",
+                            pos.toShortString(), lucky.mimic(), lucky.luck());
+                    if (onSurface) {
+                        surface++;
+                        if (distance < bestSurface) {
+                            bestSurface = distance;
+                            surfaceFound = pos;
+                        }
+                    } else {
+                        BlockPos air = null;
+                        for (net.minecraft.core.Direction side : net.minecraft.core.Direction.values()) {
+                            if (level.getBlockState(pos.relative(side)).isAir()) {
+                                air = pos.relative(side);
+                            }
+                        }
+                        cave++;
+                        if (air != null && distance < bestCave) {
+                            bestCave = distance;
+                            caveFound = pos;
+                            caveAir = air;
+                        }
+                    }
+                }
+            }
+        }
+        LOGGER.info("Screenshot run: {} chunks surveyed: {} surface and {} cave lucky blocks (one per {} chunks)",
+                chunks, surface, cave, surface + cave == 0 ? "-" : String.format("%.1f", chunks / (double) (surface + cave)));
+    }
+
     private static void plan() {
+        if (NORMAL_WORLD) {
+            planWorldGeneration();
+            return;
+        }
         then(10, minecraft -> {
             minecraft.options.hideGui = true;
             onServer(minecraft, ScreenshotRun::buildScene);

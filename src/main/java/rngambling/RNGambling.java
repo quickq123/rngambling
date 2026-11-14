@@ -35,6 +35,8 @@ import rngambling.block.LuckyBlockItem;
 import rngambling.block.MimicLuckyBlock;
 import rngambling.item.MimicWandItem;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import rngambling.worldgen.LuckyBlockFeature;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -95,6 +97,13 @@ public final class RNGambling {
                             .setEquipSound(SoundEvents.ARMOR_EQUIP_GENERIC)
                             .build()));
 
+    private static final DeferredRegister<Feature<?>> FEATURES = DeferredRegister.create(Registries.FEATURE, MOD_ID);
+    /** World generation (see LuckyBlockFeature, and data/rngambling/worldgen and neoforge/biome_modifier). */
+    public static final DeferredHolder<Feature<?>, LuckyBlockFeature> SURFACE_LUCKY_BLOCK = FEATURES.register("surface_lucky_block",
+            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.SURFACE, RNGamblingConfig.SURFACE_RARITY::getAsInt));
+    public static final DeferredHolder<Feature<?>, LuckyBlockFeature> CAVE_LUCKY_BLOCK = FEATURES.register("cave_lucky_block",
+            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.CAVE, RNGamblingConfig.CAVE_RARITY::getAsInt));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CREATIVE_TAB = CREATIVE_TABS.register(MOD_ID,
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.rngambling"))
@@ -116,6 +125,8 @@ public final class RNGambling {
         ITEMS.register(modBus);
         BLOCK_ENTITY_TYPES.register(modBus);
         CREATIVE_TABS.register(modBus);
+        FEATURES.register(modBus);
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RNGamblingConfig.SPEC);
         if (Boolean.getBoolean("rngambling.gameTests")) {
             registerGameTests(modBus);
         }
@@ -135,7 +146,9 @@ public final class RNGambling {
             for (String name : RNGamblingGameTests.ALL.keySet()) {
                 event.registerTest(id(name), new FunctionGameTestInstance(
                         ResourceKey.create(Registries.TEST_FUNCTION, id(name)),
-                        new TestData<>(environment, id("empty"), 400, 0, true)));
+                        // Padding keeps tests that build or scan beyond the small test structure apart.
+                        new TestData<>(environment, id("empty"), 400, 0, true, net.minecraft.world.level.block.Rotation.NONE,
+                                false, 1, 1, false, 32)));
             }
         });
     }
