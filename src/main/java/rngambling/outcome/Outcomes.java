@@ -135,7 +135,9 @@ public final class Outcomes {
 
     /** Plays one effect for a player, in the Sandbox if it's one that builds or tears things up. */
     public static void play(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, Outcome outcome) {
-        announce(player, outcome);
+        if (!outcome.has(Outcome.Flag.SURPRISE)) {
+            announce(player, outcome);
+        }
         if (outcome.sandbox()) {
             Sandbox.Arena arena = Sandbox.start(player, outcome.hold());
             if (arena != null) {
@@ -144,6 +146,23 @@ public final class Outcomes {
             }
         }
         outcome.action().run(new OutcomeContext(level, pos.immutable(), player, level.getRandom(), Luck.clamp(luck), chain));
+        if (outcome.has(Outcome.Flag.SURPRISE)) {
+            // The scare first; who did it, after.
+            ServerLevel where = level;
+            BlockPos at = pos.immutable();
+            Scheduler.later(outcome.hold(), () -> {
+                if (!player.hasDisconnected()) {
+                    announce(player, outcome);
+                    reveal(where, at, player, outcome);
+                }
+            });
+            return;
+        }
+        reveal(level, pos, player, outcome);
+    }
+
+    /** The effect's name over the hotbar and its tier's sound. */
+    private static void reveal(ServerLevel level, BlockPos pos, ServerPlayer player, Outcome outcome) {
         player.sendOverlayMessage(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(outcome.tier().colour));
         level.playSound(null, pos, outcome.tier().sign > 0 ? SoundEvents.PLAYER_LEVELUP
                         : outcome.tier().sign < 0 ? SoundEvents.WITCH_CELEBRATE : SoundEvents.NOTE_BLOCK_CHIME.value(),

@@ -3,9 +3,11 @@ package rngambling.outcome;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
@@ -134,25 +136,72 @@ public final class Rooms {
         }
     }
 
-    /** CAT-03: a dark sculk cavern; sneak past the shriekers to the exit without waking a Warden. */
+    /**
+     * CAT-03: a long, dark deepslate and sculk cavern down to the way out. Shriekers that can
+     * summon a Warden line it, and it's laid with sound traps: bone piles that rattle and dark
+     * pressure plates that click, both of which set off the nearest shrieker however carefully
+     * the player moves, and sculk sensors that hear anyone who doesn't sneak. The deep dark already
+     * knows the player (warning level 2), so two more shrieks bring the Warden.
+     */
     public static final class WardensHollow extends Room {
+        public static final int LENGTH = 80;
+        private final java.util.Set<BlockPos> bones = new java.util.HashSet<>();
+        private final List<BlockPos> shriekers = new ArrayList<>();
+        private BlockPos lastTrap;
+
         @Override
         protected Vec3 build() {
-            box(-4, -1, -2, 4, 6, 38, Blocks.DEEPSLATE, true);
-            for (int z = -1; z <= 37; z++) {
+            box(-4, -1, -2, 4, 6, LENGTH + 2, Blocks.DEEPSLATE, true);
+            for (int z = -1; z <= LENGTH + 1; z++) {
                 for (int x = -3; x <= 3; x++) {
                     set(x, -1, z, random.nextInt(3) == 0 ? Blocks.SCULK : Blocks.DEEPSLATE);
-                    if (random.nextInt(14) == 0 && Math.abs(x) >= 2) {
+                    if (z < 3 || z > LENGTH - 3) {
+                        continue; // a clear start and finish
+                    }
+                    int roll = random.nextInt(100);
+                    if (roll < 7 && Math.abs(x) >= 2) {
                         set(x, 0, z, Blocks.SCULK_SENSOR);
+                    } else if (roll < 12) {
+                        set(x, -1, z, Blocks.BONE_BLOCK); // rattles underfoot
+                        bones.add(at(x, -1, z));
+                    } else if (roll < 16 && Math.abs(x) <= 2) {
+                        set(x, 0, z, Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE); // clicks
                     }
                 }
-                if (z % 6 == 3) {
-                    set(0, 0, z, Blocks.SCULK_SHRIEKER.defaultBlockState().setValue(BlockStateProperties.CAN_SUMMON, true));
+                if (z % 8 == 4 && z < LENGTH - 2) {
+                    int x = (z / 8) % 2 == 0 ? -3 : 3;
+                    set(x, 0, z, Blocks.SCULK_SHRIEKER.defaultBlockState().setValue(BlockStateProperties.CAN_SUMMON, true));
+                    shriekers.add(at(x, 0, z));
                 }
             }
-            exit(0, 0, 36);
-            player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 20 * 60 * 4));
+            exit(0, 0, LENGTH);
+            player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 20 * 60 * 5));
+            player.getWardenSpawnTracker().ifPresent(tracker -> tracker.setWarningLevel(Math.max(tracker.getWarningLevel(), 2)));
+            message("message.rngambling.room.wardens_hollow.rules");
             return Vec3.atBottomCenterOf(at(0, 0, 0));
+        }
+
+        @Override
+        protected void tick(int age) {
+            // A sound trap: standing on a bone pile or a pressure plate sets off the nearest shrieker.
+            BlockPos feet = player.blockPosition();
+            boolean onTrap = bones.contains(feet.below()) || level.getBlockState(feet).is(Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE);
+            if (!onTrap) {
+                lastTrap = null;
+                return;
+            }
+            if (feet.equals(lastTrap)) {
+                return; // once per step onto it
+            }
+            lastTrap = feet;
+            if (bones.contains(feet.below())) {
+                level.playSound(null, feet, SoundEvents.SKELETON_HURT, SoundSource.BLOCKS, 1.2f, 0.6f);
+            }
+            shriekers.stream().min(java.util.Comparator.comparingDouble(p -> p.distSqr(feet))).ifPresent(nearest -> {
+                if (level.getBlockEntity(nearest) instanceof net.minecraft.world.level.block.entity.SculkShriekerBlockEntity shrieker) {
+                    shrieker.tryShriek(level, player);
+                }
+            });
         }
 
         @Override
@@ -162,7 +211,7 @@ public final class Rooms {
 
         @Override
         protected int maxTicks() {
-            return 20 * 60 * 4;
+            return 20 * 60 * 5;
         }
 
         @Override
@@ -170,22 +219,36 @@ public final class Rooms {
             super.onEnd(success);
             player.removeEffect(MobEffects.DARKNESS);
         }
+
+        /** For tests: the trap and shrieker spots. */
+        public java.util.Set<BlockPos> boneTraps() {
+            return bones;
+        }
+
+        public List<BlockPos> shriekerSpots() {
+            return shriekers;
+        }
     }
 
-    /** CAT-07: a platform above the void, crumbling; survive 30 seconds and an exit appears. Falling is failure. */
+    /**
+     * CAT-07: a 9x9 platform above the void. After a three-second countdown it crumbles: a block
+     * darkens, then falls a moment later, and every fourth to go is the one under the player, so
+     * standing still is no defence. By about 25 seconds it's all gone; the player's 8 cobblestone
+     * are their lifeline. Hold on for 30 seconds and a way out appears. Falling is failure.
+     */
     public static final class VoidPlatform extends Room {
-        private static final int Y = 100;
+        private static final int Y = 100, HALF = 4, COUNTDOWN = 60, EVERY = 6, WARNING = 12, SURVIVE = 20 * 30;
         private final List<BlockPos> platform = new ArrayList<>();
+        private final java.util.Map<BlockPos, Integer> falling = new java.util.HashMap<>();
+        private int crumbles;
         private boolean exitOpen;
 
         @Override
         protected Vec3 build() {
-            for (int x = -3; x <= 3; x++) {
-                for (int z = -3; z <= 3; z++) {
+            for (int x = -HALF; x <= HALF; x++) {
+                for (int z = -HALF; z <= HALF; z++) {
                     set(x, Y, z, Blocks.STONE);
-                    if (x != 0 || z != 0) {
-                        platform.add(at(x, Y, z));
-                    }
+                    platform.add(at(x, Y, z));
                 }
             }
             Collections.shuffle(platform, new java.util.Random(random.nextLong()));
@@ -196,11 +259,47 @@ public final class Rooms {
 
         @Override
         protected void tick(int age) {
-            if (age % 10 == 9 && !platform.isEmpty() && !exitOpen) {
-                BlockPos crumble = platform.removeLast();
-                level.destroyBlock(crumble, false);
+            if (age < COUNTDOWN) {
+                if (age % 20 == 0) {
+                    title(Component.literal(String.valueOf(3 - age / 20)).withStyle(ChatFormatting.RED), 0, 20, 0);
+                    level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.BLOCKS, 1f, 1f);
+                }
+                return;
             }
-            if (age == 20 * 30) {
+            if (age == COUNTDOWN) {
+                title(Component.translatable("message.rngambling.room.void_platform.go").withStyle(ChatFormatting.GOLD), 0, 20, 10);
+                level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.BLOCKS, 1f, 2f);
+            }
+            // Blocks marked to fall, falling.
+            falling.entrySet().removeIf(entry -> {
+                if (age < entry.getValue()) {
+                    return false;
+                }
+                if (level.getBlockState(entry.getKey()).is(Blocks.COBBLED_DEEPSLATE)) {
+                    level.destroyBlock(entry.getKey(), false);
+                }
+                return true;
+            });
+            if (!exitOpen && (age - COUNTDOWN) % EVERY == 0) {
+                BlockPos under = player.blockPosition().below();
+                BlockPos next = null;
+                if (crumbles % 4 == 3 && platform.contains(under)) {
+                    next = under; // the one they're standing on
+                } else {
+                    while (!platform.isEmpty() && next == null) {
+                        BlockPos candidate = platform.removeLast();
+                        next = level.getBlockState(candidate).is(Blocks.STONE) ? candidate : null;
+                    }
+                }
+                if (next != null) {
+                    platform.remove(next);
+                    crumbles++;
+                    level.setBlock(next, Blocks.COBBLED_DEEPSLATE.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    level.playSound(null, next, SoundEvents.STONE_HIT, SoundSource.BLOCKS, 1f, 0.6f);
+                    falling.put(next, age + WARNING);
+                }
+            }
+            if (age == COUNTDOWN + SURVIVE) {
                 exitOpen = true;
                 BlockPos under = player.blockPosition().below();
                 BlockPos spot = under.relative(Direction.Plane.HORIZONTAL.getRandomDirection(random), 2);
@@ -208,6 +307,11 @@ public final class Rooms {
                 exit(spot.getX() - centre.getX(), spot.getY() - centre.getY() + 1, spot.getZ() - centre.getZ());
                 message("message.rngambling.room.exit_open");
             }
+        }
+
+        private void title(Component text, int fadeIn, int stay, int fadeOut) {
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(fadeIn, stay, fadeOut));
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(text));
         }
 
         @Override
@@ -222,7 +326,7 @@ public final class Rooms {
 
         @Override
         protected int maxTicks() {
-            return 20 * 90;
+            return 20 * 100;
         }
     }
 

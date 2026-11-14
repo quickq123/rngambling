@@ -58,7 +58,82 @@ public final class RNGamblingGameTests {
             Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords),
             Map.entry("rooms_build", RNGamblingGameTests::roomsBuild),
             Map.entry("custom_effects", RNGamblingGameTests::customEffects),
-            Map.entry("effect_commands", RNGamblingGameTests::effectCommands));
+            Map.entry("effect_commands", RNGamblingGameTests::effectCommands),
+            Map.entry("rooms_play", RNGamblingGameTests::roomsPlay));
+
+    /**
+     * Rooms played through: on the Void Platform a player who stands still loses their footing
+     * (and the whole platform is gone before the way out opens); in Warden's Hollow a sound trap
+     * sets off a shrieker; dying in the Sandbox keeps what was lost for the respawn; scares are
+     * announced only afterwards.
+     */
+    private static void roomsPlay(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        try {
+            // Void Platform: stand still at the start.
+            var platform = new rngambling.outcome.Rooms.VoidPlatform();
+            BlockPos centre = new BlockPos(origin.getX() + 2600, 0, origin.getZ());
+            net.minecraft.world.phys.Vec3 start = platform.buildAt(level, centre, player, 0);
+            player.teleportTo(level, start.x, start.y, start.z, java.util.Set.of(), 0f, 0f, true);
+            BlockPos under = BlockPos.containing(start).below();
+            int fellAt = -1;
+            for (int age = 0; age < 60 + 20 * 30 && fellAt < 0; age++) {
+                platform.tickForTest(age);
+                if (age < 60) {
+                    helper.assertTrue(level.getBlockState(under).is(Blocks.STONE), "nothing crumbles during the countdown");
+                }
+                if (level.getBlockState(under).isAir()) {
+                    fellAt = age;
+                }
+            }
+            LOGGER.info("Void Platform: the block under a player standing still fell at {} ticks", fellAt);
+            helper.assertTrue(fellAt > 60 && fellAt < 60 + 20 * 10, "standing still should fail soon after the countdown, not at " + fellAt);
+            for (int age = fellAt + 1; age < 60 + 20 * 30; age++) {
+                platform.tickForTest(age);
+            }
+            int left = 0;
+            for (BlockPos p : BlockPos.betweenClosed(under.offset(-4, 0, -4), under.offset(4, 0, 4))) {
+                left += level.getBlockState(p).isAir() ? 0 : 1;
+            }
+            helper.assertTrue(left == 0, "the platform should be gone before the way out opens: " + left + " left");
+
+            // Warden's Hollow: a bone trap sets off a shrieker.
+            var hollow = new rngambling.outcome.Rooms.WardensHollow();
+            BlockPos cave = new BlockPos(origin.getX() + 2800, 100, origin.getZ());
+            hollow.buildAt(level, cave, player, 0);
+            helper.assertTrue(hollow.exitPos().getZ() - cave.getZ() == rngambling.outcome.Rooms.WardensHollow.LENGTH, "the hollow is 80 long");
+            helper.assertTrue(hollow.shriekerSpots().size() >= 9 && !hollow.boneTraps().isEmpty(), "shriekers and sound traps along it");
+            int before = player.getWardenSpawnTracker().orElseThrow().getWarningLevel();
+            helper.assertTrue(before >= 2, "the deep dark already knows the player");
+            BlockPos bone = hollow.boneTraps().iterator().next();
+            player.teleportTo(level, bone.getX() + 0.5, bone.getY() + 1, bone.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+            hollow.tickForTest(5);
+            int after = player.getWardenSpawnTracker().orElseThrow().getWarningLevel();
+            helper.assertTrue(after > before, "stepping on bones should set off a shrieker: warning " + before + " -> " + after);
+
+            // Dying in the Sandbox: what was lost waits for the respawn, less items a room handed out.
+            player.getInventory().clearContent();
+            ItemStack handedOut = new ItemStack(net.minecraft.world.item.Items.COBBLESTONE, 8);
+            net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+            tag.putBoolean(rngambling.outcome.Room.SANDBOX_ONLY_TAG, true);
+            handedOut.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+            rngambling.outcome.SandboxDeaths.keep(player, java.util.List.of(new ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD)));
+            helper.assertTrue(rngambling.outcome.SandboxDeaths.giveBack(player)
+                    && player.getInventory().contains(s -> s.is(net.minecraft.world.item.Items.DIAMOND_SWORD)), "the sword should come back");
+            helper.assertFalse(rngambling.outcome.SandboxDeaths.giveBack(player), "and only once");
+
+            // Scares are announced after, not before.
+            for (String scare : new String[] {"fake_explosion", "fake_death_message", "ghast_scream", "silent_creeper"}) {
+                helper.assertTrue(outcome(scare).has(Outcome.Flag.SURPRISE), scare + " should be a surprise");
+            }
+        } finally {
+            rngambling.outcome.Scheduler.clear();
+            level.getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out

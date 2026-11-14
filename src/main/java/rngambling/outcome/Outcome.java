@@ -15,7 +15,7 @@ import java.util.Set;
  * @param action    what it does
  * @param flags     {@link Flag}s
  * @param hold      for a Sandbox effect, the least time (in ticks) the visit lasts, for effects
- *                  that play out over time
+ *                  that play out over time; for a {@link Flag#SURPRISE}, how long until it's announced
  */
 public record Outcome(String id, String catalogId, Tier tier, int luckMin, int luckMax, int weight, Action action,
         Set<Flag> flags, int hold) {
@@ -28,7 +28,12 @@ public record Outcome(String id, String catalogId, Tier tier, int luckMin, int l
         /** Places more lucky blocks: not offered by a block that is itself deep in a chain. */
         CHAIN,
         /** A Sandbox room: left out of the draw when the Sandbox is off or missing. */
-        ROOM
+        ROOM,
+        /**
+         * A scare or a fake-out: its name and one-liner (and the tier's sound) come only after it
+         * has played out, {@code hold} ticks later, so they don't give it away.
+         */
+        SURPRISE
     }
 
     public Outcome {
@@ -79,6 +84,11 @@ public record Outcome(String id, String catalogId, Tier tier, int luckMin, int l
 
     public Outcome room() {
         return with(Flag.ROOM, hold);
+    }
+
+    /** Announced only {@code revealTicks} after it starts (see {@link Flag#SURPRISE}). */
+    public Outcome surprise(int revealTicks) {
+        return with(Flag.SURPRISE, revealTicks);
     }
 
     /** The same metadata (tier, band, weight, flags) with a different id and action: for themes. */

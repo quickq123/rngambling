@@ -121,11 +121,18 @@ Temporary entities (Ore Vision's glows, the llamas, the Tax Collector) are remov
 after a restart. Tests: `custom_effects`; `runClientShots -PshotsWorld=effects` pictures Ore
 Vision, the Disco Floor, the llamas, the Dragon Hatchling, Genie's Wish and the Hot Potato.
 
+### Dying in the Sandbox
+
+What a player loses dying in the Sandbox (their drops, less items a room handed out, and their
+experience) isn't scattered over the Sandbox: it's kept with them (saved, so a restart doesn't
+lose it) and given back when they respawn (`SandboxDeaths`).
+
 ### Announcements and testing effects
 
 Every effect says in the player's chat what it is: `[Lucky Block] Name: one-liner`, coloured by
 tier (the one-liners, some snarky, are the `outcome.rngambling.<id>.quip` lines in
-`lang/en_us.json`; the fake-outs' don't give the joke away). The name also shows above the hotbar.
+`lang/en_us.json`; scares and fake-outs (Fake Explosion, Fake Death Message, Ghast Scream, Silent Creeper) are
+announced only after they've played out, so nothing spoils them). The name also shows above the hotbar.
 
 Operators can set off effects to test them. The target is a player by name, or whoever runs
 the command when no name is given:
@@ -184,8 +191,8 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 |---|---|---|
 | Wither Arena (CAT-01) | sealed obsidian box, a Wither charging up | Wither dead (5 min max) |
 | Empowered Wither (CAT-20) | ruined stone-brick ring; Wither with double health and +6 armour, 2 wither skeletons every 20 s | 30 s after it dies, with an End City and a bastion chest (6 min max) |
-| Warden's Hollow (CAT-03) | dark deepslate and sculk cavern, shriekers that can summon a Warden down the middle, Darkness | the way out at the far end (4 min) |
-| Void Platform (CAT-07) | 7x7 platform 100 up, crumbling a block every half second; 8 cobblestone to patch it | a way out appears after 30 s; falling fails |
+| Warden's Hollow (CAT-03) | an 80-long dark deepslate and sculk cavern, Darkness; shriekers that can summon a Warden along it, sculk sensors (sneak past), and sound traps that go off however carefully you move: bone piles that rattle and dark pressure plates that click, each setting off the nearest shrieker. The player starts at Warden warning level 2, so two shrieks bring the Warden | the way out at the far end (5 min) |
+| Void Platform (CAT-07) | 9x9 platform 100 up; a 3-2-1 countdown, then a block darkens and falls every 0.3 s, every fourth one the block under the player (standing still fails); all gone by about 25 s. 8 cobblestone to save yourself | a way out appears 30 s after the countdown; falling fails |
 | Rising Lava Tomb (CAT-08) | sealed stone-brick box; lava rises a layer every 4 s after an 8 s grace; cracked-brick decoys, and one weak pair (two high, at the floor) that breaks | the way out down a tunnel behind the weak pair |
 | Elder Guardian Monument (CAT-14) | flooded prismarine chamber, 2 Elder Guardians | the way out at the far wall (3 min) |
 | Nether Fortress Ambush (CAT-17) | 40-long nether brick corridor, blazes and wither skeletons | the way out at the end (3 min) |

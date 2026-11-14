@@ -176,10 +176,10 @@ public final class Catalog {
                         BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10);
                 bar.addPlayer(c.player());
                 BlockPos at = c.pos();
-                Scheduler.repeat(20, 30, second -> {
-                    bar.setProgress(1f - (second + 1) / 30f);
-                    c.level().playSound(null, at, SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.BLOCKS, 1.0f, second >= 25 ? 2.0f : 1.0f);
-                    if (second == 29) {
+                Scheduler.repeat(20, 10, second -> {
+                    bar.setProgress(1f - (second + 1) / 10f);
+                    c.level().playSound(null, at, SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.BLOCKS, 1.0f, second >= 6 ? 2.0f : 1.0f);
+                    if (second == 9) {
                         bar.removeAllPlayers();
                         c.explode(Vec3.atCenterOf(at), 7f, true);
                     }
@@ -385,9 +385,9 @@ public final class Catalog {
                     c.level().sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.pos().getX() + 0.5, c.pos().getY() + 0.5, c.pos().getZ() + 0.5, 1, 0, 0, 0, 0);
                     c.level().sendParticles(ParticleTypes.LARGE_SMOKE, c.pos().getX() + 0.5, c.pos().getY() + 0.5, c.pos().getZ() + 0.5, 40, 1, 1, 1, 0.05);
                 });
-            }),
+            }).surprise(60),
             of("BAD-02", "fake_death_message", BAD, -35, -10, 5, c -> c.player().sendSystemMessage(
-                    Component.translatable("outcome.rngambling.fake_death_message.text", c.player().getDisplayName()))),
+                    Component.translatable("outcome.rngambling.fake_death_message.text", c.player().getDisplayName()))).surprise(60),
             of("BAD-03", "chicken_jockey_party", BAD, -40, -15, 5, c -> {
                 for (var chicken : c.spawnRing(EntityType.CHICKEN, 3, 4)) {
                     var zombie = c.spawn(EntityType.ZOMBIE, chicken.position());
@@ -441,7 +441,7 @@ public final class Catalog {
                         }
                     });
                 }
-            }),
+            }).surprise(20 * 15),
             of("BAD-11", "yeet_held_item", BAD, -35, -10, 6, c -> {
                 ItemStack held = c.player().getMainHandItem().copy();
                 if (!held.isEmpty()) {
@@ -611,7 +611,7 @@ public final class Catalog {
                 c.spawnNear(EntityType.TRADER_LLAMA, 2, 3);
             }),
             of("NEU-18", "ghast_scream", NEUTRAL, -10, 0, 5, c -> c.level().playSound(null, c.player().blockPosition(),
-                    SoundEvents.GHAST_SCREAM, SoundSource.HOSTILE, 2.0f, 1.0f)),
+                    SoundEvents.GHAST_SCREAM, SoundSource.HOSTILE, 2.0f, 1.0f)).surprise(50),
             of("NEU-19", "jukebox", NEUTRAL, -5, 15, 4, c -> {
                 BlockPos spot = c.freeSpotNear(c.pos(), 2);
                 if (c.level().isEmptyBlock(spot)) {

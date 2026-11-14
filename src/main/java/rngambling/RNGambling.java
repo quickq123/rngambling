@@ -81,6 +81,11 @@ public final class RNGambling {
             ATTACHMENTS.register("phoenix", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> false)
                     .serialize(Codec.BOOL.fieldOf("blessed")).build());
 
+    /** What a player lost dying in the Sandbox, given back when they respawn (see rngambling.outcome.SandboxDeaths). */
+    public static final DeferredHolder<net.neoforged.neoforge.attachment.AttachmentType<?>, net.neoforged.neoforge.attachment.AttachmentType<rngambling.outcome.SandboxDeaths.Kit>> SANDBOX_DEATH =
+            ATTACHMENTS.register("sandbox_death", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> rngambling.outcome.SandboxDeaths.Kit.EMPTY)
+                    .serialize(rngambling.outcome.SandboxDeaths.Kit.CODEC, kit -> !kit.isEmpty()).copyOnDeath().build());
+
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
@@ -255,6 +260,7 @@ public final class RNGambling {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
         // Effects that play out over time, and react to the game.
         rngambling.outcome.EffectEvents.register();
+        rngambling.outcome.SandboxDeaths.register();
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
                 rngambling.outcome.Scheduler.tick(event.getServer()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppingEvent event) ->
