@@ -42,7 +42,70 @@ public final class RNGamblingGameTests {
             "every_outcome_runs", RNGamblingGameTests::everyOutcomeRuns,
             "break_rules", RNGamblingGameTests::breakRules,
             "luck_tilts_the_odds", RNGamblingGameTests::luckTiltsTheOdds,
-            "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing);
+            "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing,
+            "mimic_wand", RNGamblingGameTests::mimicWand);
+
+    /** The Mimic Wand disguises plain blocks, reports and undoes, refuses the rest, and is creative only. */
+    private static void mimicWand(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer creative = player(helper, GameType.CREATIVE);
+        ServerPlayer survival = player(helper, GameType.SURVIVAL);
+        try {
+            BlockPos stone = new BlockPos(1, 1, 1);
+            BlockPos chest = new BlockPos(3, 1, 1);
+            helper.setBlock(stone, Blocks.STONE);
+            helper.setBlock(chest, Blocks.CHEST);
+
+            helper.assertTrue(wand(helper, survival, stone) == net.minecraft.world.InteractionResult.FAIL, "survival players can't use the wand");
+            helper.assertBlockPresent(Blocks.STONE, stone);
+            helper.assertTrue(wand(helper, creative, chest) == net.minecraft.world.InteractionResult.FAIL, "a chest can't be disguised");
+            helper.assertBlockPresent(Blocks.CHEST, chest);
+
+            wand(helper, creative, stone);
+            helper.assertBlockPresent(RNGambling.MIMIC_LUCKY_BLOCK.get(), stone);
+            LuckyBlockEntity lucky = helper.getBlockEntity(stone, LuckyBlockEntity.class);
+            helper.assertTrue(lucky.mimic() != null && lucky.mimic().is(Blocks.STONE), "the disguise should copy stone");
+            // It mines like stone, and middle-click gives stone.
+            BlockPos abs = helper.absolutePos(stone);
+            float progress = level.getBlockState(abs).getDestroyProgress(survival, level, abs);
+            float stoneProgress = Blocks.STONE.defaultBlockState().getDestroyProgress(survival, level, abs);
+            helper.assertTrue(Math.abs(progress - stoneProgress) < 1e-6, "it should mine like stone: " + progress + " vs " + stoneProgress);
+            helper.assertTrue(level.getBlockState(abs).getCloneItemStack(abs, level, false, creative).is(Blocks.STONE.asItem()),
+                    "middle-click should give stone");
+            // It survives a save and load.
+            ServerLevel serverLevel = level;
+            net.minecraft.world.level.block.entity.BlockEntity reloaded = net.minecraft.world.level.block.entity.BlockEntity.loadStatic(
+                    abs, level.getBlockState(abs), lucky.saveWithFullMetadata(serverLevel.registryAccess()), serverLevel.registryAccess());
+            helper.assertTrue(reloaded instanceof LuckyBlockEntity copy && copy.mimic() != null && copy.mimic().is(Blocks.STONE)
+                    && copy.luck() == lucky.luck(), "the disguise and luck should be saved");
+
+            // Sneak + use turns it back.
+            creative.setShiftKeyDown(true);
+            wand(helper, creative, stone);
+            creative.setShiftKeyDown(false);
+            helper.assertBlockPresent(Blocks.STONE, stone);
+
+            // A survival player breaking a disguised block sets off an outcome and removes it.
+            wand(helper, creative, stone);
+            survival.snapTo(abs.getX() + 3.5, abs.getY(), abs.getZ() + 0.5);
+            survival.gameMode.destroyBlock(abs);
+            helper.assertBlockNotPresent(RNGambling.MIMIC_LUCKY_BLOCK.get(), stone);
+            clearUp(helper, level, survival);
+        } finally {
+            level.getServer().getPlayerList().remove(creative);
+            level.getServer().getPlayerList().remove(survival);
+        }
+        helper.succeed();
+    }
+
+    private static net.minecraft.world.InteractionResult wand(GameTestHelper helper, ServerPlayer player, BlockPos relative) {
+        BlockPos abs = helper.absolutePos(relative);
+        ItemStack wand = new ItemStack(RNGambling.MIMIC_WAND.get());
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, wand);
+        net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(
+                net.minecraft.world.phys.Vec3.atCenterOf(abs), net.minecraft.core.Direction.UP, abs, false);
+        return wand.useOn(new net.minecraft.world.item.context.UseOnContext(player, net.minecraft.world.InteractionHand.MAIN_HAND, hit));
+    }
 
     /** Each outcome runs without error on a survival player. */
     private static void everyOutcomeRuns(GameTestHelper helper) {

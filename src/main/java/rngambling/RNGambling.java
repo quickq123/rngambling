@@ -32,6 +32,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import rngambling.block.LuckyBlock;
 import rngambling.block.LuckyBlockEntity;
 import rngambling.block.LuckyBlockItem;
+import rngambling.block.MimicLuckyBlock;
+import rngambling.item.MimicWandItem;
+import net.minecraft.world.item.Rarity;
 import rngambling.luck.Luck;
 
 @Mod(RNGambling.MOD_ID)
@@ -59,8 +62,19 @@ public final class RNGambling {
     public static final DeferredItem<LuckyBlockItem> LUCKY_BLOCK_ITEM = ITEMS.registerItem("lucky_block",
             properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties),
             () -> new Item.Properties().useBlockDescriptionPrefix());
+    /**
+     * The disguised lucky block: copies another block's look (a few percent darker), sound and
+     * hardness. It has no item; it's made by world generation (later) or the Mimic Wand.
+     */
+    public static final DeferredBlock<MimicLuckyBlock> MIMIC_LUCKY_BLOCK = BLOCKS.registerBlock("mimic_lucky_block", MimicLuckyBlock::new,
+            properties -> properties.mapColor(MapColor.STONE).strength(1.5f));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LuckyBlockEntity>> LUCKY_BLOCK_ENTITY =
-            BLOCK_ENTITY_TYPES.register("lucky_block", () -> new BlockEntityType<>(LuckyBlockEntity::new, LUCKY_BLOCK.get()));
+            BLOCK_ENTITY_TYPES.register("lucky_block", () -> new BlockEntityType<>(LuckyBlockEntity::new,
+                    LUCKY_BLOCK.get(), MIMIC_LUCKY_BLOCK.get()));
+
+    /** Creative only: turns a block into a disguised lucky block copying it. */
+    public static final DeferredItem<MimicWandItem> MIMIC_WAND = ITEMS.registerItem("mimic_wand", MimicWandItem::new,
+            () -> new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
 
     /** The casino's currency: won from lucky blocks, gambled in the casino, traded with its villager. */
     public static final DeferredItem<Item> CASINO_TOKEN = ITEMS.registerSimpleItem("casino_token");
@@ -75,6 +89,7 @@ public final class RNGambling {
                             output.accept(LuckyBlockItem.withLuck(luck));
                         }
                         output.accept(CASINO_TOKEN.get());
+                        output.accept(MIMIC_WAND.get());
                     })
                     .build());
 

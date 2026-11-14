@@ -8,19 +8,22 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 import rngambling.RNGambling;
 import rngambling.luck.Luck;
 
 /**
- * Holds a lucky block's luck. It is also sent to the client, where the luck-seeing glasses
- * (a later step) read it.
+ * Holds a lucky block's luck and, for a disguised lucky block, the block it copies. Both are
+ * sent to the client: the copied block to draw it, the luck for the luck-seeing glasses (later).
  */
 public class LuckyBlockEntity extends BlockEntity {
     private int luck;
+    private @Nullable BlockState mimic;
 
     public LuckyBlockEntity(BlockPos pos, BlockState state) {
         super(RNGambling.LUCKY_BLOCK_ENTITY.get(), pos, state);
@@ -33,9 +36,23 @@ public class LuckyBlockEntity extends BlockEntity {
     /** Changes the luck (for the luck boosters, later) and tells nearby players' games. */
     public void setLuck(int luck) {
         this.luck = Luck.clamp(luck);
+        changed();
+    }
+
+    /** The block a disguised lucky block looks like, or null for a plain one. */
+    public @Nullable BlockState mimic() {
+        return mimic;
+    }
+
+    public void setMimic(@Nullable BlockState mimic) {
+        this.mimic = mimic;
+        changed();
+    }
+
+    private void changed() {
         setChanged();
         if (level != null && !level.isClientSide()) {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -43,12 +60,21 @@ public class LuckyBlockEntity extends BlockEntity {
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         output.putInt("luck", luck);
+        if (mimic != null) {
+            output.store("mimic", BlockState.CODEC, mimic);
+        }
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         luck = Luck.clamp(input.getIntOr("luck", 0));
+        BlockState before = mimic;
+        mimic = input.read("mimic", BlockState.CODEC).orElse(null);
+        // In the player's game: the block arrives before its data, so redraw it once the copied block is known.
+        if (level != null && level.isClientSide() && before != mimic) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_IMMEDIATE);
+        }
     }
 
     @Override
@@ -74,9 +100,7 @@ public class LuckyBlockEntity extends BlockEntity {
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("luck", luck);
-        return tag;
+        return saveCustomOnly(registries);
     }
 
     @Override

@@ -1,8 +1,16 @@
 {
   "itemGroup.rngambling": "RNGambling",
   "block.rngambling.lucky_block": "Lucky Block",
+  "block.rngambling.mimic_lucky_block": "Lucky Block",
   "item.rngambling.casino_token": "Casino Token",
+  "item.rngambling.mimic_wand": "Mimic Wand",
   "tooltip.rngambling.luck": "Luck: %s",
+
+  "message.rngambling.wand.creative_only": "The Mimic Wand only works in creative mode.",
+  "message.rngambling.wand.disguised": "%s is now a disguised lucky block (luck %s)",
+  "message.rngambling.wand.info": "Disguised as %s, luck %s. Sneak + use to undo.",
+  "message.rngambling.wand.restored": "Turned back into %s",
+  "message.rngambling.wand.cannot": "%s can't be disguised: only plain full solid blocks can.",
 
   "outcome.rngambling.tokens": "Casino Tokens!",
   "outcome.rngambling.token_jackpot": "JACKPOT!",

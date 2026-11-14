@@ -30,6 +30,16 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
+        // A development aid: starts the game, builds a test scene in a new flat world, takes
+        // pictures and quits (see rngambling.client.shots.ScreenshotRun).
+        // Run: gradlew runClientShots   Pictures: runs/shots/screenshots
+        clientShots {
+            client()
+            gameDirectory = project.file('runs/shots')
+            systemProperty 'rngambling.screenshots', 'true'
+            programArguments.addAll '--width', '1280', '--height', '720'
+        }
+
         server {
             server()
             programArgument '--nogui'
@@ -73,3 +83,17 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 }
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
+
+// Each screenshot run starts clean: a new world, no old pictures, and settings that skip the
+// first-start screens and keep the game running while its window isn't in front.
+def shotsDir = file('runs/shots')
+tasks.matching { it.name == 'runClientShots' }.configureEach {
+    doFirst {
+        new File(shotsDir, 'saves').deleteDir()
+        new File(shotsDir, 'screenshots').deleteDir()
+        shotsDir.mkdirs()
+        new File(shotsDir, 'options.txt').text = ['onboardAccessibility:false', 'pauseOnLostFocus:false', 'tutorialStep:none',
+                'soundCategory_master:0.0', 'narrator:0', 'guiScale:2', 'renderDistance:6', 'fov:0.0',
+                'skipMultiplayerWarning:true', 'joinedFirstServer:true'].join(System.lineSeparator()) + System.lineSeparator()
+    }
+}

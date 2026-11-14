@@ -79,6 +79,29 @@ def casino_token():
     return px
 
 
+def mimic_wand():
+    """A diagonal wand: dark wood handle, gold band, and a glowing purple-pink tip."""
+    wood, wood_dark = (92, 58, 34), (64, 40, 22)
+    gold = (232, 186, 64)
+    tip, tip_bright = (196, 92, 220), (250, 190, 255)
+    px = [[None] * 16 for _ in range(16)]
+    # The shaft runs from bottom-left (1, 14) to top-right (11, 4), two pixels thick.
+    for i in range(11):
+        x, y = 1 + i, 14 - i
+        px[y][x] = wood if i < 7 else gold
+        if y + 1 < 16:
+            px[y + 1][x] = wood_dark if i < 7 else shade(gold, -50)
+    # The tip: a small diamond of light with sparkles.
+    for (x, y) in ((12, 3), (13, 2), (12, 2), (13, 3), (11, 3), (12, 4), (14, 2), (13, 1)):
+        px[y][x] = tip
+    px[2][13] = tip_bright
+    px[3][12] = tip_bright
+    for (x, y) in ((15, 0), (10, 1), (15, 5)):
+        px[y][x] = tip_bright
+    return px
+
+
 write_png("block/lucky_block.png", lucky_block())
+write_png("item/mimic_wand.png", mimic_wand())
 write_png("item/casino_token.png", casino_token())
 print("textures written")
