@@ -1,0 +1,110 @@
+package rngambling;
+
+import com.mojang.serialization.Codec;
+import java.util.function.Consumer;
+import net.minecraft.core.Holder;
+import net.minecraft.gametest.framework.FunctionGameTestInstance;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
+import rngambling.test.RNGamblingGameTests;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.material.MapColor;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import rngambling.block.LuckyBlock;
+import rngambling.block.LuckyBlockEntity;
+import rngambling.block.LuckyBlockItem;
+import rngambling.luck.Luck;
+
+@Mod(RNGambling.MOD_ID)
+public final class RNGambling {
+    public static final String MOD_ID = "rngambling";
+
+    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MOD_ID);
+    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
+    private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
+            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MOD_ID);
+    private static final DeferredRegister.DataComponents DATA_COMPONENTS =
+            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, MOD_ID);
+    private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
+            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+
+    /** A lucky block's luck, from -100 to +100, carried on the item and copied into the placed block. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> LUCK =
+            DATA_COMPONENTS.registerComponentType("luck", builder -> builder
+                    .persistent(Codec.intRange(Luck.MIN, Luck.MAX))
+                    .networkSynchronized(ByteBufCodecs.VAR_INT));
+
+    /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
+    public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
+            properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
+    public static final DeferredItem<LuckyBlockItem> LUCKY_BLOCK_ITEM = ITEMS.registerItem("lucky_block",
+            properties -> new LuckyBlockItem(LUCKY_BLOCK.get(), properties),
+            () -> new Item.Properties().useBlockDescriptionPrefix());
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LuckyBlockEntity>> LUCKY_BLOCK_ENTITY =
+            BLOCK_ENTITY_TYPES.register("lucky_block", () -> new BlockEntityType<>(LuckyBlockEntity::new, LUCKY_BLOCK.get()));
+
+    /** The casino's currency: won from lucky blocks, gambled in the casino, traded with its villager. */
+    public static final DeferredItem<Item> CASINO_TOKEN = ITEMS.registerSimpleItem("casino_token");
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CREATIVE_TAB = CREATIVE_TABS.register(MOD_ID,
+            () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup.rngambling"))
+                    .icon(() -> new ItemStack(LUCKY_BLOCK_ITEM.get()))
+                    .displayItems((parameters, output) -> {
+                        // One lucky block at each test luck, so outcomes at the extremes are easy to try.
+                        for (int luck : new int[] {0, 50, 100, -50, -100}) {
+                            output.accept(LuckyBlockItem.withLuck(luck));
+                        }
+                        output.accept(CASINO_TOKEN.get());
+                    })
+                    .build());
+
+    public RNGambling(IEventBus modBus, ModContainer container) {
+        DATA_COMPONENTS.register(modBus);
+        BLOCKS.register(modBus);
+        ITEMS.register(modBus);
+        BLOCK_ENTITY_TYPES.register(modBus);
+        CREATIVE_TABS.register(modBus);
+        if (Boolean.getBoolean("rngambling.gameTests")) {
+            registerGameTests(modBus);
+        }
+    }
+
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
+    }
+
+    /** Only in the game test run (see build.gradle): registers the tests in rngambling.test.RNGamblingGameTests. */
+    private static void registerGameTests(IEventBus modBus) {
+        DeferredRegister<Consumer<GameTestHelper>> functions = DeferredRegister.create(Registries.TEST_FUNCTION, MOD_ID);
+        RNGamblingGameTests.ALL.forEach((name, body) -> functions.register(name, () -> body));
+        functions.register(modBus);
+        modBus.addListener((RegisterGameTestsEvent event) -> {
+            Holder<TestEnvironmentDefinition<?>> environment = event.registerEnvironment(id("default"));
+            for (String name : RNGamblingGameTests.ALL.keySet()) {
+                event.registerTest(id(name), new FunctionGameTestInstance(
+                        ResourceKey.create(Registries.TEST_FUNCTION, id(name)),
+                        new TestData<>(environment, id("empty"), 400, 0, true)));
+            }
+        });
+    }
+}
