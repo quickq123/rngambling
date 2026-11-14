@@ -67,8 +67,24 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   table swapped for a Slot Machine facing into the room (`tools/make_structures.py` makes
   them from the vanilla files; `CasinoHouses` adds them to the village house pools at three
   times the Fletcher House's weight). In a survey, 9 of 19 villages had one (some two).
-- **Slot Machine** (job site done; playing it is step 5): can't be crafted, mined with a
-  pickaxe and drops itself (open: should it?).
+- **Slot Machine** (done): right-click to play. Bet 1, 5 or 10 tokens (taken from the
+  inventory), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
+  decided on the server (`SlotMachine`, `SlotMachineMenu`); the win is paid as the last reel
+  stops, or at once if the screen is closed. Like a real casino it's weighted slightly
+  against the player: it pays back **91.6%** of tokens bet (an 8.4% house edge; the
+  `slot_machine` game test checks the exact figure is 90-94%, and a 300,000-spin simulation
+  gave 91.9%). About 1 spin in 4 wins something. Reel weights (out of 24) and pay table:
+
+  | Symbol | On a reel | Three pay (x bet) |
+  |---|---|---|
+  | Cherry | 7 | 8 (any two cherries: 2) |
+  | Lemon | 6 | 10 |
+  | Bell | 4 | 18 |
+  | BAR | 3 | 30 |
+  | 7 | 2 | 80 |
+  | Lucky block | 2 | 20, plus a lucky block (luck +25) |
+
+  It can't be crafted; it's mined with a pickaxe and drops itself (open: should it?).
 - **Casino Dealer** (done): a villager profession whose job site is any casino machine (the
   `rngambling:casino_machine` point of interest). Black vest, white shirt, red bow tie, green
   visor. Trades (data files: `data/rngambling/villager_trade/dealer/<level>/`, and
@@ -95,12 +111,12 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 3. ~~The disguised block, the Mimic Wand and world generation.~~ Done.
 4. ~~Casino tokens, the Casino Dealer and its trades, the luck charms, and the casino
    buildings in villages.~~ Done.
-5. Playing the Slot Machine. Machines can't be crafted.
+5. ~~Playing the Slot Machine.~~ Done.
 6. Roulette, then blackjack. All game logic runs on the server.
 7. Themed outcomes per luck zone (Nether: blazes instead of zombies, fire; End: shulkers,
    levitation, ender pearls; ...).
 
-Open: what happens when a casino machine is broken; the machines' house edge.
+Open: what happens when a casino machine is broken. Roulette and blackjack should keep a similar small house edge.
 
 ## Working on it
 

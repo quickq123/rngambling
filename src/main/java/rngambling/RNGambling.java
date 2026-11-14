@@ -107,6 +107,11 @@ public final class RNGambling {
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(3.5f).sound(SoundType.METAL).requiresCorrectToolForDrops());
     public static final DeferredItem<BlockItem> SLOT_MACHINE_ITEM = ITEMS.registerSimpleBlockItem(SLOT_MACHINE);
 
+    private static final DeferredRegister<net.minecraft.world.inventory.MenuType<?>> MENUS = DeferredRegister.create(Registries.MENU, MOD_ID);
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<rngambling.casino.SlotMachineMenu>> SLOT_MACHINE_MENU =
+            MENUS.register("slot_machine", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    (containerId, inventory, buffer) -> new rngambling.casino.SlotMachineMenu(containerId, inventory, buffer.readBlockPos())));
+
     /** One-use luck charms, sold by the Casino Dealer. */
     public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
             properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));
@@ -170,6 +175,7 @@ public final class RNGambling {
         CREATIVE_TABS.register(modBus);
         FEATURES.register(modBus);
         POI_TYPES.register(modBus);
+        MENUS.register(modBus);
         PROFESSIONS.register(modBus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RNGamblingConfig.SPEC);

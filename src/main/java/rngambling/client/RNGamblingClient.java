@@ -17,6 +17,8 @@ public final class RNGamblingClient {
         modBus.addListener(MimicModel::wrap);
         modBus.addListener(MimicTint::register);
         modBus.addListener(LuckOverlay::register);
+        modBus.addListener((net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) ->
+                event.register(RNGambling.SLOT_MACHINE_MENU.get(), SlotMachineScreen::new));
         if (ScreenshotRun.enabled()) {
             NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ScreenshotRun.tick(Minecraft.getInstance()));
         }

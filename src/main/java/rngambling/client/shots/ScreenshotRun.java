@@ -424,6 +424,7 @@ public final class ScreenshotRun {
                 BlockPos machine = template.filterBlocks(base, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(),
                         RNGambling.SLOT_MACHINE.get()).getFirst().pos();
                 LOGGER.info("Screenshot run: casino placed at {}, slot machine at {}", base.toShortString(), machine.toShortString());
+                machinePos = machine;
                 dealer = net.minecraft.world.entity.EntityType.VILLAGER.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
                 machineFacing = level.getBlockState(machine).getValue(SlotMachineBlock.FACING);
                 BlockPos inside = machine.relative(machineFacing);
@@ -465,8 +466,38 @@ public final class ScreenshotRun {
             });
         });
         then(30, minecraft -> shot(minecraft, "22-dealer-trades"));
+        // The slot machine: open it with tokens in hand, then spin.
+        then(10, minecraft -> onServer(minecraft, player -> {
+            player.closeContainer();
+            // Stand in front of the machine (the screen closes beyond 8 blocks).
+            look(player, Vec3.atCenterOf(machinePos.relative(machineFacing)).add(0, 0.5, 0), Vec3.atCenterOf(machinePos));
+            player.getInventory().add(new net.minecraft.world.item.ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+            BlockState state = player.level().getBlockState(machinePos);
+            state.useWithoutItem(player.level(), player, new net.minecraft.world.phys.BlockHitResult(
+                    Vec3.atCenterOf(machinePos), machineFacing, machinePos, false));
+        }));
+        then(20, minecraft -> shot(minecraft, "23-slots-ready"));
+        then(2, minecraft -> {
+            if (minecraft.player != null && minecraft.gameMode != null) {
+                minecraft.gameMode.handleInventoryButtonClick(minecraft.player.containerMenu.containerId, 1); // bet 5
+            }
+        });
+        // (Each step's wait comes after it.) Spin, picture mid-spin, then once the win is paid.
+        then(12, minecraft -> minecraft.gameMode.handleInventoryButtonClick(minecraft.player.containerMenu.containerId,
+                rngambling.casino.SlotMachineMenu.BUTTON_SPIN));
+        then(40, minecraft -> shot(minecraft, "24-slots-spinning"));
+        then(4, minecraft -> shot(minecraft, "25-slots-result"));
+        // A few more spins, to see wins and losses.
+        for (int i = 0; i < 8; i++) {
+            then(48, minecraft -> minecraft.gameMode.handleInventoryButtonClick(minecraft.player.containerMenu.containerId,
+                    rngambling.casino.SlotMachineMenu.BUTTON_SPIN));
+            int n = i;
+            then(4, minecraft -> shot(minecraft, "26-slots-spin-" + n));
+        }
         then(20, Minecraft::stop);
     }
+
+    private static BlockPos machinePos = BlockPos.ZERO;
 
     /** -PshotsWorld=villages: how many of the nearest villages have a casino (from their layouts only). */
     private static final boolean VILLAGES = "villages".equals(System.getProperty("rngambling.shotsWorld"));

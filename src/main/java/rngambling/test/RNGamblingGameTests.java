@@ -47,7 +47,56 @@ public final class RNGamblingGameTests {
             "world_generation", RNGamblingGameTests::worldGeneration,
             "luck_zones", RNGamblingGameTests::luckZones,
             "casino", RNGamblingGameTests::casino,
-            "luck_charms", RNGamblingGameTests::luckCharms);
+            "luck_charms", RNGamblingGameTests::luckCharms,
+            "slot_machine", RNGamblingGameTests::slotMachine);
+
+    /**
+     * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
+     * exactly and by simulation), takes the bet, refuses a bet the player can't cover, and pays the
+     * win once the reels have stopped.
+     */
+    private static void slotMachine(GameTestHelper helper) {
+        double exact = rngambling.casino.SlotMachine.returnToPlayer();
+        LOGGER.info("slot machine pays back {}% of tokens bet", String.format("%.2f", exact * 100));
+        helper.assertTrue(exact > 0.90 && exact < 0.94, "the slot machine should pay back 90-94%, not " + exact);
+        RandomSource random = RandomSource.create(7);
+        long paid = 0;
+        int spins = 300_000;
+        for (int i = 0; i < spins; i++) {
+            paid += rngambling.casino.SlotMachine.pays(rngambling.casino.SlotMachine.spin(random));
+        }
+        double simulated = paid / (double) spins;
+        LOGGER.info("slot machine simulated over {} spins: {}%", spins, String.format("%.2f", simulated * 100));
+        helper.assertTrue(Math.abs(simulated - exact) < 0.02, "a simulation should agree with the exact figure: " + simulated);
+
+        BlockPos pos = new BlockPos(1, 1, 1);
+        helper.setBlock(pos, RNGambling.SLOT_MACHINE.get());
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 7));
+        player.snapTo(helper.absolutePos(pos).getX() + 1.5, helper.absolutePos(pos).getY(), helper.absolutePos(pos).getZ() + 0.5);
+        rngambling.casino.SlotMachineMenu menu = new rngambling.casino.SlotMachineMenu(0, player.getInventory(), helper.absolutePos(pos));
+        menu.clickMenuButton(player, 2); // bet 10: more than the 7 tokens held
+        menu.clickMenuButton(player, rngambling.casino.SlotMachineMenu.BUTTON_SPIN);
+        helper.assertTrue(menu.data(rngambling.casino.SlotMachineMenu.SPINS) == 0
+                && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 7, "a bet of 10 with 7 tokens shouldn't spin");
+        menu.clickMenuButton(player, 1); // bet 5
+        menu.clickMenuButton(player, rngambling.casino.SlotMachineMenu.BUTTON_SPIN);
+        helper.assertTrue(menu.data(rngambling.casino.SlotMachineMenu.SPINS) == 1
+                && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 2, "spinning should take the 5 token bet");
+        rngambling.casino.SlotMachine.Symbol[] reels = {menu.reel(0), menu.reel(1), menu.reel(2)};
+        int win = 5 * rngambling.casino.SlotMachine.pays(reels);
+        helper.runAfterDelay(rngambling.casino.SlotMachineMenu.SPIN_TICKS + 2, () -> {
+            menu.broadcastChanges();
+            try {
+                helper.assertTrue(!menu.spinning() && menu.data(rngambling.casino.SlotMachineMenu.LAST_WIN) == win
+                        && rngambling.casino.SlotMachineMenu.countTokens(player.getInventory()) == 2 + win,
+                        "the win (" + win + " for " + java.util.Arrays.toString(reels) + ") should be paid once the reels stop");
+            } finally {
+                helper.getLevel().getServer().getPlayerList().remove(player);
+            }
+            helper.succeed();
+        });
+    }
 
     /**
      * The casino's pieces: the dealer's trades load (with luck on the lucky blocks they sell), the

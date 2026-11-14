@@ -307,7 +307,69 @@ def dealer_outfit():
     return px
 
 
+def slot_symbols():
+    """The slot machine's six reel symbols side by side (96 x 16), in SlotMachine.Symbol order:
+    cherry, lemon, bell, bar, seven, lucky block."""
+    px = [[None] * 96 for _ in range(16)]
+
+    def put(i, x, y, colour):
+        if 0 <= x < 16 and 0 <= y < 16:
+            px[y][i * 16 + x] = colour
+
+    def disc(i, cx, cy, r, colour, light=None):
+        for y in range(16):
+            for x in range(16):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                    put(i, x, y, light if light and (x - cx) + (y - cy) < -r * 0.7 else colour)
+
+    # Cherry: two red cherries on green stems.
+    for (cx, cy) in ((5, 11), (10, 11)):
+        disc(0, cx, cy, 3, (200, 20, 30), (255, 120, 120))
+    for (x, y) in ((5, 7), (6, 6), (7, 5), (8, 4), (9, 3), (10, 7), (10, 6), (10, 5), (10, 4), (11, 3), (12, 3)):
+        put(0, x, y, (60, 140, 40))
+    # Lemon: a yellow oval with a leaf.
+    for y in range(16):
+        for x in range(16):
+            if ((x - 7.5) / 6.5) ** 2 + ((y - 8.5) / 4.6) ** 2 <= 1:
+                put(1, x, y, (255, 235, 140) if x + y < 12 else (245, 210, 40))
+    for (x, y) in ((13, 3), (12, 4), (13, 4), (14, 3)):
+        put(1, x, y, (60, 150, 50))
+    # Bell: gold dome, wide lip, clapper.
+    for y in range(2, 13):
+        half = 2 + (y - 2) * 4 // 10
+        for x in range(8 - half, 8 + half):
+            put(2, x, y, GOLD if x < 8 else GOLD_DARK)
+    for x in range(2, 14):
+        put(2, x, 12, GOLD_DARK)
+    for (x, y) in ((7, 13), (8, 13), (7, 14), (8, 14)):
+        put(2, x, y, (120, 90, 30))
+    put(2, 6, 4, (255, 240, 180)); put(2, 6, 5, (255, 240, 180))
+    # Bar: a black bar with "BAR" suggested by white strokes.
+    for y in range(5, 12):
+        for x in range(1, 15):
+            put(3, x, y, (24, 24, 28))
+    for x in range(2, 14):
+        put(3, x, 4, (200, 200, 200)); put(3, x, 12, (200, 200, 200))
+    for (x, y) in ((3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (4, 6), (4, 8), (4, 10), (5, 7), (5, 9),
+                   (7, 7), (7, 8), (7, 9), (7, 10), (8, 6), (9, 7), (9, 8), (9, 9), (9, 10), (8, 8),
+                   (11, 6), (11, 7), (11, 8), (11, 9), (11, 10), (12, 6), (13, 7), (12, 8), (13, 9), (13, 10)):
+        put(3, x, y, (250, 250, 250))
+    # Seven: a bold red 7 with a dark edge.
+    for x in range(3, 13):
+        put(4, x, 2, (230, 30, 40)); put(4, x, 3, (230, 30, 40)); put(4, x, 4, (150, 10, 20))
+    for i, y in enumerate(range(5, 15)):
+        x = 11 - i * 2 // 3
+        put(4, x, y, (230, 30, 40)); put(4, x - 1, y, (230, 30, 40)); put(4, x - 2, y, (150, 10, 20))
+    # Lucky block: the lucky block's own face, small.
+    face = lucky_block()
+    for y in range(16):
+        for x in range(16):
+            put(5, x, y, face[y][x])
+    return px
+
+
 write_png("block/lucky_block.png", lucky_block())
+write_png("gui/slot_symbols.png", slot_symbols())
 write_png("block/slot_machine_front.png", slot_machine_front())
 write_png("block/slot_machine_side.png", slot_machine_side())
 write_png("block/slot_machine_top.png", slot_machine_top())
