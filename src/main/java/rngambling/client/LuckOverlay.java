@@ -21,14 +21,14 @@ import rngambling.RNGambling;
 import rngambling.block.LuckyBlockEntity;
 
 /**
- * What the Luck Glasses show: while a creative player wears them, every lucky block within
+ * What the Luck Glasses show: while worn (they can only be had from the creative tab), every lucky block within
  * {@link #RANGE} blocks gets its luck written over it, through walls, red (cursed) through white
  * to green (lucky). Drawn on the HUD at each block's projected position rather than in the world,
  * because the game doesn't draw underground spaces the player can't see, and those are exactly
  * where the glasses need to look.
  */
 final class LuckOverlay {
-    static final int RANGE = 32;
+    static final int RANGE = 128;
 
     private LuckOverlay() {
     }
@@ -39,7 +39,7 @@ final class LuckOverlay {
 
     static boolean active(Minecraft minecraft) {
         Player player = minecraft.player;
-        return player != null && minecraft.level != null && !minecraft.options.hideGui && player.isCreative()
+        return player != null && minecraft.level != null && !minecraft.options.hideGui
                 && player.getItemBySlot(EquipmentSlot.HEAD).is(RNGambling.LUCK_GLASSES.get());
     }
 

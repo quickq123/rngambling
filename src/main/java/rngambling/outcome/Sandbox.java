@@ -143,7 +143,6 @@ public final class Sandbox {
         begin(player, new Session(player.getUUID(), centre, back, server.getTickCount(), Math.max(MIN_TICKS, hold), null));
         // Stand a few blocks from where the "block" is, facing it.
         player.teleportTo(sandbox, centre.getX() + 0.5, centre.getY(), centre.getZ() + 6.5, Set.of(), 180f, 10f, true);
-        player.sendSystemMessage(Component.translatable("message.rngambling.sandbox.enter").withStyle(ChatFormatting.LIGHT_PURPLE));
         return new Arena(sandbox, centre);
     }
 
@@ -170,7 +169,6 @@ public final class Sandbox {
         Vec3 start = room.buildAt(sandbox, centre, player, luck);
         player.teleportTo(sandbox, start.x, start.y, start.z, Set.of(), room.startYaw(), 0f, true);
         player.fallDistance = 0;
-        player.sendSystemMessage(Component.translatable("message.rngambling.sandbox.enter").withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
 
@@ -321,7 +319,6 @@ public final class Sandbox {
         player.fallDistance = 0;
         player.getPersistentData().remove(RETURN_TAG);
         SandboxRecords.get(player.level().getServer()).end(player.getUUID());
-        player.sendSystemMessage(Component.translatable("message.rngambling.sandbox.leave").withStyle(ChatFormatting.LIGHT_PURPLE));
     }
 
     /** The best known return point for a player: the running session, the world's record, then the player's own copy. */

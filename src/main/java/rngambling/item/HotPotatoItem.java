@@ -26,7 +26,7 @@ import rngambling.RNGamblingConfig;
  * the item). Throwing it away is the way out. One without a fuse (from the creative tab) is a dud.
  */
 public class HotPotatoItem extends Item {
-    public static final int FUSE_TICKS = 15 * 20;
+    public static final int FUSE_TICKS = 5 * 20;
     public static final float POWER = 3.0f;
 
     public HotPotatoItem(Item.Properties properties) {

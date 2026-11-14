@@ -100,7 +100,7 @@ In `rngambling.outcome.CustomEffects` (first versions, to tune in playtesting):
 
 | Effect | What happens |
 |---|---|
-| Hot Potato (VBD-20) | a lit Hot Potato in the inventory; in 15 s it explodes (power 3) wherever it is: at the player holding it, or where it lies. Throw it! (Stored in a chest it waits, and goes off when taken out.) |
+| Hot Potato (VBD-20) | a lit Hot Potato in the inventory; in 5 s it explodes (power 3) wherever it is: at the player holding it, or where it lies. Throw it! (Stored in a chest it waits, and goes off when taken out.) |
 | Wear and Tear (VBD-30) | one random item with durability (armour and off hand too) drops to its last point. If nothing can wear: health and hunger to one, Hunger I for a minute; if that last hunger runs out with no food in the inventory, the player starves. Eating (or 5 minutes) ends it |
 | Tax Collector (BAD-25) | a pillager takes a quarter (rounded up) of the player's emeralds and gold and runs; kill him to get it back, or after a minute he's gone with it |
 | Snow Golem Escort (NEU-15), Iron Golem Bodyguard (GOD-13) | two snow golems for 5 minutes / an iron golem (player-made, never turns on them) for 10, following the player; they stay afterwards |
@@ -193,7 +193,7 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 | Mob Arena Waves (VBD-16) | walled arena, three waves (zombies and skeletons; spiders and a creeper; vindicators, witches, husks, strays) | 10 s after the last wave, with iron, emeralds and golden apples (5 min) |
 | Skyblock Strand (VBD-17) | 3x3 island 90 up, the exit island 18 away; 24 cobblestone | the way out; falling fails |
 | Drowned Pit (VBD-24) | 18-deep flooded pit, 4 Drowned with tridents | the way out on a ledge at the top (2 min) |
-| Treasure Vault (VGD-09) | gold-block room, 6 loot chests | 60 s timer bar (or the way out) |
+| Treasure Vault (VGD-09) | honeycomb-walled room (gold to look at, worthless to mine), 6 loot chests | 40 s timer bar (or the way out) |
 | Parkour Course (VGD-10) | 14 jumps in the sky, an End City chest at the end | the way out; falling fails, and you keep nothing |
 | Puzzle Vault (VGD-11) | 5 levers, 5 lamps: each lever flips its lamp and its neighbours'; light them all and the vault door opens to an End City chest | the way out in the vault (4 min) |
 | Treasure Island (LEG-06) | sand island with palms and a moat, 4 treasure chests; anything can be broken | 3 min timer bar |
@@ -266,8 +266,8 @@ Sandbox, pictures it and leaves by its way out.
 ## Plan
 
 1. ~~Bought lucky block, luck, 23 outcomes, the break rules.~~ Done.
-2. ~~Luck Glasses~~ Done: creative-only headwear; while worn by a creative player, lucky
-   blocks within 32 blocks show their luck through walls, red to white to green (drawn on
+2. ~~Luck Glasses~~ Done: creative-only headwear (only from the creative tab); while worn, lucky
+   blocks within 128 blocks show their luck through walls, red to white to green (drawn on
    the HUD, since the game doesn't draw underground spaces the player can't see).
 3. ~~The disguised block, the Mimic Wand and world generation.~~ Done.
 4. ~~Casino tokens, the Casino Dealer and its trades, the luck charms, and the casino
