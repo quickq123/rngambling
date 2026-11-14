@@ -25,12 +25,9 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog so far** (156 effects): all its "Vanilla only" effects, all 15 Sandbox rooms
-  and Boss Bounty (below), plus Fool's Diamonds, Cursed Mining and Mob Repellent. **Still to
-  come:** the "easy custom" effects (Hot Potato, Tax Collector, golem escorts, Ore Vision,
-  Mystery Item/Treasure, Genie's Wish, Phoenix Blessing, Double or Nothing, Villager Friends,
-  Ghost Block, Mob Shuffle, Message in a Bottle, Disco Floor, Llama Spit Party) and the Dragon
-  Hatchling.
+- **The catalog** (174 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+  effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
+  Dragon Hatchling (below), plus one added since: **Wear and Tear** (VBD-30).
 - **Grief:** explosions and fire happen in the world. Effects that build or place blocks (or
   would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop, The
   Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
@@ -96,6 +93,33 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 - **Mimic Wand** (creative only, done): right-click a block to disguise it, with luck rolled by
   the luck zone there; right-click a disguised one to see what it copies, its luck and its
   zone; sneak + right-click to turn it back.
+
+### Custom effects
+
+In `rngambling.outcome.CustomEffects` (first versions, to tune in playtesting):
+
+| Effect | What happens |
+|---|---|
+| Hot Potato (VBD-20) | a lit Hot Potato in the inventory; in 15 s it explodes (power 3) wherever it is: at the player holding it, or where it lies. Throw it! (Stored in a chest it waits, and goes off when taken out.) |
+| Wear and Tear (VBD-30) | one random item with durability (armour and off hand too) drops to its last point. If nothing can wear: health and hunger to one, Hunger I for a minute; if that last hunger runs out with no food in the inventory, the player starves. Eating (or 5 minutes) ends it |
+| Tax Collector (BAD-25) | a pillager takes a quarter (rounded up) of the player's emeralds and gold and runs; kill him to get it back, or after a minute he's gone with it |
+| Snow Golem Escort (NEU-15), Iron Golem Bodyguard (GOD-13) | two snow golems for 5 minutes / an iron golem (player-made, never turns on them) for 10, following the player; they stay afterwards |
+| Disco Floor (NEU-16) | the floor around the player (plain full blocks open to the air) flashes stained glass to a beat for 15 s, then is put back exactly, even if the server stops first |
+| Llama Spit Party (NEU-17) | four llamas surround the player and spit (harmlessly) for ten seconds, then vanish |
+| Message in a Bottle (NEU-20) | a treasure map to the nearest buried treasure; where there's none (Nether, End), the message is smudged |
+| Mob Shuffle (NEU-21) | wild mobs within 16 blocks swap for another of their kind (hostile for hostile, animal for animal); never pets, named or leashed mobs, villagers, golems or bosses |
+| Ghost Block (NEU-24) | the lucky block comes back: hit, it vanishes and reappears, three times; then it breaks into a fresh roll |
+| Ore Vision (GOD-17) | ores within 16 blocks (up to 300) glow through walls for a minute, coloured by ore |
+| Mystery Item (GOD-29), Mystery Treasure (LEG-19) | one / three random items that can be crafted or found (recipes, loot tables, natural blocks' drops; any mod's), less `#rngambling:lucky_blacklist`; rebuilt after /reload (about 1,230 items in vanilla) |
+| Villager Friends (VGD-19) | a master librarian (Mending, Unbreaking III, Efficiency V, Protection IV books) and a master toolsmith (diamonds, enchanted diamond tools and chestplate), trades fixed |
+| Genie's Wish (LEG-09) | a window with three of twelve Legendary items; click one. Closing it grants one at random |
+| Phoenix Blessing (LEG-11) | saved with the player: the next death is cancelled; they rise at half health in a burst of fire that sets nearby monsters alight |
+| Dragon Hatchling (LEG-16) | a tame dragon pet (a wolf underneath: follows, sits, defends, heals on meat): 50 health, armour, fire-immune, its bite sets things alight; can't breed or fly. Own model and texture |
+| Double or Nothing (WLD-02) | [Double] / [Walk away] in chat (`/rngambling double accept|walk`): roll again at twice the luck, or take 2 to 4 Casino Tokens (also after a minute's silence) |
+
+Temporary entities (Ore Vision's glows, the llamas, the Tax Collector) are removed if found
+after a restart. Tests: `custom_effects`; `runClientShots -PshotsWorld=effects` pictures Ore
+Vision, the Disco Floor, the llamas, the Dragon Hatchling, Genie's Wish and the Hot Potato.
 
 ## The Sandbox
 
@@ -233,6 +257,8 @@ Sandbox, pictures it and leaves by its way out.
 5. ~~Playing the Slot Machine.~~ Done.
 6. ~~Roulette and blackjack.~~ Done.
 7. ~~Themed outcomes per luck zone.~~ Done.
+8. ~~The whole effect catalog: the Sandbox and its rooms, the custom effects, the Dragon
+   Hatchling.~~ Done. Next: survival playtesting, then tuning.
 
 House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
 
@@ -250,10 +276,13 @@ House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
   `-PshotsWorld=casino` places the plains slots casino with a villager, checks it becomes a Casino
   Dealer, and pictures it and its trades. `-PshotsWorld=villages` counts the casinos in the
   nearest villages (from their layouts, without generating terrain).
+- `-PshotsWorld=effects`: the custom effects with something to see (Ore Vision, Disco Floor,
+  Llama Spit Party, the Dragon Hatchling, Genie's Wish, the Hot Potato).
+- `-PshotsWorld=rooms`: every Sandbox room entered, pictured and left by its way out.
 - `-PshotsWorld=sandbox`: Anvil Rain played out in the Sandbox, the exact return, and the admin
   commands, in a real world.
 - Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla
   houses it starts from).
 - Textures: `tools/make_textures.py`, run in Docker (see its header).
-- Add an outcome: one line in `Outcomes.ALL` (or a theme in `Themes.BY_ZONE`) and its message
-  in `lang/en_us.json`.
+- Add an outcome: one line in `Catalog.ALL` (or a theme in `Themes.BY_ZONE`), its row in
+  docs/effect-catalog.csv, and its message in `lang/en_us.json`.

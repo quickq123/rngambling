@@ -37,6 +37,40 @@ public final class EffectEvents {
         NeoForge.EVENT_BUS.addListener(EffectEvents::onBreak);
         NeoForge.EVENT_BUS.addListener(EffectEvents::onSpawn);
         NeoForge.EVENT_BUS.addListener(EffectEvents::onPlace);
+        // Phoenix Blessing: rise once from death.
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOW, (net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) -> {
+            if (!event.isCanceled() && event.getEntity() instanceof ServerPlayer player && CustomEffects.phoenixRise(player)) {
+                event.setCanceled(true);
+            }
+        });
+        // The Tax Collector drops what he took.
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingDropsEvent event) -> {
+            if (event.getEntity().entityTags().contains(CustomEffects.TAX_COLLECTOR_TAG) && event.getEntity().level() instanceof ServerLevel level) {
+                for (ItemStack stack : CustomEffects.takings(event.getEntity(), level)) {
+                    event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(level, event.getEntity().getX(), event.getEntity().getY() + 0.5,
+                            event.getEntity().getZ(), stack));
+                }
+            }
+        });
+        // Llama Spit Party's spit doesn't hurt.
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) -> {
+            var direct = event.getSource().getDirectEntity();
+            if (direct != null && direct.entityTags().contains(CustomEffects.HARMLESS_TAG)) {
+                event.setCanceled(true);
+            }
+        });
+        // Effects' temporary entities (Ore Vision's glows, the party llamas, the Tax Collector) don't outlive a restart.
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityJoinLevelEvent event) -> {
+            if (event.loadedFromDisk() && event.getEntity().entityTags().contains(CustomEffects.TEMPORARY_TAG)) {
+                event.setCanceled(true);
+            }
+        });
+        // Wear and Tear's deadline.
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.PlayerTickEvent.Post event) -> {
+            if (!CustomEffects.DRAINED.isEmpty() && event.getEntity() instanceof ServerPlayer player) {
+                CustomEffects.checkDrained(player);
+            }
+        });
     }
 
     /** In a Sandbox room, nothing can be placed unless the room allows it (no bridging a parkour course). */

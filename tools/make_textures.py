@@ -492,9 +492,105 @@ write_png("entity/zombie_villager/profession/dealer.png", dealer_outfit())
 # The lightening overlay for dark disguised blocks: white at 7% (18 of 255), so a face is drawn
 # 7% of the way to white. On deepslate that's about as noticeable as the 12% darkening of stone
 # (12% looked clearly stronger).
+
+def hot_potato():
+    """A baked potato glowing red-hot: orange-brown skin, bright cracks, a spark on top."""
+    rng = random.Random(20)
+    skin, dark, hot, spark = (196, 120, 52), (130, 70, 30), (255, 210, 80), (255, 250, 200)
+    px = [[None] * 16 for _ in range(16)]
+    for y in range(16):
+        for x in range(16):
+            dx, dy = (x - 7.5) / 5.6, (y - 8.8) / 4.6
+            d = dx * dx + dy * dy
+            if d <= 1.0:
+                c = shade(skin, rng.randint(-12, 12))
+                if d > 0.72 or (x + y) > 20:
+                    c = shade(dark, rng.randint(-8, 8))
+                px[y][x] = c
+    # Glowing cracks.
+    for (x, y) in ((5, 8), (6, 9), (7, 9), (8, 8), (9, 9), (10, 10), (6, 11), (7, 12), (9, 6), (10, 7)):
+        px[y][x] = hot
+    for (x, y) in ((7, 9), (9, 9)):
+        px[y][x] = (255, 120, 40)
+    # A spark above it.
+    for (x, y) in ((11, 2), (12, 3), (11, 3), (10, 3), (11, 4)):
+        px[y][x] = spark if (x, y) == (11, 3) else (255, 170, 40)
+    px[1][12] = (255, 120, 40)
+    return px
+
+
+def dragon_hatchling():
+    """The Dragon Hatchling's 64x64 skin, painted cube by cube to match DragonHatchlingModel's
+    texture offsets (vanilla box layout: top and bottom in the first row, then the four sides,
+    with the front at (u + d, v + d)). Crimson scales, a gold belly and wing edges, ivory horns."""
+    rng = random.Random(16)
+    red, red_dark, gold, gold_dark, ivory = (158, 26, 34), (104, 14, 22), (232, 186, 64), (176, 128, 36), (236, 226, 196)
+    membrane = (122, 20, 40)
+    px = [[None] * 64 for _ in range(64)]
+
+    def scales(colour):
+        return lambda x, y: shade(colour, (-14 if (x + 2 * y) % 4 == 0 else 0) + rng.randint(-6, 6))
+
+    def flat(colour):
+        return lambda x, y: shade(colour, rng.randint(-6, 6))
+
+    def face(u, v, w, h, paint):
+        for y in range(h):
+            for x in range(w):
+                px[v + y][u + x] = paint(x, y)
+
+    def cube(u, v, w, h, d, top, bottom, sides, front=None, back=None):
+        face(u + d, v, w, d, top)
+        face(u + d + w, v, w, d, bottom)
+        face(u, v + d, d, h, sides)
+        face(u + d, v + d, w, h, front or sides)
+        face(u + d + w, v + d, d, h, sides)
+        face(u + 2 * d + w, v + d, w, h, back or sides)
+
+    # Head (6x5x5 at 0,0): eyes on the front's upper corners, above the snout.
+    def head_front(x, y):
+        if y == 1 and x in (0, 1, 4, 5):
+            return (20, 16, 10) if x in (1, 4) else (255, 214, 60)
+        return scales(red)(x, y)
+    cube(0, 0, 6, 5, 5, scales(red), flat(gold_dark), scales(red), head_front)
+    # Snout (4x3x4 at 24,0): nostrils on the front, a gold jaw underneath.
+    def snout_front(x, y):
+        return (60, 8, 12) if y == 0 and x in (0, 3) else scales(red)(x, y)
+    cube(24, 0, 4, 3, 4, scales(red), flat(gold), scales(red), snout_front)
+    # Horns (1x3x1 at 42,0).
+    cube(42, 0, 1, 3, 1, flat(ivory), flat(ivory), flat(shade(ivory, -20)))
+    # Body (7x6x13 at 0,10): gold belly, a darker stripe down the back.
+    def back_top(x, y):
+        return scales(red_dark)(x, y) if x in (3,) else scales(red)(x, y)
+    def side(x, y):
+        return flat(gold)(x, y) if y >= 5 else scales(red)(x, y)
+    cube(0, 10, 7, 6, 13, back_top, flat(gold), side)
+    # Legs (3x6x3 at 40,10): dark claws at the bottom.
+    def leg(x, y):
+        return (40, 30, 24) if y == 5 else scales(red)(x, y)
+    cube(40, 10, 3, 6, 3, scales(red), flat((40, 30, 24)), leg)
+    # Spines (1x2x2 at 52,10).
+    cube(52, 10, 1, 2, 2, flat(gold), flat(gold_dark), flat(gold))
+    # Tail (3x3x6 at 0,29) and its tip (2x2x5 at 18,29): gold underneath.
+    cube(0, 29, 3, 3, 6, scales(red), flat(gold), scales(red))
+    cube(18, 29, 2, 2, 5, scales(red), flat(gold), scales(red))
+    # Tail fin (1x3x3 at 32,29).
+    cube(32, 29, 1, 3, 3, flat(gold), flat(gold), flat(gold_dark))
+    # Wings (1x5x8 at 0,40, folded up over the back): membrane with a gold top edge and bones.
+    def wing(x, y):
+        if y == 0:
+            return flat(gold)(x, y)
+        if x % 3 == 1:
+            return flat(red_dark)(x, y)
+        return flat(membrane)(x, y)
+    cube(0, 40, 1, 5, 8, flat(gold), flat(membrane), wing, flat(gold_dark), flat(gold_dark))
+    return px
+
 write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 18)
 write_png("item/luck_glasses.png", luck_glasses_item())
 write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())
 write_png("item/casino_token.png", casino_token())
+write_png("item/hot_potato.png", hot_potato())
+write_png("entity/dragon_hatchling.png", dragon_hatchling())
 print("textures written")

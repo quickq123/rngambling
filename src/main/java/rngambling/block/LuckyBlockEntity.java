@@ -26,6 +26,8 @@ public class LuckyBlockEntity extends BlockEntity {
     private @Nullable BlockState mimic;
     /** How many lucky blocks deep this one was placed by other blocks' effects (0 for an ordinary one). */
     private int chain;
+    /** Ghost Block (NEU-24): how many more hits it vanishes from before it can be broken. */
+    private int ghosts;
 
     public LuckyBlockEntity(BlockPos pos, BlockState state) {
         super(RNGambling.LUCKY_BLOCK_ENTITY.get(), pos, state);
@@ -47,6 +49,15 @@ public class LuckyBlockEntity extends BlockEntity {
 
     public void setChain(int chain) {
         this.chain = chain;
+        setChanged();
+    }
+
+    public int ghosts() {
+        return ghosts;
+    }
+
+    public void setGhosts(int ghosts) {
+        this.ghosts = ghosts;
         setChanged();
     }
 
@@ -80,6 +91,9 @@ public class LuckyBlockEntity extends BlockEntity {
         if (chain > 0) {
             output.putInt("chain", chain);
         }
+        if (ghosts > 0) {
+            output.putInt("ghosts", ghosts);
+        }
         if (mimic != null) {
             output.store("mimic", BlockState.CODEC, mimic);
         }
@@ -90,6 +104,7 @@ public class LuckyBlockEntity extends BlockEntity {
         super.loadAdditional(input);
         luck = Luck.clamp(input.getIntOr("luck", 0));
         chain = input.getIntOr("chain", 0);
+        ghosts = input.getIntOr("ghosts", 0);
         BlockState before = mimic;
         mimic = input.read("mimic", BlockState.CODEC).orElse(null);
         // In the player's game: the block arrives before its data, so redraw it once the copied block is known.

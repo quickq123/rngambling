@@ -69,8 +69,7 @@ import rngambling.RNGamblingConfig;
  * The lucky block effects, from the effect catalog (docs/effect-catalog.csv): ID, luck band, tier
  * and weight as there. How luck picks among them is in {@link Outcomes#pick}. Effects that build
  * or place blocks (or would tear a lot up) are played out in the Sandbox; explosions and fire
- * happen in the world. Still to come (later passes): the structure rooms, the Wither fights and
- * the "easy custom" effects (Hot Potato, Tax Collector, Genie's Wish and so on).
+ * happen in the world. The "easy custom" effects are in {@link CustomEffects}.
  */
 public final class Catalog {
     private Catalog() {
@@ -375,6 +374,9 @@ public final class Catalog {
                 }));
             }),
 
+            of("VBD-20", "hot_potato", VERY_BAD, -70, -40, 5, CustomEffects::hotPotato),
+            of("VBD-30", "wear_and_tear", VERY_BAD, -75, -45, 4, CustomEffects::wearAndTear),
+
             // ================= Bad =================
             of("BAD-01", "fake_explosion", BAD, -40, -5, 8, c -> {
                 c.level().playSound(null, c.pos(), SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0f, 1.0f);
@@ -531,6 +533,8 @@ public final class Catalog {
             }),
             of("BAD-24", "lucky_block_respawn", BAD, -25, -10, 5, c -> c.placeLuckyBlock(c.pos(), -20)).chain(),
 
+            of("BAD-25", "tax_collector", BAD, -35, -15, 5, CustomEffects::taxCollector),
+
             // ================= Neutral =================
             of("NEU-01", "nothing_happens", NEUTRAL, -10, 10, 10, c -> {
                 c.level().sendParticles(ParticleTypes.POOF, c.pos().getX() + 0.5, c.pos().getY() + 0.5, c.pos().getZ() + 0.5, 12, 0.3, 0.3, 0.3, 0.02);
@@ -633,6 +637,13 @@ public final class Catalog {
                 }
             }),
 
+            of("NEU-15", "snow_golem_escort", NEUTRAL, -5, 15, 5, CustomEffects::snowGolemEscort),
+            of("NEU-16", "disco_floor", NEUTRAL, -10, 10, 4, CustomEffects::discoFloor),
+            of("NEU-17", "llama_spit_party", NEUTRAL, -10, 5, 4, CustomEffects::llamaSpitParty),
+            of("NEU-20", "message_in_a_bottle", NEUTRAL, -5, 15, 4, CustomEffects::messageInABottle),
+            of("NEU-21", "mob_shuffle", NEUTRAL, -10, 10, 3, CustomEffects::mobShuffle),
+            of("NEU-24", "ghost_block", NEUTRAL, -10, 10, 4, CustomEffects::ghostBlock).chain(),
+
             // ================= Good =================
             of("GOD-01", "iron_haul", GOOD, 10, 40, 8, c -> c.drop(Items.IRON_INGOT, 16, 32)),
             of("GOD-02", "gold_haul", GOOD, 10, 40, 7, c -> c.drop(Items.GOLD_INGOT, 16, 32)),
@@ -728,6 +739,10 @@ public final class Catalog {
                 c.placeLuckyBlock(c.pos().west(2), c.between(20, 50));
             }).chain(),
 
+            of("GOD-13", "iron_golem_bodyguard", GOOD, 20, 40, 5, CustomEffects::ironGolemBodyguard),
+            of("GOD-17", "ore_vision", GOOD, 15, 40, 5, CustomEffects::oreVision),
+            of("GOD-29", "mystery_item", GOOD, 15, 60, 6, CustomEffects::mysteryItem),
+
             // ================= Very good =================
             of("VGD-01", "diamond_haul", VERY_GOOD, 41, 75, 7, c -> c.drop(Items.DIAMOND, 8 + (int) Math.round(8 * c.strength()))),
             of("VGD-02", "diamond_armor_set", VERY_GOOD, 45, 75, 5, c -> {
@@ -783,6 +798,8 @@ public final class Catalog {
                 c.drop(Items.HEART_OF_THE_SEA, 1);
                 c.drop(Items.NAUTILUS_SHELL, 8);
             }),
+
+            of("VGD-19", "villager_friends", VERY_GOOD, 41, 70, 4, CustomEffects::villagerFriends),
 
             // ================= Legendary =================
             of("LEG-01", "netherite_armor_set", LEGENDARY, 80, 100, 4, c -> {
@@ -848,6 +865,11 @@ public final class Catalog {
             }),
             of("LEG-18", "netherite_ingot_haul", LEGENDARY, 85, 100, 3, c -> c.drop(Items.NETHERITE_INGOT, 4)),
 
+            of("LEG-09", "genies_wish", LEGENDARY, 85, 100, 3, CustomEffects::geniesWish),
+            of("LEG-11", "phoenix_blessing", LEGENDARY, 80, 100, 3, CustomEffects::phoenixBlessing),
+            of("LEG-16", "dragon_hatchling", LEGENDARY, 90, 100, 2, CustomEffects::dragonHatchling),
+            of("LEG-19", "mystery_treasure", LEGENDARY, 80, 100, 4, CustomEffects::mysteryTreasure),
+
             // ================= Wildcards =================
             of("WLD-01", "scaled_loot_chest", WILDCARD, -20, 100, 6, c -> {
                 String table = c.luck() < 10 ? "minecraft:chests/simple_dungeon" : c.luck() < 40 ? "minecraft:chests/abandoned_mineshaft"
@@ -869,7 +891,8 @@ public final class Catalog {
             of("WLD-04", "scaled_explosion", WILDCARD, -100, -20, 4, c -> {
                 double over = Math.max(0, Math.min(1, (-c.luck() - 20) / 80.0));
                 c.explode(Vec3.atCenterOf(c.pos()), (float) (2 + 4 * over), false);
-            })
+            }),
+            of("WLD-02", "double_or_nothing", WILDCARD, -50, 50, 4, DoubleOrNothing::offer)
     );
 
     // ---- helpers ----

@@ -56,7 +56,8 @@ public final class RNGamblingGameTests {
             Map.entry("themes", RNGamblingGameTests::themes),
             Map.entry("sandbox_fallback", RNGamblingGameTests::sandboxFallback),
             Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords),
-            Map.entry("rooms_build", RNGamblingGameTests::roomsBuild));
+            Map.entry("rooms_build", RNGamblingGameTests::roomsBuild),
+            Map.entry("custom_effects", RNGamblingGameTests::customEffects));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -791,6 +792,133 @@ public final class RNGamblingGameTests {
         helper.succeed();
     }
 
+    /**
+     * The "easy custom" effects and Wear and Tear do what they say: wearing items down (or the
+     * player, to death if they've no food), the Hot Potato going off on the ground, the Tax
+     * Collector's quarter and his drops, the Mystery Item list, the Ghost Block's three vanishings,
+     * the Phoenix rising once, the Disco Floor putting the floor back, and which mobs Mob Shuffle swaps.
+     */
+    private static void customEffects(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        ServerPlayer second = null;
+        try {
+            rngambling.outcome.Scheduler.clear();
+            player.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+            OutcomeContext c = new OutcomeContext(level, pos, player, RandomSource.create(7), 0);
+            // Wear and Tear: an item with durability is worn to its last point...
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
+            ItemStack sword = player.getInventory().getItem(player.getInventory().findSlotMatchingItem(new ItemStack(net.minecraft.world.item.Items.IRON_SWORD)));
+            outcome("wear_and_tear").action().run(c);
+            helper.assertTrue(sword.getDamageValue() == sword.getMaxDamage() - 1, "the sword should be at its last use");
+            helper.assertTrue(player.getHealth() == player.getMaxHealth(), "with something to wear, the player is spared");
+            // ...with nothing that can wear, the player is drained: with food on them they live,
+            player.getInventory().clearContent();
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.BREAD));
+            outcome("wear_and_tear").action().run(c);
+            helper.assertTrue(player.getHealth() == 1 && player.getFoodData().getFoodLevel() == 1, "health and hunger should be one");
+            player.getFoodData().setFoodLevel(0);
+            rngambling.outcome.CustomEffects.checkDrainedForTest(player);
+            helper.assertTrue(player.isAlive(), "with bread to eat the player should live");
+            // ...and without, the last hunger running out kills them.
+            player.getInventory().clearContent();
+            rngambling.outcome.CustomEffects.checkDrainedForTest(player);
+            helper.assertTrue(player.isDeadOrDying(), "with no food the player should starve");
+
+            second = player(helper, GameType.SURVIVAL);
+            second.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+            c = new OutcomeContext(level, pos, second, RandomSource.create(7), 0);
+
+            // Hot Potato: lying on the ground when its fuse is up, it goes off.
+            ItemStack potato = rngambling.item.HotPotatoItem.lit(level);
+            potato.set(RNGambling.FUSE.get(), level.getGameTime() - 1);
+            var lying = new net.minecraft.world.entity.item.ItemEntity(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, potato);
+            level.addFreshEntity(lying);
+            helper.assertTrue(potato.getItem().onEntityItemUpdate(potato, lying) && lying.isRemoved(), "the Hot Potato should have gone off");
+            outcome("hot_potato").action().run(c);
+            helper.assertTrue(second.getInventory().contains(s -> s.is(RNGambling.HOT_POTATO.get()) && s.has(RNGambling.FUSE.get())),
+                    "the player should be holding a lit Hot Potato");
+            second.getInventory().clearContent();
+            clearUp(helper, level, second);
+
+            // Tax Collector: a quarter of the emeralds (rounded up), dropped again when he dies.
+            second.getInventory().add(new ItemStack(net.minecraft.world.item.Items.EMERALD, 10));
+            outcome("tax_collector").action().run(c);
+            helper.assertTrue(second.getInventory().countItem(net.minecraft.world.item.Items.EMERALD) == 7, "he should take 3 of 10 emeralds");
+            var collectors = level.getEntitiesOfClass(net.minecraft.world.entity.monster.illager.Pillager.class, new AABB(pos).inflate(8),
+                    e -> e.entityTags().contains(rngambling.outcome.CustomEffects.TAX_COLLECTOR_TAG));
+            helper.assertTrue(collectors.size() == 1, "one Tax Collector");
+            var takings = rngambling.outcome.CustomEffects.takingsForTest(collectors.get(0), level);
+            helper.assertTrue(takings.size() == 1 && takings.get(0).getCount() == 3, "he should carry the 3 emeralds: " + takings);
+            second.getInventory().clearContent();
+            clearUp(helper, level, second);
+
+            // Mystery Item: a long list, from recipes and loot, without the blacklisted items.
+            var mystery = rngambling.outcome.MysteryItems.all(level);
+            LOGGER.info("Mystery Item list: {} items", mystery.size());
+            helper.assertTrue(mystery.size() > 500, "the Mystery Item list is short: " + mystery.size());
+            helper.assertTrue(mystery.contains(net.minecraft.world.item.Items.DIAMOND) && mystery.contains(net.minecraft.world.item.Items.NAME_TAG)
+                    && mystery.contains(net.minecraft.world.item.Items.OAK_LOG), "diamonds (crafted), name tags (loot), logs (natural) should be in");
+            helper.assertFalse(mystery.contains(net.minecraft.world.item.Items.COMMAND_BLOCK) || mystery.contains(RNGambling.LUCKY_BLOCK_ITEM.get())
+                    || mystery.contains(RNGambling.MIMIC_WAND.get()), "blacklisted items should be out");
+            helper.assertTrue(rngambling.outcome.CustomEffects.genieWishesForTest(c).stream().map(ItemStack::getItem).distinct().count() == 3,
+                    "three different wishes");
+
+            // Ghost Block: back three times when struck, then an ordinary lucky block.
+            outcome("ghost_block").action().run(c);
+            for (int ghost = 3; ghost > 0; ghost--) {
+                helper.assertTrue(level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky && lucky.ghosts() == ghost,
+                        "the ghost should be back with " + ghost + " left");
+                level.getBlockState(pos).attack(level, pos, second);
+                helper.assertTrue(level.isEmptyBlock(pos), "struck, the ghost should vanish");
+                rngambling.outcome.Scheduler.runAllNow(2);
+            }
+            helper.assertTrue(level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky && lucky.ghosts() == 0, "now it can be broken");
+            level.removeBlock(pos, false);
+
+            // Phoenix Blessing: rises once.
+            outcome("phoenix_blessing").action().run(c);
+            second.setHealth(0.5f);
+            helper.assertTrue(rngambling.outcome.CustomEffects.phoenixRiseForTest(second) && second.getHealth() == second.getMaxHealth() / 2,
+                    "the Phoenix should raise the player at half health");
+            helper.assertFalse(rngambling.outcome.CustomEffects.phoenixRiseForTest(second), "only once");
+
+            // Disco Floor: the floor flashes, then is exactly as it was.
+            BlockPos under = second.blockPosition().below();
+            BlockState floor = level.getBlockState(under);
+            outcome("disco_floor").action().run(c);
+            rngambling.outcome.Scheduler.runAllNow(3);
+            helper.assertTrue(level.getBlockState(under) == floor, "the floor should be put back: " + level.getBlockState(under));
+
+            // Dragon Hatchling: hatched tame, tougher than a wolf, and it can't breed.
+            outcome("dragon_hatchling").action().run(c);
+            var dragons = level.getEntitiesOfClass(rngambling.entity.DragonHatchling.class, new AABB(pos).inflate(6));
+            helper.assertTrue(dragons.size() == 1 && dragons.get(0).isOwnedBy(second), "one Dragon Hatchling, tamed by the player");
+            helper.assertTrue(dragons.get(0).getMaxHealth() == (float) rngambling.entity.DragonHatchling.HEALTH
+                    && dragons.get(0).getHealth() == dragons.get(0).getMaxHealth() && dragons.get(0).fireImmune(), "50 health, fire immune");
+            helper.assertTrue(dragons.get(0).getBreedOffspring(level, dragons.get(0)) == null, "hatchlings don't breed");
+            clearUp(helper, level, second);
+
+            // Mob Shuffle: wild mobs only.
+            var zombie = net.minecraft.world.entity.EntityType.ZOMBIE.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+            var wolf = net.minecraft.world.entity.EntityType.WOLF.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+            wolf.tame(second);
+            var cow = net.minecraft.world.entity.EntityType.COW.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+            helper.assertTrue(rngambling.outcome.CustomEffects.shufflesForTest(zombie) && rngambling.outcome.CustomEffects.shufflesForTest(cow)
+                    && !rngambling.outcome.CustomEffects.shufflesForTest(wolf), "zombies and cows shuffle, pets don't");
+            clearUp(helper, level, second);
+        } finally {
+            rngambling.outcome.Scheduler.clear();
+            level.getServer().getPlayerList().remove(player);
+            if (second != null) {
+                level.getServer().getPlayerList().remove(second);
+            }
+        }
+        helper.succeed();
+    }
+
+
     /** Only a real survival player sets off an outcome: not creative, spectators or machines' fake players. */
     private static void breakRules(GameTestHelper helper) {
         ServerPlayer survival = player(helper, GameType.SURVIVAL);
@@ -907,6 +1035,7 @@ public final class RNGamblingGameTests {
         new EmbeddedChannel(connection);
         level.getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
         player.setGameMode(mode);
+        player.connection.markClientLoaded(); // or it can't be hurt
         return player;
     }
 }

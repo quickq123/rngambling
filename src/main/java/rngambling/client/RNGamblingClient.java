@@ -23,6 +23,10 @@ public final class RNGamblingClient {
             event.register(RNGambling.ROULETTE_MENU.get(), RouletteScreen::new);
             event.register(RNGambling.BLACKJACK_MENU.get(), BlackjackScreen::new);
         });
+        modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions event) ->
+                event.registerLayerDefinition(DragonHatchlingModel.LAYER, DragonHatchlingModel::createBodyLayer));
+        modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers event) ->
+                event.registerEntityRenderer(RNGambling.DRAGON_HATCHLING.get(), DragonHatchlingRenderer::new));
         if (ScreenshotRun.enabled()) {
             NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ScreenshotRun.tick(Minecraft.getInstance()));
         }

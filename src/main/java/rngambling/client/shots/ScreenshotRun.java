@@ -721,7 +721,107 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /**
+     * -PshotsWorld=effects: the effects with something to see: Ore Vision's glow through stone,
+     * the Disco Floor, the Llama Spit Party, the Dragon Hatchling (standing and sitting), the
+     * Genie's Wish window and a lit Hot Potato.
+     */
+    private static final boolean EFFECTS = "effects".equals(System.getProperty("rngambling.shotsWorld"));
+
+    private static void play(ServerPlayer player, String id) {
+        rngambling.outcome.Outcomes.play(player.level(), player.blockPosition(), player, 0, outcomeNamed(id));
+    }
+
+    private static void stand(ServerPlayer player, Vec3 at, float yaw, float pitch) {
+        player.getAbilities().flying = false;
+        player.onUpdateAbilities();
+        Vec3 to = at.add(base.getX(), base.getY(), base.getZ());
+        player.teleportTo(player.level(), to.x, to.y, to.z, Set.of(), yaw, pitch, false);
+    }
+
+    private static void planEffects() {
+        then(20, minecraft -> {
+            minecraft.options.hideGui = true;
+            onServer(minecraft, player -> {
+                base = player.blockPosition();
+                command(player, "time set noon");
+                ServerLevel level = player.level();
+                // A stone block with ores sealed inside it, 6 to 12 blocks ahead (south).
+                for (BlockPos p : BlockPos.betweenClosed(base.offset(-3, 0, 6), base.offset(3, 4, 12))) {
+                    level.setBlockAndUpdate(p, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+                }
+                net.minecraft.world.level.block.Block[] ores = {Blocks.DIAMOND_ORE, Blocks.GOLD_ORE, Blocks.IRON_ORE, Blocks.REDSTONE_ORE,
+                        Blocks.EMERALD_ORE, Blocks.LAPIS_ORE, Blocks.COAL_ORE, Blocks.COPPER_ORE};
+                for (int i = 0; i < ores.length; i++) {
+                    level.setBlockAndUpdate(base.offset(-2 + (i % 4) + (i / 4), 1 + i / 4 * 2, 8 + i % 3), ores[i].defaultBlockState());
+                }
+                stand(player, new Vec3(0.5, 0, 0.5), 0f, 15f);
+                play(player, "ore_vision");
+            });
+        });
+        view("60-ore-vision", new Vec3(0.5, 3.0, 0.5), new Vec3(0.5, 2.0, 9.0));
+        // Disco Floor, away from the stone.
+        then(10, minecraft -> onServer(minecraft, player -> {
+            stand(player, new Vec3(-12.5, 0, 0.5), 0f, 0f);
+            play(player, "disco_floor");
+        }));
+        view("61-disco-floor", new Vec3(-12.5, 5.0, -4.5), new Vec3(-12.5, 0.0, 0.5));
+        then(10, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> {
+                stand(player, new Vec3(-24.5, 0, 0.5), 0f, 0f);
+                play(player, "llama_spit_party");
+            });
+        });
+        then(30, minecraft -> shot(minecraft, "62-llama-spit"));
+        then(10, minecraft -> onServer(minecraft, player -> {
+            stand(player, new Vec3(-36.5, 0, 0.5), 0f, 0f);
+            play(player, "dragon_hatchling");
+            var dragons = player.level().getEntitiesOfClass(rngambling.entity.DragonHatchling.class, player.getBoundingBox().inflate(6));
+            check(dragons.size() == 1 && dragons.get(0).isOwnedBy(player), "a tame Dragon Hatchling hatches");
+            for (var dragon : dragons) {
+                dragon.teleportTo(player.getX(), player.getY(), player.getZ() + 3);
+                dragon.setYRot(200f);
+                dragon.setYBodyRot(200f);
+                dragon.setYHeadRot(200f);
+                dragon.setNoAi(true);
+            }
+        }));
+        then(10, minecraft -> minecraft.options.hideGui = true);
+        view("63-dragon", new Vec3(-38.0, 1.4, 1.6), new Vec3(-36.5, 0.5, 3.5));
+        view("64-dragon-side", new Vec3(-33.5, 1.2, 3.5), new Vec3(-36.5, 0.5, 3.5));
+        then(5, minecraft -> onServer(minecraft, player -> player.level().getEntitiesOfClass(rngambling.entity.DragonHatchling.class,
+                player.getBoundingBox().inflate(12)).forEach(dragon -> dragon.setInSittingPose(true))));
+        view("65-dragon-sitting", new Vec3(-38.0, 1.4, 1.6), new Vec3(-36.5, 0.5, 3.5));
+        then(10, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> {
+                stand(player, new Vec3(-48.5, 0, 0.5), 0f, 0f);
+                play(player, "genies_wish");
+            });
+        });
+        then(20, minecraft -> {
+            check(minecraft.screen != null, "the Genie's Wish window opens");
+            shot(minecraft, "66-genies-wish");
+        });
+        then(10, minecraft -> {
+            if (minecraft.player != null) {
+                minecraft.player.closeContainer();
+            }
+        });
+        then(10, minecraft -> onServer(minecraft, player -> {
+            player.getInventory().clearContent();
+            play(player, "hot_potato");
+        }));
+        then(30, minecraft -> shot(minecraft, "67-hot-potato"));
+        then(20, Minecraft::stop);
+    }
+
     private static void plan() {
+        if (EFFECTS) {
+            planEffects();
+            return;
+        }
         if (ROOMS) {
             planRooms();
             return;

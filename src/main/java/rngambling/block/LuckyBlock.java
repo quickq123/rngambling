@@ -46,6 +46,34 @@ public class LuckyBlock extends Block implements EntityBlock {
     }
 
     /**
+     * Ghost Block (NEU-24): a struck ghost vanishes, and comes back a moment later with one ghost
+     * fewer. Once it has none left it breaks like any lucky block.
+     */
+    @Override
+    protected void attack(BlockState state, Level level, BlockPos pos, Player player) {
+        if (level instanceof ServerLevel serverLevel && countsAsPlayerBreak(player)
+                && level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky && lucky.ghosts() > 0) {
+            int luck = lucky.luck(), chain = lucky.chain(), ghosts = lucky.ghosts() - 1;
+            serverLevel.removeBlock(pos, false);
+            serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.SOUL, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    10, 0.3, 0.3, 0.3, 0.03);
+            serverLevel.playSound(null, pos, net.minecraft.sounds.SoundEvents.ALLAY_ITEM_TAKEN, net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 0.6f);
+            rngambling.outcome.Scheduler.later(20, () -> {
+                if (serverLevel.isEmptyBlock(pos)) {
+                    serverLevel.setBlockAndUpdate(pos, state);
+                    if (serverLevel.getBlockEntity(pos) instanceof LuckyBlockEntity back) {
+                        back.setLuck(luck);
+                        back.setChain(chain);
+                        back.setGhosts(ghosts);
+                    }
+                }
+            });
+            return;
+        }
+        super.attack(state, level, pos, player);
+    }
+
+    /**
      * A placed lucky block rolls its luck from the item's range. Only a creative player keeps a
      * fixed test luck. Blocks moved by other mods' transport tools keep their saved luck (they
      * aren't "placed" from an item).

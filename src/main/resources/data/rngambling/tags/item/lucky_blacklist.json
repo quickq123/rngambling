@@ -1,0 +1,31 @@
+{
+  "values": [
+    "rngambling:lucky_block",
+    "rngambling:safe_lucky_block",
+    "rngambling:extreme_lucky_block",
+    "rngambling:blessed_lucky_block",
+    "rngambling:mimic_wand",
+    "rngambling:luck_glasses",
+    "rngambling:hot_potato",
+    "rngambling:slot_machine",
+    "rngambling:roulette_table",
+    "rngambling:blackjack_table",
+    "minecraft:knowledge_book",
+    "minecraft:command_block",
+    "minecraft:chain_command_block",
+    "minecraft:repeating_command_block",
+    "minecraft:command_block_minecart",
+    "minecraft:structure_block",
+    "minecraft:structure_void",
+    "minecraft:jigsaw",
+    "minecraft:barrier",
+    "minecraft:light",
+    "minecraft:debug_stick",
+    "minecraft:test_block",
+    "minecraft:test_instance_block",
+    "minecraft:bedrock",
+    "minecraft:spawner",
+    "minecraft:trial_spawner",
+    "minecraft:vault"
+  ]
+}

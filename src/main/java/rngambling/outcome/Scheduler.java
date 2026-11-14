@@ -14,6 +14,8 @@ public final class Scheduler {
     }
 
     private static final List<Task> TASKS = new ArrayList<>();
+    /** Undo steps for temporary changes to the world (Disco Floor), run early if the server stops first. */
+    private static final List<Runnable> UNDO = new ArrayList<>();
     private static long now;
 
     private Scheduler() {
@@ -65,8 +67,30 @@ public final class Scheduler {
         }
     }
 
-    /** Drops every pending task (server stopping, or tests). */
+    /**
+     * Registers an undo for a temporary change: it runs when {@code ticks} have passed, or when
+     * the server stops first, so the world is never left changed.
+     */
+    public static void undoLater(int ticks, Runnable undo) {
+        UNDO.add(undo);
+        later(ticks, () -> {
+            if (UNDO.remove(undo)) {
+                undo.run();
+            }
+        });
+    }
+
+    /** Drops every pending task (server stopping, or tests), first running any undo steps. */
     public static void clear() {
+        List<Runnable> undo = new ArrayList<>(UNDO);
+        UNDO.clear();
+        for (Runnable step : undo) {
+            try {
+                step.run();
+            } catch (RuntimeException e) {
+                com.mojang.logging.LogUtils.getLogger().error("Undoing a lucky block effect failed", e);
+            }
+        }
         TASKS.clear();
     }
 

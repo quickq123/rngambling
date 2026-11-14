@@ -32,6 +32,13 @@ public final class SandboxCommands {
                                 Bounty.answer(context.getSource().getPlayerOrException(), true) ? 1 : 0))
                         .then(Commands.literal("decline").executes(context ->
                                 Bounty.answer(context.getSource().getPlayerOrException(), false) ? 1 : 0))));
+        // Double or Nothing's answers, likewise.
+        dispatcher.register(Commands.literal("rngambling")
+                .then(Commands.literal("double")
+                        .then(Commands.literal("accept").executes(context ->
+                                DoubleOrNothing.answer(context.getSource().getPlayerOrException(), true) ? 1 : 0))
+                        .then(Commands.literal("walk").executes(context ->
+                                DoubleOrNothing.answer(context.getSource().getPlayerOrException(), false) ? 1 : 0))));
         dispatcher.register(Commands.literal("rngambling")
                 .then(Commands.literal("sandbox")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))

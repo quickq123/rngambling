@@ -68,6 +68,19 @@ public final class RNGambling {
                     .persistent(Codec.intRange(Luck.MIN, Luck.MAX))
                     .networkSynchronized(ByteBufCodecs.VAR_INT));
 
+    /** When a lit Hot Potato goes off: the game time. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Long>> FUSE =
+            DATA_COMPONENTS.registerComponentType("fuse", builder -> builder
+                    .persistent(Codec.LONG)
+                    .networkSynchronized(ByteBufCodecs.VAR_LONG));
+
+    private static final DeferredRegister<net.neoforged.neoforge.attachment.AttachmentType<?>> ATTACHMENTS =
+            DeferredRegister.create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.ATTACHMENT_TYPES, MOD_ID);
+    /** LEG-11 Phoenix Blessing: the player will rise once from death (see EffectEvents). Saved with the player. */
+    public static final DeferredHolder<net.neoforged.neoforge.attachment.AttachmentType<?>, net.neoforged.neoforge.attachment.AttachmentType<Boolean>> PHOENIX =
+            ATTACHMENTS.register("phoenix", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> false)
+                    .serialize(Codec.BOOL.fieldOf("blessed")).build());
+
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
@@ -148,6 +161,16 @@ public final class RNGambling {
             rngambling.outcome.SandboxExitBlock::new, properties -> properties.mapColor(MapColor.COLOR_PURPLE).noCollision()
                     .strength(-1.0f, 3600000.0f).lightLevel(state -> 12).noLootTable().noOcclusion().sound(SoundType.AMETHYST));
 
+    /** VBD-20 Hot Potato: a lucky block hands one over, lit. Throw it! */
+    public static final DeferredItem<rngambling.item.HotPotatoItem> HOT_POTATO = ITEMS.registerItem("hot_potato",
+            rngambling.item.HotPotatoItem::new, () -> new Item.Properties().stacksTo(1));
+
+    private static final DeferredRegister.Entities ENTITY_TYPES = DeferredRegister.createEntities(MOD_ID);
+    /** LEG-16 Dragon Hatchling: a lucky block's tame pet dragon (see rngambling.entity.DragonHatchling). */
+    public static final DeferredHolder<net.minecraft.world.entity.EntityType<?>, net.minecraft.world.entity.EntityType<rngambling.entity.DragonHatchling>> DRAGON_HATCHLING =
+            ENTITY_TYPES.registerEntityType("dragon_hatchling", rngambling.entity.DragonHatchling::new, net.minecraft.world.entity.MobCategory.CREATURE,
+                    builder -> builder.sized(0.7f, 0.9f).eyeHeight(0.7f).fireImmune().clientTrackingRange(10));
+
     /** One-use luck charms, sold by the Casino Dealer. */
     public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
             properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));
@@ -211,6 +234,7 @@ public final class RNGambling {
                         output.accept(BLACKJACK_TABLE_ITEM.get());
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
+                        output.accept(HOT_POTATO.get());
                     })
                     .build());
 
@@ -224,6 +248,10 @@ public final class RNGambling {
         POI_TYPES.register(modBus);
         MENUS.register(modBus);
         PROFESSIONS.register(modBus);
+        ATTACHMENTS.register(modBus);
+        ENTITY_TYPES.register(modBus);
+        modBus.addListener((net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent event) ->
+                event.put(DRAGON_HATCHLING.get(), rngambling.entity.DragonHatchling.createAttributes().build()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
         // Effects that play out over time, and react to the game.
         rngambling.outcome.EffectEvents.register();
