@@ -33,7 +33,7 @@ import rngambling.block.LuckyBlockEntity;
 public final class ScreenshotRun {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String WORLD = "rngambling-shots";
-    private static final int MAX_TICKS = 20 * 120;
+    private static final int MAX_TICKS = 20 * 600;
 
     /** The blocks copied in the test wall, one column each. */
     private static final Block[] KINDS = {
@@ -76,8 +76,8 @@ public final class ScreenshotRun {
                     minecraft.options.onboardAccessibility = false;
                     LevelSettings settings = new LevelSettings(WORLD, GameType.CREATIVE,
                             new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), true, WorldDataConfiguration.DEFAULT);
-                    minecraft.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(1L, false, false),
-                            NORMAL_WORLD ? WorldPresets::createNormalWorldDimensions : WorldPresets::createFlatWorldDimensions,
+                    minecraft.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(1L, NORMAL_WORLD || ZONES, false),
+                            NORMAL_WORLD || ZONES ? WorldPresets::createNormalWorldDimensions : WorldPresets::createFlatWorldDimensions,
                             new TitleScreen());
                 }
                 return;
@@ -243,7 +243,167 @@ public final class ScreenshotRun {
                 chunks, surface, cave, surface + cave == 0 ? "-" : String.format("%.1f", chunks / (double) (surface + cave)));
     }
 
+    /** -PshotsWorld=zones: visits each luck zone in a normal world and surveys its generated lucky blocks. */
+    private static final boolean ZONES = "zones".equals(System.getProperty("rngambling.shotsWorld"));
+
+    /**
+     * Luck zones: surveys the Overworld around spawn, the Nether, the End's outer islands, the
+     * nearest Ancient City and the nearest Woodland Mansion, logging counts and luck for each.
+     */
+    private static void planZones() {
+        then(400, minecraft -> { });
+        if (!Boolean.getBoolean("rngambling.structuresOnly")) {
+            then(10, minecraft -> onServer(minecraft, player -> zoneSurvey(player, "overworld", null)));
+            then(500, minecraft -> onServer(minecraft, player -> go(player, net.minecraft.world.level.Level.NETHER, new Vec3(0.5, 70, 0.5))));
+            then(10, minecraft -> onServer(minecraft, player -> zoneSurvey(player, "nether", null)));
+            then(600, minecraft -> onServer(minecraft, player -> go(player, net.minecraft.world.level.Level.END, new Vec3(1200.5, 80, 0.5))));
+            then(10, minecraft -> onServer(minecraft, player -> zoneSurvey(player, "end", null)));
+        }
+        String[][] structures = {{"ancient_city", "ancient_cities", "-27"}, {"mansion", "woodland_mansions", "64"}};
+        for (String[] structure : structures) {
+            // Candidates: the spots the placement could use whose biome looks right, nearest first.
+            java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
+            BlockPos[] found = new BlockPos[1];
+            then(5, minecraft -> onServer(minecraft, player -> candidates.addAll(
+                    findStructure(player.level().getServer().overworld(), structure[0], structure[1], Integer.parseInt(structure[2])))));
+            // Then the game's own check, one candidate per step (a full search freezes the server for minutes).
+            for (int i = 0; i < 80; i++) {
+                int index = i;
+                then(5, minecraft -> onServer(minecraft, player -> {
+                    if (found[0] != null || index >= candidates.size()) {
+                        return;
+                    }
+                    ServerLevel overworld = player.level().getServer().overworld();
+                    var result = overworld.getChunkSource().getGenerator().findNearestMapStructure(
+                            overworld, structureSet(overworld, structure[0]), candidates.get(index), 0, false);
+                    if (result != null) {
+                        found[0] = result.getFirst();
+                        LOGGER.info("Screenshot run: {} at {} (candidate {})", structure[0], found[0].toShortString(), index + 1);
+                    }
+                }));
+            }
+            then(600, minecraft -> onServer(minecraft, player -> {
+                if (found[0] == null) {
+                    LOGGER.info("Screenshot run: no {} found among {} candidates", structure[0], candidates.size());
+                    return;
+                }
+                go(player, net.minecraft.world.level.Level.OVERWORLD,
+                        new Vec3(found[0].getX() + 0.5, structure[0].equals("mansion") ? 110 : -20, found[0].getZ() + 0.5));
+            }));
+            then(10, minecraft -> onServer(minecraft, player -> {
+                if (found[0] != null) {
+                    zoneSurvey(player, structure[0], structureSet(player.level(), structure[0]));
+                }
+            }));
+        }
+        then(20, Minecraft::stop);
+    }
+
+    /**
+     * A quick structure search: the game's own (locate) generates terrain to check each candidate
+     * and can freeze the server for minutes. This works out the candidate spots from the structure
+     * set's placement and the world seed, and returns the nearest whose biome (at {@code biomeY})
+     * suits the structure. It's usually right; the survey then says how many lucky blocks are inside.
+     */
+    private static java.util.List<BlockPos> findStructure(ServerLevel level, String structureName, String setName, int biomeY) {
+        var setRegistry = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE_SET);
+        var set = setRegistry.getValueOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.STRUCTURE_SET,
+                net.minecraft.resources.Identifier.withDefaultNamespace(setName)));
+        java.util.List<BlockPos> out = new java.util.ArrayList<>();
+        if (!(set.placement() instanceof net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement placement)) {
+            return out;
+        }
+        net.minecraft.world.level.levelgen.structure.Structure structure = structureSet(level, structureName).get(0).value();
+        long seed = level.getChunkSource().getGeneratorState().getLevelSeed();
+        var biomes = level.getChunkSource().getGenerator().getBiomeSource();
+        var sampler = level.getChunkSource().randomState().sampler();
+        java.util.List<net.minecraft.world.level.ChunkPos> candidates = new java.util.ArrayList<>();
+        int cells = 10;
+        for (int cx = -cells; cx <= cells; cx++) {
+            for (int cz = -cells; cz <= cells; cz++) {
+                candidates.add(placement.getPotentialStructureChunk(seed, cx * placement.spacing(), cz * placement.spacing()));
+            }
+        }
+        candidates.sort(java.util.Comparator.comparingLong(c -> (long) c.getMiddleBlockX() * c.getMiddleBlockX() + (long) c.getMiddleBlockZ() * c.getMiddleBlockZ()));
+        for (net.minecraft.world.level.ChunkPos chunk : candidates) {
+            int x = chunk.getMiddleBlockX();
+            int z = chunk.getMiddleBlockZ();
+            var biome = biomes.getNoiseBiome(net.minecraft.core.QuartPos.fromBlock(x), net.minecraft.core.QuartPos.fromBlock(biomeY),
+                    net.minecraft.core.QuartPos.fromBlock(z), sampler);
+            // Likely spots (the biome looks right) first; the game's own check decides.
+            out.add(structure.biomes().contains(biome) ? 0 : out.size(), new BlockPos(x, biomeY, z));
+        }
+        return out;
+    }
+
+    private static net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.structure.Structure> structureSet(ServerLevel level, String name) {
+        var registry = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE);
+        return net.minecraft.core.HolderSet.direct(registry.getOrThrow(
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.STRUCTURE,
+                        net.minecraft.resources.Identifier.withDefaultNamespace(name))));
+    }
+
+    private static void go(ServerPlayer player, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Vec3 at) {
+        ServerLevel level = player.level().getServer().getLevel(dimension);
+        player.getAbilities().mayfly = true;
+        player.getAbilities().flying = true;
+        player.onUpdateAbilities();
+        player.teleportTo(level, at.x, at.y, at.z, Set.of(), 0, 0, false);
+    }
+
+    /** Logs the lucky blocks in the chunks around the player: how many, where, and their luck. */
+    private static void zoneSurvey(ServerPlayer player, String label,
+            net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.structure.Structure> structure) {
+        ServerLevel level = player.level();
+        int radius = 6;
+        int chunks = 0;
+        int surface = 0;
+        int inside = 0;
+        java.util.List<Integer> lucks = new java.util.ArrayList<>();
+        int cx0 = player.blockPosition().getX() >> 4;
+        int cz0 = player.blockPosition().getZ() >> 4;
+        int structureChunks = 0;
+        for (int cx = cx0 - radius; cx <= cx0 + radius; cx++) {
+            for (int cz = cz0 - radius; cz <= cz0 + radius; cz++) {
+                net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) {
+                    continue;
+                }
+                chunks++;
+                if (structure != null && chunk.getAllReferences().keySet().stream().anyMatch(s -> s == structure.get(0).value())) {
+                    structureChunks++;
+                }
+                for (net.minecraft.world.level.block.entity.BlockEntity entity : chunk.getBlockEntities().values()) {
+                    if (!(entity instanceof LuckyBlockEntity lucky)) {
+                        continue;
+                    }
+                    BlockPos pos = lucky.getBlockPos();
+                    lucks.add(lucky.luck());
+                    int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
+                    surface += pos.getY() >= top - 1 ? 1 : 0;
+                    boolean inStructure = structure != null && level.structureManager().getStructureWithPieceAt(pos, structure).isValid();
+                    inside += inStructure ? 1 : 0;
+                    if (structure == null || inStructure) {
+                        LOGGER.info("Screenshot run: [{}] lucky block at {} copying {} with luck {}", label, pos.toShortString(),
+                                lucky.mimic() == null ? "?" : lucky.mimic().getBlock().getName().getString(), lucky.luck());
+                    }
+                }
+            }
+        }
+        java.util.Collections.sort(lucks);
+        long middle = lucks.stream().filter(l -> Math.abs(l) < 50).count();
+        long good = lucks.stream().filter(l -> l > 0).count();
+        LOGGER.info("Screenshot run: [{}] {} chunks: {} lucky blocks ({} surface, {} cave{}); luck {} to {}, {} good, {} within ±49; all: {}",
+                label, chunks, lucks.size(), surface, lucks.size() - surface,
+                structure == null ? "" : ", " + inside + " inside the structure, which reaches " + structureChunks + " of the chunks",
+                lucks.isEmpty() ? "-" : lucks.getFirst(), lucks.isEmpty() ? "-" : lucks.getLast(), good, middle, lucks);
+    }
+
     private static void plan() {
+        if (ZONES) {
+            planZones();
+            return;
+        }
         if (NORMAL_WORLD) {
             planWorldGeneration();
             return;

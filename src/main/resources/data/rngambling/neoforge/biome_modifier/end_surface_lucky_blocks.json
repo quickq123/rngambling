@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": ["minecraft:end_highlands", "minecraft:end_midlands", "minecraft:small_end_islands", "minecraft:end_barrens"],
+  "features": "rngambling:surface_lucky_block",
+  "step": "top_layer_modification"
+}

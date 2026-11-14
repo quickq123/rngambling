@@ -1,0 +1,5 @@
+{
+  "structures": "minecraft:mansion",
+  "luck": {"type": "spread", "mean": 30, "spread": 25},
+  "structure_one_in_chunks": 4
+}

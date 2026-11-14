@@ -1,0 +1,6 @@
+{
+  "dimension": "minecraft:the_nether",
+  "luck": {"type": "extremes", "min": 50, "max": 100, "good_chance": 0.5},
+  "surface_one_in_chunks": 0,
+  "cave_one_in_chunks": 6
+}

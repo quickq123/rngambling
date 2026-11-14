@@ -1,0 +1,6 @@
+{
+  "dimension": "minecraft:the_end",
+  "luck": {"type": "extremes", "min": 50, "max": 100, "good_chance": 1.0},
+  "surface_one_in_chunks": 6,
+  "cave_one_in_chunks": 0
+}

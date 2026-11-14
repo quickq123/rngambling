@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_nether",
+  "features": "rngambling:nether_cave_lucky_block",
+  "step": "underground_decoration"
+}

@@ -100,9 +100,11 @@ public final class RNGambling {
     private static final DeferredRegister<Feature<?>> FEATURES = DeferredRegister.create(Registries.FEATURE, MOD_ID);
     /** World generation (see LuckyBlockFeature, and data/rngambling/worldgen and neoforge/biome_modifier). */
     public static final DeferredHolder<Feature<?>, LuckyBlockFeature> SURFACE_LUCKY_BLOCK = FEATURES.register("surface_lucky_block",
-            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.SURFACE, RNGamblingConfig.SURFACE_RARITY::getAsInt));
+            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.SURFACE));
     public static final DeferredHolder<Feature<?>, LuckyBlockFeature> CAVE_LUCKY_BLOCK = FEATURES.register("cave_lucky_block",
-            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.CAVE, RNGamblingConfig.CAVE_RARITY::getAsInt));
+            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.CAVE));
+    public static final DeferredHolder<Feature<?>, LuckyBlockFeature> STRUCTURE_LUCKY_BLOCK = FEATURES.register("structure_lucky_block",
+            () -> new LuckyBlockFeature(LuckyBlockFeature.Kind.STRUCTURE));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CREATIVE_TAB = CREATIVE_TABS.register(MOD_ID,
             () -> CreativeModeTab.builder()
@@ -127,6 +129,9 @@ public final class RNGambling {
         CREATIVE_TABS.register(modBus);
         FEATURES.register(modBus);
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RNGamblingConfig.SPEC);
+        // Luck zones: datapack files in data/<namespace>/rngambling/luck_zone/ (see LuckZone).
+        modBus.addListener((net.neoforged.neoforge.registries.DataPackRegistryEvent.NewRegistry event) ->
+                event.dataPackRegistry(rngambling.luck.LuckZone.REGISTRY, rngambling.luck.LuckZone.CODEC));
         if (Boolean.getBoolean("rngambling.gameTests")) {
             registerGameTests(modBus);
         }

@@ -1,0 +1,5 @@
+{
+  "structures": "minecraft:ancient_city",
+  "luck": {"type": "extremes", "min": 70, "max": 100, "good_chance": 0.5},
+  "structure_one_in_chunks": 20
+}

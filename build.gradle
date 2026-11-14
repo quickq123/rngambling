@@ -39,6 +39,8 @@ neoForge {
             systemProperty 'rngambling.screenshots', 'true'
             // -PshotsWorld=normal: a normal world, to look at world generation.
             systemProperty 'rngambling.shotsWorld', (project.findProperty('shotsWorld') ?: 'flat').toString()
+            // -PstructuresOnly: with shotsWorld=zones, only the structures.
+            systemProperty 'rngambling.structuresOnly', project.hasProperty('structuresOnly').toString()
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 

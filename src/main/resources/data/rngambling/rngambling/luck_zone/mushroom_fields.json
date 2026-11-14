@@ -1,0 +1,4 @@
+{
+  "biomes": "minecraft:mushroom_fields",
+  "luck": {"type": "spread", "mean": 20, "spread": 25}
+}

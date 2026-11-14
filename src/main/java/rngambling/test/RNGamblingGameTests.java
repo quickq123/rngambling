@@ -44,7 +44,40 @@ public final class RNGamblingGameTests {
             "luck_tilts_the_odds", RNGamblingGameTests::luckTiltsTheOdds,
             "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing,
             "mimic_wand", RNGamblingGameTests::mimicWand,
-            "world_generation", RNGamblingGameTests::worldGeneration);
+            "world_generation", RNGamblingGameTests::worldGeneration,
+            "luck_zones", RNGamblingGameTests::luckZones);
+
+    /** The shipped zone files load, the Overworld zone applies here, and each zone's rolls stay in its range. */
+    private static void luckZones(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        net.minecraft.core.Registry<rngambling.luck.LuckZone> zones = level.registryAccess().lookupOrThrow(rngambling.luck.LuckZone.REGISTRY);
+        helper.assertTrue(zones.size() == 7, "7 luck zones should load, not " + zones.size() + ": " + zones.keySet());
+        rngambling.luck.LuckZone here = rngambling.luck.LuckZone.at(level, helper.absolutePos(new BlockPos(1, 1, 1)));
+        helper.assertTrue(here == zones.getValue(RNGambling.id("overworld")), "the test spot should be in the Overworld zone");
+
+        RandomSource random = RandomSource.create(5);
+        rngambling.luck.LuckZone nether = zones.getValue(RNGambling.id("nether"));
+        rngambling.luck.LuckZone end = zones.getValue(RNGambling.id("end"));
+        rngambling.luck.LuckZone city = zones.getValue(RNGambling.id("ancient_city"));
+        rngambling.luck.LuckZone mushrooms = zones.getValue(RNGambling.id("mushroom_fields"));
+        int netherGood = 0;
+        double mushroomTotal = 0;
+        for (int i = 0; i < 1000; i++) {
+            int n = nether.luck().roll(random);
+            helper.assertTrue(Math.abs(n) >= 50, "Nether luck should have no middle ground: " + n);
+            netherGood += n > 0 ? 1 : 0;
+            int e = end.luck().roll(random);
+            helper.assertTrue(e >= 50 && e <= 100, "End luck should be +50 to +100: " + e);
+            int c = city.luck().roll(random);
+            helper.assertTrue(Math.abs(c) >= 70, "Ancient City luck should be 70 to 100 either way: " + c);
+            mushroomTotal += mushrooms.luck().roll(random);
+        }
+        helper.assertTrue(netherGood > 400 && netherGood < 600, "Nether luck should be good about half the time: " + netherGood);
+        helper.assertTrue(Math.abs(mushroomTotal / 1000 - 20) < 4, "Mushroom Fields luck should average about +20: " + mushroomTotal / 1000);
+        helper.assertTrue(nether.caveRarity() == 6 && nether.surfaceRarity() == 0 && end.surfaceRarity() == 6,
+                "zone rarities should come from the files");
+        helper.succeed();
+    }
 
     /**
      * The placement rules on a built scene: a cave placement finds the one block that opens onto

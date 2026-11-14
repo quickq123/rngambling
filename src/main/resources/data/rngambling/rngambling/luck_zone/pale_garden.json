@@ -1,0 +1,4 @@
+{
+  "biomes": "minecraft:pale_garden",
+  "luck": {"type": "spread", "mean": 15, "spread": 25}
+}

@@ -32,15 +32,31 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
     noticeable on deepslate as 12% darkening is on stone), since
     a tint can only darken and darkening a dark texture barely shows. It also sounds, mines and resists explosions like the copied block, and creative
     middle-click gives the copied block. Only plain, full, solid, opaque blocks without a block
-    entity can be copied. Luck is rolled clustered around 0 (`Luck.rollNatural`, a normal
-    curve with spread 30, so beyond ±60 is about 1 in 20).
-    **World generation** (done, Overworld only): always with a side open to air, so every one
-    can be spotted. Surface: the top ground block (grass, sand, gravel...), never water.
-    Caves: a floor, ceiling or wall block next to roofed air, between 8 above the bottom of
-    the world and y 56. Each is tried in 1 of every 8 chunks (`config/rngambling-common.toml`:
-    `surface_one_in_chunks`, `cave_one_in_chunks`; 0 turns one off). Not every try finds a
-    spot (oceans, solid rock), so a test world had 23 in 169 chunks, 1 per 7 chunks
-    (10 surface, 13 cave).
+    entity can be copied. The Mimic Wand rolls luck clustered around 0 (`Luck.rollNatural`);
+    world generation rolls it by luck zone (below).
+    **World generation** (done): always with a side open to air, so every one can be
+    spotted. Surface: the top ground block (grass, sand, gravel...), never water. Caves: a
+    floor, ceiling or wall block next to roofed air (Overworld y -56 to 56; Nether 32 to 118).
+    Structures: a wall, floor or pillar of a structure, next to its rooms. Overworld rates
+    are in `config/rngambling-common.toml` (`surface_one_in_chunks`, `cave_one_in_chunks`,
+    both 1 in 8; 0 turns one off). Not every try finds a spot (oceans, solid rock), so a
+    test world had 23 in 169 chunks, 1 per 7 chunks (10 surface, 13 cave).
+- **Luck zones** (done): datapack files, `data/<namespace>/rngambling/luck_zone/*.json`
+  (format in `LuckZone`), each setting how luck is rolled and how often blocks appear for a
+  dimension, biomes or structures. The most specific match wins: structure, then biome, then
+  dimension. Shipped zones, with what a survey of 169 chunks found:
+
+  | Zone | Luck | Rate (1 in N chunks) | Surveyed |
+  |---|---|---|---|
+  | Overworld | spread around 0 (±30) | config: surface 8, cave 8 | 18 blocks, -57 to +82 |
+  | Mushroom Fields | spread around +20 (±25) | as Overworld | |
+  | Pale Garden | spread around +15 (±25) | as Overworld | |
+  | Nether | extremes ±50-100, half good | caves 6 | 31 blocks, none within ±49, 19 good |
+  | End (outer islands) | extremes +50-100 only | surface 6 | 4 blocks (mostly void), +50 to +93 |
+  | Woodland Mansion | spread around +30 (±25) | 4 of its chunks | 2-8 inside at rates 5-3 |
+  | Ancient City | extremes ±70-100, half good | 20 of its chunks | 11 inside |
+
+  Later: themed outcomes per zone (blazes instead of zombies in the Nether, and so on).
 - **Mimic Wand** (creative only, done): right-click a block to disguise it; right-click a
   disguised one to see what it copies and its luck; sneak + right-click to turn it back.
 
@@ -55,6 +71,8 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
    trades: tokens for lucky blocks, then one-use luck boosters.
 5. Slot machine and the casino hut in villages. Machines can't be crafted.
 6. Roulette, then blackjack. All game logic runs on the server.
+7. Themed outcomes per luck zone (Nether: blazes instead of zombies, fire; End: shulkers,
+   levitation, ender pearls; ...).
 
 Open: what happens when a casino machine is broken; the machines' house edge.
 
@@ -66,5 +84,7 @@ Open: what happens when a casino machine is broken; the machines' house edge.
   real block per column), saves pictures to `runs/shots/screenshots` and quits.
   `-PshotsWorld=normal` makes a normal world instead, logs every generated lucky block in
   the chunks around the player, and pictures one on the surface and one in a cave.
+  `-PshotsWorld=zones` surveys each luck zone: the Overworld, the Nether, the End, then the
+  nearest Ancient City and Woodland Mansion (`-PstructuresOnly` for just those two).
 - Textures: `tools/make_textures.py`, run in Docker (see its header).
 - Add an outcome: one line in `Outcomes.ALL` and its message in `lang/en_us.json`.
