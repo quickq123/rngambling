@@ -166,9 +166,10 @@ def write_png_alpha(path, colour, alpha):
 
 
 write_png("block/lucky_block.png", lucky_block())
-# The lightening overlay for dark disguised blocks: white at 12% (31 of 255), so a face is drawn
-# 12% of the way to white, matching the 12% darkening of light ones.
-write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 31)
+# The lightening overlay for dark disguised blocks: white at 7% (18 of 255), so a face is drawn
+# 7% of the way to white. On deepslate that's about as noticeable as the 12% darkening of stone
+# (12% looked clearly stronger).
+write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 18)
 write_png("item/luck_glasses.png", luck_glasses_item())
 write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())
