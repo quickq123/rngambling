@@ -1,0 +1,20 @@
+{
+  "textures": {
+    "lighten": "rngambling:block/mimic_lighten",
+    "particle": "rngambling:block/mimic_lighten"
+  },
+  "elements": [
+    {
+      "from": [-0.01, -0.01, -0.01],
+      "to": [16.01, 16.01, 16.01],
+      "faces": {
+        "down":  {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "down"},
+        "up":    {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "up"},
+        "north": {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "north"},
+        "south": {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "south"},
+        "west":  {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "west"},
+        "east":  {"uv": [0, 0, 16, 16], "texture": "#lighten", "cullface": "east"}
+      }
+    }
+  ]
+}

@@ -17,6 +17,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
+import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
+import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
 import net.minecraft.util.TriState;
 import org.jspecify.annotations.Nullable;
 import rngambling.RNGambling;
@@ -37,9 +39,23 @@ final class MimicModel extends DelegateBlockStateModel {
         super(own);
     }
 
+    /**
+     * The lightening overlay for dark copied blocks: a cube a hair larger than a block, its faces a
+     * faint, see-through white (block/mimic_lighten), which brightens whatever is behind it.
+     */
+    private static final StandaloneModelKey<BlockStateModelPart> LIGHTEN_KEY =
+            new StandaloneModelKey<>(() -> RNGambling.MOD_ID + ":block/mimic_lighten");
+    private static BlockStateModelPart lighten;
+
+    static void registerLighten(ModelEvent.RegisterStandalone event) {
+        event.register(LIGHTEN_KEY, SimpleUnbakedStandaloneModel.simpleModelWrapper(RNGambling.id("block/mimic_lighten")));
+    }
+
     /** Wraps the disguised lucky block's model, once all models are baked. */
     static void wrap(ModelEvent.ModifyBakingResult event) {
         SHADED.clear();
+        MimicLook.clear();
+        lighten = event.getBakingResult().standaloneModels().get(LIGHTEN_KEY);
         Map<BlockState, BlockStateModel> models = event.getBakingResult().blockStateModels();
         for (BlockState state : RNGambling.MIMIC_LUCKY_BLOCK.get().getStateDefinition().getPossibleStates()) {
             BlockStateModel own = models.get(state);
@@ -66,6 +82,9 @@ final class MimicModel extends DelegateBlockStateModel {
         for (BlockStateModelPart part : original) {
             parts.add(SHADED.computeIfAbsent(part, ShadedPart::new));
         }
+        if (lighten != null && MimicLook.lightens(mimic)) {
+            parts.add(lighten);
+        }
     }
 
     /** Breaking and running particles use the copied block's texture. */
@@ -80,7 +99,11 @@ final class MimicModel extends DelegateBlockStateModel {
     public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state) {
         BlockState mimic = MimicLuckyBlock.mimicAt(level, pos);
         BlockStateModel copied = modelOf(mimic);
-        return copied != null ? copied.materialFlags(level, pos, mimic) : delegate.materialFlags(level, pos, state);
+        if (copied == null) {
+            return delegate.materialFlags(level, pos, state);
+        }
+        int flags = copied.materialFlags(level, pos, mimic);
+        return lighten != null && MimicLook.lightens(mimic) ? flags | lighten.materialFlags() : flags;
     }
 
     /** A copied model part whose quads all take a tint, so the shade reaches every face. */

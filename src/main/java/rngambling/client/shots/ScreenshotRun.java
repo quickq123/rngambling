@@ -37,8 +37,8 @@ public final class ScreenshotRun {
 
     /** The blocks copied in the test wall, one column each. */
     private static final Block[] KINDS = {
-            Blocks.STONE, Blocks.COBBLESTONE, Blocks.DEEPSLATE, Blocks.DIRT, Blocks.GRASS_BLOCK,
-            Blocks.SAND, Blocks.OAK_PLANKS, Blocks.BRICKS, Blocks.IRON_ORE, Blocks.SANDSTONE,
+            Blocks.STONE, Blocks.COBBLESTONE, Blocks.DEEPSLATE, Blocks.COBBLED_DEEPSLATE, Blocks.BLACKSTONE,
+            Blocks.DARK_OAK_PLANKS, Blocks.OBSIDIAN, Blocks.GRASS_BLOCK, Blocks.SAND, Blocks.BRICKS,
     };
 
     private record Step(int waitTicks, Consumer<Minecraft> action) {

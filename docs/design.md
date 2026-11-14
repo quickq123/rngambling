@@ -26,7 +26,10 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
     by the trade, so higher trade levels sell luckier blocks.
   - **Disguised** (`mimic_lucky_block`, done): draws the block it
     copies, 12% darker (`MimicTint.SHADE`), including a copied block's own tint such as grass
-    colour. It also sounds, mines and resists explosions like the copied block, and creative
+    colour. Dark blocks, whose texture averages below 0.36 brightness (`MimicLook.DARK_BELOW`:
+    deepslate 0.32, basalt, blackstone, obsidian, mud, dark planks; stone is 0.49), are drawn
+    12% lighter instead, by a faint white overlay (`block/mimic_lighten`, 12% opaque), since
+    a tint can only darken and darkening a dark texture barely shows. It also sounds, mines and resists explosions like the copied block, and creative
     middle-click gives the copied block. Only plain, full, solid, opaque blocks without a block
     entity can be copied. Luck is rolled clustered around 0 (`Luck.rollNatural`, a normal
     curve with spread 30, so beyond ±60 is about 1 in 20).

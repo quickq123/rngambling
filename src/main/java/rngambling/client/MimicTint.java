@@ -12,13 +12,14 @@ import rngambling.RNGambling;
 import rngambling.block.MimicLuckyBlock;
 
 /**
- * The "slightly off" shade of a disguised lucky block. {@link MimicModel} moves each copied quad's
- * tint layer up by one, so layer 0 here is the plain shade and layer n+1 is the copied block's own
- * tint layer n, shaded.
+ * The darkening half of a disguised block's "slightly off" look. {@link MimicModel} moves each
+ * copied quad's tint layer up by one, so layer 0 here is the plain shade and layer n+1 is the
+ * copied block's own tint layer n, shaded. Dark blocks (see {@link MimicLook}) aren't darkened
+ * here; they are lightened by an overlay instead.
  */
 final class MimicTint {
     /**
-     * How much darker a disguised block is drawn: each colour channel is multiplied by this.
+     * How much darker a light disguised block is drawn: each colour channel is multiplied by this.
      * 1.0 would be a perfect copy.
      */
     static final float SHADE = 0.88f;
@@ -31,7 +32,7 @@ final class MimicTint {
 
     static void register(RegisterColorHandlersEvent.BlockTintSources event) {
         List<BlockTintSource> layers = new ArrayList<>();
-        layers.add(state -> shade(-1));
+        layers.add(new Plain());
         for (int layer = 0; layer < COPIED_LAYERS; layer++) {
             layers.add(new Copied(layer));
         }
@@ -46,6 +47,25 @@ final class MimicTint {
         return (argb & 0xFF000000) | (r << 16) | (g << 8) | b;
     }
 
+    /** Darkens unless the copied block is one that's lightened instead. */
+    private static int shadeFor(BlockAndTintGetter level, BlockPos pos, int argb) {
+        BlockState mimic = MimicLuckyBlock.mimicAt(level, pos);
+        return mimic != null && MimicLook.lightens(mimic) ? argb : shade(argb);
+    }
+
+    /** The copied block's untinted faces. */
+    private record Plain() implements BlockTintSource {
+        @Override
+        public int color(BlockState state) {
+            return shade(-1);
+        }
+
+        @Override
+        public int colorInWorld(BlockState state, BlockAndTintGetter level, BlockPos pos) {
+            return shadeFor(level, pos, -1);
+        }
+    }
+
     /** The copied block's own tint layer, shaded. */
     private record Copied(int layer) implements BlockTintSource {
         @Override
@@ -57,7 +77,7 @@ final class MimicTint {
         public int colorInWorld(BlockState state, BlockAndTintGetter level, BlockPos pos) {
             BlockState mimic = MimicLuckyBlock.mimicAt(level, pos);
             BlockTintSource source = mimic == null ? null : Minecraft.getInstance().getBlockColors().getTintSource(mimic, layer);
-            return shade(source == null ? -1 : source.colorInWorld(mimic, level, pos));
+            return shadeFor(level, pos, source == null ? -1 : source.colorInWorld(mimic, level, pos));
         }
     }
 }

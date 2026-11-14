@@ -13,6 +13,7 @@ import rngambling.client.shots.ScreenshotRun;
 @Mod(value = RNGambling.MOD_ID, dist = Dist.CLIENT)
 public final class RNGamblingClient {
     public RNGamblingClient(IEventBus modBus) {
+        modBus.addListener(MimicModel::registerLighten);
         modBus.addListener(MimicModel::wrap);
         modBus.addListener(MimicTint::register);
         modBus.addListener(LuckOverlay::register);

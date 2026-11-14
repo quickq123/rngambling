@@ -150,7 +150,25 @@ def luck_glasses_worn():
     return px
 
 
+def write_png_alpha(path, colour, alpha):
+    """A 16 x 16 texture of one colour at one opacity (0-255)."""
+    full = os.path.join(TEXTURES, path)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    raw = b"".join(b"\x00" + bytes(tuple(colour) + (alpha,)) * 16 for _ in range(16))
+
+    def chunk(kind, data):
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+
+    with open(full, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
 write_png("block/lucky_block.png", lucky_block())
+# The lightening overlay for dark disguised blocks: white at 12% (31 of 255), so a face is drawn
+# 12% of the way to white, matching the 12% darkening of light ones.
+write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 31)
 write_png("item/luck_glasses.png", luck_glasses_item())
 write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())
