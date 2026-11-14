@@ -25,6 +25,13 @@ public final class SandboxCommands {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        // Boss Bounty's answers (the clickable [Accept] / [Decline] in chat run these); for any player.
+        dispatcher.register(Commands.literal("rngambling")
+                .then(Commands.literal("bounty")
+                        .then(Commands.literal("accept").executes(context ->
+                                Bounty.answer(context.getSource().getPlayerOrException(), true) ? 1 : 0))
+                        .then(Commands.literal("decline").executes(context ->
+                                Bounty.answer(context.getSource().getPlayerOrException(), false) ? 1 : 0))));
         dispatcher.register(Commands.literal("rngambling")
                 .then(Commands.literal("sandbox")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))

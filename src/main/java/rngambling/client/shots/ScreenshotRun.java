@@ -676,7 +676,56 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /**
+     * -PshotsWorld=rooms: every Sandbox room in a real world: entered, pictured, then left by its
+     * exit (a check that walking in ends the visit) or, without one, by the admin return.
+     */
+    private static final boolean ROOMS = "rooms".equals(System.getProperty("rngambling.shotsWorld"));
+
+    private static void planRooms() {
+        var rooms = rngambling.outcome.Rooms.all();
+        rngambling.outcome.Room[] current = new rngambling.outcome.Room[1];
+        Vec3[] home = new Vec3[1];
+        then(20, minecraft -> {
+            minecraft.options.hideGui = true;
+            onServer(minecraft, player -> {
+                player.getAbilities().flying = false;
+                player.onUpdateAbilities();
+                home[0] = player.position();
+                command(player, "difficulty normal"); // so the rooms' mobs show up (the run's world starts peaceful)
+            });
+        });
+        for (int i = 0; i < rooms.size(); i++) {
+            int index = i;
+            then(60, minecraft -> onServer(minecraft, player -> {
+                current[0] = rooms.get(index).get();
+                boolean started = rngambling.outcome.Sandbox.startRoom(player, current[0], 0);
+                check(started && rngambling.outcome.Sandbox.inSandbox(player), current[0].getClass().getSimpleName() + " starts");
+            }));
+            then(10, minecraft -> shot(minecraft, String.format("5%02d-room-%s", index, current[0].getClass().getSimpleName())));
+            then(20, minecraft -> onServer(minecraft, player -> {
+                BlockPos exit = current[0].exitPos();
+                if (exit != null && player.level().getBlockState(exit).is(RNGambling.SANDBOX_EXIT.get())) {
+                    player.teleportTo(exit.getX() + 0.5, exit.getY(), exit.getZ() + 0.5); // walk into the way out
+                } else {
+                    rngambling.outcome.Sandbox.bringBack(player);
+                }
+            }));
+            then(10, minecraft -> onServer(minecraft, player -> {
+                String name = current[0].getClass().getSimpleName();
+                check(!rngambling.outcome.Sandbox.inSandbox(player) && player.position().distanceTo(home[0]) < 1e-6,
+                        name + " ends and brings the player back exactly" + (current[0].exitPos() != null
+                                ? " (through its exit: " + (current[0].succeeded() ? "success" : "not counted as success") + ")" : ""));
+            }));
+        }
+        then(20, Minecraft::stop);
+    }
+
     private static void plan() {
+        if (ROOMS) {
+            planRooms();
+            return;
+        }
         if (SANDBOX) {
             planSandbox();
             return;

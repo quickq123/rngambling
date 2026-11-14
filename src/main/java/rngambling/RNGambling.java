@@ -143,6 +143,11 @@ public final class RNGambling {
             MENUS.register("blackjack", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
                     (containerId, inventory, buffer) -> new rngambling.casino.BlackjackMenu(containerId, inventory, buffer.readBlockPos())));
 
+    /** The way out of a Sandbox room (walk into it). Unbreakable, no item. */
+    public static final DeferredBlock<rngambling.outcome.SandboxExitBlock> SANDBOX_EXIT = BLOCKS.registerBlock("sandbox_exit",
+            rngambling.outcome.SandboxExitBlock::new, properties -> properties.mapColor(MapColor.COLOR_PURPLE).noCollision()
+                    .strength(-1.0f, 3600000.0f).lightLevel(state -> 12).noLootTable().noOcclusion().sound(SoundType.AMETHYST));
+
     /** One-use luck charms, sold by the Casino Dealer. */
     public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
             properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));

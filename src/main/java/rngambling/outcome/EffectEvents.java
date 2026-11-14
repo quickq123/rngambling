@@ -36,6 +36,17 @@ public final class EffectEvents {
         NeoForge.EVENT_BUS.addListener(EffectEvents::onPickup);
         NeoForge.EVENT_BUS.addListener(EffectEvents::onBreak);
         NeoForge.EVENT_BUS.addListener(EffectEvents::onSpawn);
+        NeoForge.EVENT_BUS.addListener(EffectEvents::onPlace);
+    }
+
+    /** In a Sandbox room, nothing can be placed unless the room allows it (no bridging a parkour course). */
+    private static void onPlace(net.neoforged.neoforge.event.level.BlockEvent.EntityPlaceEvent event) {
+        if (event.getEntity() instanceof Player player && Sandbox.inSandbox(player)) {
+            Room room = Sandbox.roomOf(player);
+            if (room != null && !room.allowsPlacing()) {
+                event.setCanceled(true);
+            }
+        }
     }
 
     static void curseMining(ServerPlayer player, int ticks) {
@@ -74,6 +85,14 @@ public final class EffectEvents {
     /** Cursed Mining: a quarter of the blocks broken set off a silverfish or a small blast. */
     private static void onBreak(BreakBlockEvent event) {
         Player player = event.getPlayer();
+        // In a Sandbox room, its blocks can't be broken unless the room allows it (no cutting through a maze).
+        if (player != null && Sandbox.inSandbox(player)) {
+            Room room = Sandbox.roomOf(player);
+            if (room != null && !room.canBreak(event.getPos(), event.getState()) && !room.allowsPlacing()) {
+                event.setCanceled(true);
+                return;
+            }
+        }
         if (player instanceof ServerPlayer && active(CURSED_MINING, player) && player.level() instanceof ServerLevel level
                 && level.getRandom().nextFloat() < 0.25f) {
             BlockPos pos = event.getPos();

@@ -25,14 +25,12 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog so far** (140 effects): all its "Vanilla only" effects, plus Fool's Diamonds,
-  Cursed Mining and Mob Repellent. **Still to come:** the "easy custom" effects (Hot Potato,
-  Tax Collector, golem escorts, Ore Vision, Mystery Item/Treasure, Genie's Wish, Phoenix
-  Blessing, Double or Nothing, Boss Bounty, Villager Friends, Ghost Block, Mob Shuffle, Message
-  in a Bottle, Disco Floor, Llama Spit Party), the structure rooms (Wither Arena, Warden's
-  Hollow, Void Platform, Rising Lava Tomb, Elder Guardian Monument, Fortress Ambush, Empowered
-  Wither, Blind Hedge Maze, Mob Arena Waves, Skyblock Strand, Drowned Pit, Treasure Vault,
-  Parkour Course, Puzzle Vault, Treasure Island), and the Dragon Hatchling.
+- **The catalog so far** (156 effects): all its "Vanilla only" effects, all 15 Sandbox rooms
+  and Boss Bounty (below), plus Fool's Diamonds, Cursed Mining and Mob Repellent. **Still to
+  come:** the "easy custom" effects (Hot Potato, Tax Collector, golem escorts, Ore Vision,
+  Mystery Item/Treasure, Genie's Wish, Phoenix Blessing, Double or Nothing, Villager Friends,
+  Ghost Block, Mob Shuffle, Message in a Bottle, Disco Floor, Llama Spit Party) and the Dragon
+  Hatchling.
 - **Grief:** explosions and fire happen in the world. Effects that build or place blocks (or
   would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop, The
   Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
@@ -130,6 +128,39 @@ off (outcomes then happen in place, as they also do if the dimension is missing)
 - **Testing:** the game test server leaves out datapack dimensions, so game tests cover the
   fallback and the records; `runClientShots -PshotsWorld=sandbox` checks the real thing in a
   real world (logs `SANDBOX CHECK ok/FAILED`).
+
+### Sandbox rooms
+
+Built in code (`rngambling.outcome.Rooms`), fresh for each visit on the Sandbox's plane; first
+versions, to be tuned in playtesting. A room ends when it's finished (its **way out**, a purple
+portal you walk into, or a challenge met), when its time runs out, or if the player dies or
+leaves; then the usual return applies. Room blocks can't be broken, and nothing can be placed,
+unless the room allows it (no cutting through the maze or bridging the parkour course). Blocks
+a room hands out are taken away at the end. Falling off a sky room is failure: home at once.
+
+| Room | What it is | Ends |
+|---|---|---|
+| Wither Arena (CAT-01) | sealed obsidian box, a Wither charging up | Wither dead (5 min max) |
+| Empowered Wither (CAT-20) | ruined stone-brick ring; Wither with double health and +6 armour, 2 wither skeletons every 20 s | 30 s after it dies, with an End City and a bastion chest (6 min max) |
+| Warden's Hollow (CAT-03) | dark deepslate and sculk cavern, shriekers that can summon a Warden down the middle, Darkness | the way out at the far end (4 min) |
+| Void Platform (CAT-07) | 7x7 platform 100 up, crumbling a block every half second; 8 cobblestone to patch it | a way out appears after 30 s; falling fails |
+| Rising Lava Tomb (CAT-08) | sealed stone-brick box; lava rises a layer every 4 s after an 8 s grace; cracked-brick decoys, and one weak pair (two high, at the floor) that breaks | the way out down a tunnel behind the weak pair |
+| Elder Guardian Monument (CAT-14) | flooded prismarine chamber, 2 Elder Guardians | the way out at the far wall (3 min) |
+| Nether Fortress Ambush (CAT-17) | 40-long nether brick corridor, blazes and wither skeletons | the way out at the end (3 min) |
+| Blind Hedge Maze (VBD-15) | a fresh random 8x8-cell hedge maze each time, Blindness, 4 zombies | the way out in the far corner (4 min) |
+| Mob Arena Waves (VBD-16) | walled arena, three waves (zombies and skeletons; spiders and a creeper; vindicators, witches, husks, strays) | 10 s after the last wave, with iron, emeralds and golden apples (5 min) |
+| Skyblock Strand (VBD-17) | 3x3 island 90 up, the exit island 18 away; 24 cobblestone | the way out; falling fails |
+| Drowned Pit (VBD-24) | 18-deep flooded pit, 4 Drowned with tridents | the way out on a ledge at the top (2 min) |
+| Treasure Vault (VGD-09) | gold-block room, 6 loot chests | 60 s timer bar (or the way out) |
+| Parkour Course (VGD-10) | 14 jumps in the sky, an End City chest at the end | the way out; falling fails, and you keep nothing |
+| Puzzle Vault (VGD-11) | 5 levers, 5 lamps: each lever flips its lamp and its neighbours'; light them all and the vault door opens to an End City chest | the way out in the vault (4 min) |
+| Treasure Island (LEG-06) | sand island with palms and a moat, 4 treasure chests; anything can be broken | 3 min timer bar |
+| Boss Bounty (LEG-07) | an offer in chat, [Accept] / [Decline] (`/rngambling bounty accept|decline`; a minute's silence declines). Accepted: an Illager Warlord (evoker on a ravager) and 3 vindicators; won, 2 netherite ingots and two Legendary rolls. Declined: a Good roll | 15 s after the fight (5 min max) |
+
+Rooms are left out of the draw when the Sandbox is off or missing. Tests: `rooms_build` builds
+every room in the test world (the maze always solvable, the tomb's weak pair the only way out,
+the puzzle always solvable); `runClientShots -PshotsWorld=rooms` enters each in the real
+Sandbox, pictures it and leaves by its way out.
 
 ## The casino
 

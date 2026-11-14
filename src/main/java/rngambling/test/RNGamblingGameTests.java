@@ -55,7 +55,8 @@ public final class RNGamblingGameTests {
             Map.entry("placing_rolls_luck", RNGamblingGameTests::placingRollsLuck),
             Map.entry("themes", RNGamblingGameTests::themes),
             Map.entry("sandbox_fallback", RNGamblingGameTests::sandboxFallback),
-            Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords));
+            Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords),
+            Map.entry("rooms_build", RNGamblingGameTests::roomsBuild));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -652,6 +653,105 @@ public final class RNGamblingGameTests {
             level.getServer().getPlayerList().remove(player);
         }
         helper.succeed();
+    }
+
+    /**
+     * Every Sandbox room builds (here in the test world, since the test server has no Sandbox),
+     * with a clear start and a way out where it should have one; the maze can always be solved, the
+     * lava tomb's one weak brick breaks (and only it) and leads out, and the puzzle vault opens.
+     */
+    private static void roomsBuild(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        try {
+            var rooms = rngambling.outcome.Rooms.all();
+            for (int i = 0; i < rooms.size(); i++) {
+                rngambling.outcome.Room room = rooms.get(i).get();
+                String name = room.getClass().getSimpleName();
+                BlockPos centre = new BlockPos(origin.getX() + 3000 + 140 * i, 100, origin.getZ());
+                net.minecraft.world.phys.Vec3 start = room.buildAt(level, centre, player, 0);
+                BlockPos feet = BlockPos.containing(start);
+                helper.assertTrue(passable(level, feet) && passable(level, feet.above()), name + ": the start should be clear to stand in");
+                boolean hasExit = !(room instanceof rngambling.outcome.Rooms.WitherArena || room instanceof rngambling.outcome.Rooms.EmpoweredWither
+                        || room instanceof rngambling.outcome.Rooms.MobArenaWaves || room instanceof rngambling.outcome.Rooms.TreasureIsland
+                        || room instanceof rngambling.outcome.Rooms.BossBounty || room instanceof rngambling.outcome.Rooms.VoidPlatform);
+                if (hasExit) {
+                    helper.assertTrue(room.exitPos() != null && level.getBlockState(room.exitPos()).is(RNGambling.SANDBOX_EXIT.get()),
+                            name + ": should have a way out");
+                }
+                if (room instanceof rngambling.outcome.Rooms.BlindHedgeMaze) {
+                    helper.assertTrue(walkable(level, feet, room.exitPos(), 40), name + ": the exit should be reachable");
+                }
+                if (room instanceof rngambling.outcome.Rooms.RisingLavaTomb) {
+                    BlockPos weak = null;
+                    for (BlockPos p : BlockPos.betweenClosed(centre.offset(-3, 0, -3), centre.offset(3, 0, 3))) {
+                        if (level.getBlockState(p).is(Blocks.INFESTED_CRACKED_STONE_BRICKS)) {
+                            weak = p.immutable();
+                        }
+                    }
+                    helper.assertTrue(weak != null && room.breakable(weak, level.getBlockState(weak)), name + ": one weak brick should break");
+                    helper.assertFalse(room.breakable(centre.offset(0, 0, -3), Blocks.STONE_BRICKS.defaultBlockState()) && !centre.offset(0, 0, -3).equals(weak),
+                            name + ": the other walls shouldn't");
+                    helper.assertFalse(walkable(level, feet, room.exitPos(), 10), name + ": sealed until the weak brick goes");
+                    helper.assertTrue(room.breakable(weak.above(), level.getBlockState(weak.above())), name + ": the brick above it too");
+                    level.setBlockAndUpdate(weak, Blocks.AIR.defaultBlockState());
+                    level.setBlockAndUpdate(weak.above(), Blocks.AIR.defaultBlockState());
+                    helper.assertTrue(walkable(level, feet, room.exitPos(), 10), name + ": the weak brick should lead to the exit");
+                }
+                if (room instanceof rngambling.outcome.Rooms.PuzzleVault) {
+                    // Every lever combination, one flip at a time (a Gray code): one of them must open the door.
+                    boolean opened = false;
+                    for (int k = 1; k < 32 && !opened; k++) {
+                        int lever = Integer.numberOfTrailingZeros(k);
+                        BlockPos at = centre.offset(-4 + 2 * lever, 1, -5);
+                        var state = level.getBlockState(at);
+                        level.setBlock(at, state.setValue(net.minecraft.world.level.block.LeverBlock.POWERED,
+                                !state.getValue(net.minecraft.world.level.block.LeverBlock.POWERED)), 3);
+                        room.tickForTest(k);
+                        opened = level.getBlockState(centre.offset(0, 0, 5)).isAir();
+                    }
+                    helper.assertTrue(opened, name + ": the puzzle should be solvable");
+                }
+                for (var entity : level.getEntities((net.minecraft.world.entity.Entity) null,
+                        new net.minecraft.world.phys.AABB(centre).inflate(60, 120, 60), e -> !(e instanceof Player))) {
+                    entity.discard();
+                }
+            }
+        } finally {
+            player.removeAllEffects();
+            level.getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    private static boolean passable(ServerLevel level, BlockPos pos) {
+        return level.getBlockState(pos).getCollisionShape(level, pos).isEmpty();
+    }
+
+    /** Whether a player could walk (stepping up or down a block) from {@code from} to {@code to}. */
+    private static boolean walkable(ServerLevel level, BlockPos from, BlockPos to, int radius) {
+        java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>(java.util.List.of(from));
+        java.util.Set<BlockPos> seen = new java.util.HashSet<>(java.util.List.of(from));
+        while (!queue.isEmpty()) {
+            BlockPos at = queue.poll();
+            if (at.equals(to)) {
+                return true;
+            }
+            for (net.minecraft.core.Direction d : net.minecraft.core.Direction.Plane.HORIZONTAL) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    BlockPos next = at.relative(d).above(dy);
+                    if (Math.abs(next.getX() - from.getX()) > radius || Math.abs(next.getZ() - from.getZ()) > radius || seen.contains(next)) {
+                        continue;
+                    }
+                    if (passable(level, next) && passable(level, next.above()) && !passable(level, next.below())) {
+                        seen.add(next);
+                        queue.add(next);
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /** Each outcome runs without error on a survival player. */

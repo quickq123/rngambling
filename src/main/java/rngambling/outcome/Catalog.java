@@ -187,6 +187,14 @@ public final class Catalog {
                 });
             }),
 
+            of("CAT-01", "wither_arena", CATASTROPHIC, -100, -80, 5, c -> room(c, new Rooms.WitherArena())).room(),
+            of("CAT-03", "wardens_hollow", CATASTROPHIC, -100, -70, 5, c -> room(c, new Rooms.WardensHollow())).room(),
+            of("CAT-07", "void_platform", CATASTROPHIC, -100, -80, 5, c -> room(c, new Rooms.VoidPlatform())).room(),
+            of("CAT-08", "rising_lava_tomb", CATASTROPHIC, -100, -75, 5, c -> room(c, new Rooms.RisingLavaTomb())).room(),
+            of("CAT-14", "elder_guardian_monument", CATASTROPHIC, -95, -70, 4, c -> room(c, new Rooms.ElderGuardianMonument())).room(),
+            of("CAT-17", "nether_fortress_ambush", CATASTROPHIC, -100, -75, 5, c -> room(c, new Rooms.FortressAmbush())).room(),
+            of("CAT-20", "empowered_wither", CATASTROPHIC, -100, -90, 2, c -> room(c, new Rooms.EmpoweredWither())).room(),
+
             // ================= Very bad =================
             of("VBD-01", "anvil_rain", VERY_BAD, -75, -45, 6, c -> Scheduler.repeat(6, 26, i -> {
                 BlockPos above = c.player().blockPosition().offset(c.between(-3, 3), 12, c.between(-3, 3));
@@ -291,6 +299,10 @@ public final class Catalog {
                 cloud.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.POISON, 200, 1));
                 c.level().addFreshEntity(cloud);
             }),
+            of("VBD-15", "blind_hedge_maze", VERY_BAD, -75, -45, 5, c -> room(c, new Rooms.BlindHedgeMaze())).room(),
+            of("VBD-16", "mob_arena_waves", VERY_BAD, -75, -50, 5, c -> room(c, new Rooms.MobArenaWaves())).room(),
+            of("VBD-17", "skyblock_strand", VERY_BAD, -75, -50, 4, c -> room(c, new Rooms.SkyblockStrand())).room(),
+            of("VBD-24", "drowned_pit", VERY_BAD, -70, -45, 4, c -> room(c, new Rooms.DrownedPit())).room(),
             of("VBD-18", "ravager_charge", VERY_BAD, -75, -50, 4, c -> {
                 var ravager = c.spawn(EntityType.RAVAGER, c.ring(1, 12).getFirst());
                 if (ravager != null) {
@@ -739,6 +751,9 @@ public final class Catalog {
                 c.drop(box);
             }),
             of("VGD-08", "trident", VERY_GOOD, 50, 75, 4, c -> c.drop(c.enchanted(Items.TRIDENT, Enchantments.LOYALTY, 2))),
+            of("VGD-09", "treasure_vault", VERY_GOOD, 45, 75, 5, c -> room(c, new Rooms.TreasureVault())).room(),
+            of("VGD-10", "parkour_course", VERY_GOOD, 41, 70, 5, c -> room(c, new Rooms.ParkourCourse())).room(),
+            of("VGD-11", "puzzle_vault", VERY_GOOD, 41, 70, 4, c -> room(c, new Rooms.PuzzleVault())).room(),
             of("VGD-12", "beacon_starter", VERY_GOOD, 55, 80, 4, c -> c.drop(Items.IRON_BLOCK, 9)),
             of("VGD-13", "mending_book", VERY_GOOD, 50, 80, 5, c -> c.drop(c.enchanted(Items.ENCHANTED_BOOK, Enchantments.MENDING, 1))),
             of("VGD-14", "champions_brew", VERY_GOOD, 41, 75, 6, c -> {
@@ -786,6 +801,8 @@ public final class Catalog {
                 c.drop(Items.IRON_BLOCK, 164);
             }),
             of("LEG-05", "nether_star", LEGENDARY, 76, 100, 3, c -> c.drop(Items.NETHER_STAR, 1)),
+            of("LEG-06", "treasure_island", LEGENDARY, 76, 100, 4, c -> room(c, new Rooms.TreasureIsland())).room(),
+            of("LEG-07", "boss_bounty", LEGENDARY, 76, 100, 3, c -> Bounty.offer(c)).room(),
             of("LEG-08", "heart_container", LEGENDARY, 85, 100, 2, c -> {
                 AttributeInstance health = c.player().getAttribute(Attributes.MAX_HEALTH);
                 if (health != null) {
@@ -856,6 +873,11 @@ public final class Catalog {
     );
 
     // ---- helpers ----
+
+    /** Starts a Sandbox room for the player. (Rooms are only drawn when the Sandbox is available.) */
+    private static void room(OutcomeContext c, Room room) {
+        Sandbox.startRoom(c.player(), room, c.luck());
+    }
 
     private static void title(ServerPlayer player, Component text) {
         player.connection.send(new ClientboundSetTitleTextPacket(text));

@@ -26,7 +26,9 @@ public record Outcome(String id, String catalogId, Tier tier, int luckMin, int l
         /** Changes the whole server (time, weather): off in multiplayer unless the config allows it. */
         GLOBAL,
         /** Places more lucky blocks: not offered by a block that is itself deep in a chain. */
-        CHAIN
+        CHAIN,
+        /** A Sandbox room: left out of the draw when the Sandbox is off or missing. */
+        ROOM
     }
 
     public Outcome {
@@ -73,6 +75,10 @@ public record Outcome(String id, String catalogId, Tier tier, int luckMin, int l
 
     public Outcome chain() {
         return with(Flag.CHAIN, hold);
+    }
+
+    public Outcome room() {
+        return with(Flag.ROOM, hold);
     }
 
     /** The same metadata (tier, band, weight, flags) with a different id and action: for themes. */

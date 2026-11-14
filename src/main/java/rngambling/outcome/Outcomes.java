@@ -85,9 +85,11 @@ public final class Outcomes {
     /** The effects open to a block: without chain effects deep in a chain, and without server-wide effects where they're off. */
     public static List<Outcome> available(List<Outcome> outcomes, MinecraftServer server, int chain) {
         boolean global = server.isSingleplayer() || RNGamblingConfig.GLOBAL_EFFECTS_IN_MULTIPLAYER.getAsBoolean();
+        boolean rooms = Sandbox.available(server);
         List<Outcome> open = new ArrayList<>();
         for (Outcome outcome : outcomes) {
-            if ((chain < MAX_CHAIN || !outcome.has(Outcome.Flag.CHAIN)) && (global || !outcome.has(Outcome.Flag.GLOBAL))) {
+            if ((chain < MAX_CHAIN || !outcome.has(Outcome.Flag.CHAIN)) && (global || !outcome.has(Outcome.Flag.GLOBAL))
+                    && (rooms || !outcome.has(Outcome.Flag.ROOM))) {
                 open.add(outcome);
             }
         }
