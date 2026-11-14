@@ -21,7 +21,7 @@ final class MimicTint {
      * How much darker a disguised block is drawn: each colour channel is multiplied by this.
      * 1.0 would be a perfect copy.
      */
-    static final float SHADE = 0.92f;
+    static final float SHADE = 0.88f;
 
     /** Copied blocks with more tint layers than this keep only the first ones. Vanilla uses at most 2. */
     private static final int COPIED_LAYERS = 4;
