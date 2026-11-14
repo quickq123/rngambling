@@ -30,6 +30,15 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
+        // Playtesting: straight into a survival world (cheats on), made the first time and reopened
+        // after that, with a starter kit (see rngambling.client.PlaytestStart). Run: gradlew runPlaytest
+        // Delete runs/playtest/saves to start over.
+        playtest {
+            client()
+            gameDirectory = project.file('runs/playtest')
+            systemProperty 'rngambling.playtest', 'true'
+        }
+
         // A development aid: starts the game, builds a test scene in a new flat world, takes
         // pictures and quits (see rngambling.client.shots.ScreenshotRun).
         // Run: gradlew runClientShots   Pictures: runs/shots/screenshots

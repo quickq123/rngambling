@@ -534,5 +534,11 @@
   "outcome.rngambling.quartz_and_glowstone.quip": "Nether decor, delivered.",
   "outcome.rngambling.shulker_shells.quip": "Shells! Storage awaits.",
   "outcome.rngambling.dragons_breath.quip": "Bottled dragon breath. Don't sniff it.",
-  "outcome.rngambling.echo_shards.quip": "Echoes of the deep dark."
+  "outcome.rngambling.echo_shards.quip": "Echoes of the deep dark.",
+  "message.rngambling.playtest.intro": "RNGambling playtest: lucky blocks, tokens and charms are in your inventory. Place a lucky block and break it!",
+  "message.rngambling.playtest.play": "/rngambling effect play <effect> [player] [luck]: set off one effect",
+  "message.rngambling.playtest.roll": "/rngambling effect roll [player] [luck]: a random roll at that luck",
+  "message.rngambling.playtest.list": "/rngambling effect list [tier]: every effect's name",
+  "message.rngambling.playtest.sandbox": "/rngambling sandbox list | return <player> | restore <player>: Sandbox rescue",
+  "message.rngambling.playtest.creative": "Creative tab \"RNGambling\": machines, Mimic Wand, Luck Glasses (creative only)"
 }

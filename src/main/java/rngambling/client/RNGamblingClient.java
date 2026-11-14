@@ -27,6 +27,9 @@ public final class RNGamblingClient {
                 event.registerLayerDefinition(DragonHatchlingModel.LAYER, DragonHatchlingModel::createBodyLayer));
         modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers event) ->
                 event.registerEntityRenderer(RNGambling.DRAGON_HATCHLING.get(), DragonHatchlingRenderer::new));
+        if (PlaytestStart.enabled()) {
+            NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> PlaytestStart.tick(Minecraft.getInstance()));
+        }
         if (ScreenshotRun.enabled()) {
             NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ScreenshotRun.tick(Minecraft.getInstance()));
         }
