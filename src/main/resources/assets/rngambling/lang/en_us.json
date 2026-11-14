@@ -273,7 +273,7 @@
   "message.rngambling.room.exit_open": "A way out has opened!",
   "message.rngambling.room.timer": "Time left",
   "message.rngambling.room.void_platform.rules": "The platform will crumble! Hold on for 30 seconds. Standing still won't save you. (Your 8 cobblestone are only for here.)",
-  "message.rngambling.room.rising_lava_tomb.rules": "The lava is coming. One cracked brick in these walls will break...",
+  "message.rngambling.room.rising_lava_tomb.rules": "The lava comes in 15 seconds, then rises a block every 5. One cracked brick at the floor breaks; the others are decoys. Find it and get out!",
   "message.rngambling.room.mob_arena_waves.wave1": "Wave 1!",
   "message.rngambling.room.mob_arena_waves.wave2": "Wave 2!",
   "message.rngambling.room.mob_arena_waves.wave3": "Final wave!",
@@ -544,5 +544,9 @@
   "screen.rngambling.bet.up": "Bet %s more",
   "message.rngambling.room.void_platform.go": "CRUMBLE!",
   "message.rngambling.room.wardens_hollow.rules": "Reach the far end. Sneak past the sensors, and watch your step: bones rattle and plates click.",
-  "message.rngambling.sandbox.death_kept": "What you lost in the Sandbox came back with you."
+  "message.rngambling.sandbox.death_kept": "What you lost in the Sandbox came back with you.",
+  "message.rngambling.room.rising_lava_tomb.title": "The lava is coming!",
+  "message.rngambling.room.rising_lava_tomb.subtitle": "Find the cracked brick that breaks",
+  "message.rngambling.room.rising_lava_tomb.bar": "Lava in %s seconds",
+  "message.rngambling.room.rising_lava_tomb.rising": "The lava is rising!"
 }

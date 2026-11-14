@@ -309,11 +309,6 @@ public final class Rooms {
             }
         }
 
-        private void title(Component text, int fadeIn, int stay, int fadeOut) {
-            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(fadeIn, stay, fadeOut));
-            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(text));
-        }
-
         @Override
         protected double failBelow() {
             return centre.getY() + Y - 8;
@@ -335,8 +330,11 @@ public final class Rooms {
      * one pair (two high, at the floor) breaks, and leads out.
      */
     public static final class RisingLavaTomb extends Room {
+        /** Ticks before the lava comes, and between layers. */
+        public static final int GRACE = 20 * 15, EVERY = 20 * 5;
         private BlockPos weak;
         private int layer;
+        private net.minecraft.server.level.ServerBossEvent countdown;
 
         @Override
         protected Vec3 build() {
@@ -382,13 +380,37 @@ public final class Rooms {
             exit(exit.getX() - centre.getX(), weak.getY() - centre.getY(), exit.getZ() - centre.getZ());
             set(0, 8, 0, Blocks.GLOWSTONE);
             message("message.rngambling.room.rising_lava_tomb.rules");
+            title(Component.translatable("message.rngambling.room.rising_lava_tomb.title").withStyle(ChatFormatting.GOLD),
+                    Component.translatable("message.rngambling.room.rising_lava_tomb.subtitle"), 10, 80, 20);
+            countdown = new net.minecraft.server.level.ServerBossEvent(java.util.UUID.randomUUID(),
+                    Component.translatable("message.rngambling.room.rising_lava_tomb.bar", GRACE / 20),
+                    net.minecraft.world.BossEvent.BossBarColor.RED, net.minecraft.world.BossEvent.BossBarOverlay.PROGRESS);
+            countdown.addPlayer(player);
             return Vec3.atBottomCenterOf(at(0, 0, 0));
         }
 
         @Override
         protected void tick(int age) {
-            // A grace of 8 seconds, then a layer every 4.
-            if (age >= 160 && (age - 160) % 80 == 0 && layer < 8) {
+            if (age < GRACE) {
+                int left = (GRACE - age + 19) / 20;
+                countdown.setProgress(1f - age / (float) GRACE);
+                if (age % 20 == 0) {
+                    countdown.setName(Component.translatable("message.rngambling.room.rising_lava_tomb.bar", left));
+                    if (left <= 5) {
+                        title(Component.literal(String.valueOf(left)).withStyle(ChatFormatting.RED), 0, 20, 0);
+                        level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.BLOCKS, 1f, 1f);
+                    }
+                }
+                return;
+            }
+            if (age == GRACE) {
+                title(Component.translatable("message.rngambling.room.rising_lava_tomb.rising").withStyle(ChatFormatting.RED), 0, 30, 10);
+                countdown.setName(Component.translatable("message.rngambling.room.rising_lava_tomb.rising"));
+            }
+            // Until the next layer, on the bar.
+            countdown.setProgress(1f - ((age - GRACE) % EVERY) / (float) EVERY);
+            if ((age - GRACE) % EVERY == 0 && layer < 8) {
+                level.playSound(null, at(0, layer, 0), SoundEvents.BUCKET_EMPTY_LAVA, SoundSource.BLOCKS, 1f, 0.8f);
                 for (int x = -2; x <= 2; x++) {
                     for (int z = -2; z <= 2; z++) {
                         if (level.getBlockState(at(x, layer, z)).isAir()) {
@@ -407,7 +429,15 @@ public final class Rooms {
 
         @Override
         protected int maxTicks() {
-            return 20 * 90;
+            return GRACE + 8 * EVERY + 20 * 30;
+        }
+
+        @Override
+        protected void onEnd(boolean success) {
+            super.onEnd(success);
+            if (countdown != null) {
+                countdown.removeAllPlayers();
+            }
         }
     }
 

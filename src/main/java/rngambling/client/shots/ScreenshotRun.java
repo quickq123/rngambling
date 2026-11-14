@@ -694,7 +694,7 @@ public final class ScreenshotRun {
         rngambling.outcome.Room[] current = new rngambling.outcome.Room[1];
         Vec3[] home = new Vec3[1];
         then(20, minecraft -> {
-            minecraft.options.hideGui = true;
+            minecraft.options.hideGui = false; // rooms show their timers and countdowns on the HUD
             onServer(minecraft, player -> {
                 player.getAbilities().flying = false;
                 player.onUpdateAbilities();

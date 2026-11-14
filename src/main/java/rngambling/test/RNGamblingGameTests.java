@@ -113,6 +113,20 @@ public final class RNGamblingGameTests {
             int after = player.getWardenSpawnTracker().orElseThrow().getWarningLevel();
             helper.assertTrue(after > before, "stepping on bones should set off a shrieker: warning " + before + " -> " + after);
 
+            // Rising Lava Tomb: nothing for the 15-second countdown, then the first layer.
+            var tomb = new rngambling.outcome.Rooms.RisingLavaTomb();
+            BlockPos tombAt = new BlockPos(origin.getX() + 2700, 100, origin.getZ());
+            tomb.buildAt(level, tombAt, player, 0);
+            int grace = rngambling.outcome.Rooms.RisingLavaTomb.GRACE;
+            for (int age = 0; age < grace; age++) {
+                tomb.tickForTest(age);
+            }
+            helper.assertFalse(level.getBlockState(tombAt.offset(1, 0, 1)).is(Blocks.LAVA), "no lava during the countdown");
+            tomb.tickForTest(grace);
+            helper.assertTrue(level.getBlockState(tombAt.offset(1, 0, 1)).is(Blocks.LAVA), "the first layer when the countdown ends");
+            tomb.finish(false);
+            tomb.endForTest();
+
             // Dying in the Sandbox: what was lost waits for the respawn, less items a room handed out.
             player.getInventory().clearContent();
             ItemStack handedOut = new ItemStack(net.minecraft.world.item.Items.COBBLESTONE, 8);

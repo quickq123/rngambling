@@ -136,6 +136,11 @@ public abstract class Room {
         tick(age);
     }
 
+    /** Runs the room's end (for tests): removes its bars and effects. */
+    public void endForTest() {
+        onEnd(success);
+    }
+
     public boolean breakable(BlockPos pos, BlockState state) {
         return canBreak(pos, state);
     }
@@ -233,6 +238,19 @@ public abstract class Room {
         if (timer != null) {
             timer.setProgress(Math.max(0f, 1f - age / (float) maxTicks()));
         }
+    }
+
+    /** A big title (and optional subtitle) on the player's screen, with its own timing in ticks. */
+    protected void title(Component text, @Nullable Component subtitle, int fadeIn, int stay, int fadeOut) {
+        player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(fadeIn, stay, fadeOut));
+        if (subtitle != null) {
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(subtitle));
+        }
+        player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(text));
+    }
+
+    protected void title(Component text, int fadeIn, int stay, int fadeOut) {
+        title(text, null, fadeIn, stay, fadeOut);
     }
 
     protected void message(String key) {
