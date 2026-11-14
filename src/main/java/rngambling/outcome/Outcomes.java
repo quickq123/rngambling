@@ -83,7 +83,7 @@ public final class Outcomes {
                 PrimedTnt tnt = new PrimedTnt(c.level(), c.pos().getX() + 0.5, c.pos().getY(), c.pos().getZ() + 0.5, null);
                 tnt.setFuse(40);
                 c.level().addFreshEntity(tnt);
-            }),
+            }).inSandbox(),
             new Outcome("tnt_ring", 2, -8, c -> {
                 Vec3 at = c.player().position();
                 int count = c.between(4, 6);
@@ -93,18 +93,18 @@ public final class Outcomes {
                     tnt.setFuse(c.between(60, 80));
                     c.level().addFreshEntity(tnt);
                 }
-            }),
+            }).inSandbox(),
             new Outcome("zombies", 6, -5, c -> {
                 for (int i = c.between(3, 5); i > 0; i--) {
                     EntityType.ZOMBIE.spawn(c.level(), c.freeSpotNear(c.pos(), 3), EntitySpawnReason.EVENT);
                 }
             }),
-            new Outcome("creeper", 5, -6, c -> EntityType.CREEPER.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT)),
+            new Outcome("creeper", 5, -6, c -> EntityType.CREEPER.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT)).inSandbox(),
             new Outcome("silverfish", 5, -4, c -> {
                 for (int i = c.between(4, 7); i > 0; i--) {
                     EntityType.SILVERFISH.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT);
                 }
-            }),
+            }).inSandbox(),
             new Outcome("curse", 6, -4, c -> {
                 ServerPlayer p = c.player();
                 p.addEffect(new MobEffectInstance(MobEffects.POISON, 20 * 8, 0));
@@ -117,14 +117,14 @@ public final class Outcomes {
                 if (bolt != null) {
                     c.spawn(bolt, c.player().position());
                 }
-            }),
+            }).inSandbox(),
             new Outcome("anvil", 4, -5, c -> {
                 BlockPos above = c.player().blockPosition().above(8);
                 if (c.level().isEmptyBlock(above)) {
                     FallingBlockEntity anvil = FallingBlockEntity.fall(c.level(), above, Blocks.ANVIL.defaultBlockState());
                     anvil.setHurtsEntities(2.0f, 40);
                 }
-            }),
+            }).inSandbox(),
             new Outcome("cobwebs", 5, -3, c -> {
                 BlockPos feet = c.player().blockPosition();
                 for (BlockPos spot : BlockPos.betweenClosed(feet.offset(-1, 0, -1), feet.offset(1, 1, 1))) {
@@ -132,7 +132,7 @@ public final class Outcomes {
                         c.level().setBlockAndUpdate(spot, Blocks.COBWEB.defaultBlockState());
                     }
                 }
-            }),
+            }).inSandbox(),
             new Outcome("launch", 3, -7, c -> {
                 ServerPlayer p = c.player();
                 p.setDeltaMovement(p.getDeltaMovement().x, 2.4, p.getDeltaMovement().z);
@@ -147,13 +147,26 @@ public final class Outcomes {
     public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck) {
         String zone = rngambling.luck.LuckZone.name(level, rngambling.luck.LuckZone.at(level, pos));
         Outcome outcome = pick(level.getRandom(), luck, Themes.outcomesFor(zone));
+        play(level, pos, player, luck, outcome);
+        return outcome;
+    }
+
+    /** Plays one outcome for a player, in the Sandbox if it's one that would change the world. */
+    public static void play(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, Outcome outcome) {
+        // Outcomes that would change the world are played out in the Sandbox instead.
+        if (outcome.sandbox()) {
+            Sandbox.Arena arena = Sandbox.start(player);
+            if (arena != null) {
+                level = arena.level();
+                pos = arena.centre();
+            }
+        }
         outcome.action().run(new OutcomeContext(level, pos.immutable(), player, level.getRandom(), Luck.clamp(luck)));
         ChatFormatting colour = outcome.rating() > 0 ? ChatFormatting.GREEN
                 : outcome.rating() < 0 ? ChatFormatting.RED : ChatFormatting.YELLOW;
         player.sendOverlayMessage(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(colour));
         level.playSound(null, pos, outcome.rating() > 0 ? SoundEvents.PLAYER_LEVELUP : SoundEvents.WITCH_CELEBRATE,
                 SoundSource.BLOCKS, 0.6f, 1.2f);
-        return outcome;
     }
 
     /** A weighted draw, with each outcome's weight tilted by luck (see {@link Luck#weightFactor}). */

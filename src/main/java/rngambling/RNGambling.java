@@ -220,6 +220,16 @@ public final class RNGambling {
         MENUS.register(modBus);
         PROFESSIONS.register(modBus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(CasinoHouses::addToVillages);
+        // The Sandbox dimension (see rngambling.outcome.Sandbox), and its admin commands.
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event) ->
+                rngambling.outcome.SandboxCommands.register(event.getDispatcher()));
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
+                rngambling.outcome.Sandbox.tick(event.getServer()));
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) -> {
+            if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+                rngambling.outcome.Sandbox.onLogin(player);
+            }
+        });
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RNGamblingConfig.SPEC);
         // Luck zones: datapack files in data/<namespace>/rngambling/luck_zone/ (see LuckZone).
         modBus.addListener((net.neoforged.neoforge.registries.DataPackRegistryEvent.NewRegistry event) ->

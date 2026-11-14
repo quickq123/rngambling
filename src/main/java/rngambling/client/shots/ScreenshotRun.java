@@ -602,7 +602,85 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /**
+     * -PshotsWorld=sandbox: the Sandbox in a real world (the game test server has no datapack
+     * dimensions). Logs each check as "SANDBOX CHECK ok/FAILED" and pictures the box.
+     */
+    private static final boolean SANDBOX = "sandbox".equals(System.getProperty("rngambling.shotsWorld"));
+    private static net.minecraft.world.phys.Vec3 sandboxStart;
+    private static BlockPos sandboxMarker;
+
+    private static void check(boolean ok, String what) {
+        LOGGER.info("SANDBOX CHECK {}: {}", ok ? "ok" : "FAILED", what);
+    }
+
+    private static rngambling.outcome.Outcome outcomeNamed(String id) {
+        return rngambling.outcome.Outcomes.ALL.stream().filter(o -> o.id().equals(id)).findFirst().orElseThrow();
+    }
+
+    private static void command(ServerPlayer player, String command) {
+        MinecraftServer server = player.level().getServer();
+        server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
+    }
+
+    private static void planSandbox() {
+        then(20, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> {
+                ServerLevel level = player.level();
+                check(level.getServer().getLevel(rngambling.outcome.Sandbox.LEVEL) != null, "the Sandbox dimension loads in a real world");
+                sandboxMarker = player.blockPosition().offset(2, -1, 0);
+                level.setBlockAndUpdate(sandboxMarker, net.minecraft.world.level.block.Blocks.DIAMOND_BLOCK.defaultBlockState());
+                sandboxStart = new Vec3(player.getX() + 0.37, player.getY(), player.getZ() - 0.21);
+                player.getAbilities().flying = false;
+                player.onUpdateAbilities();
+                player.teleportTo(level, sandboxStart.x, sandboxStart.y, sandboxStart.z, Set.of(), 47f, 5f, false);
+                player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE, 5));
+                // TNT where the "lucky block" is: next to the diamond block.
+                rngambling.outcome.Outcomes.play(level, sandboxMarker.above(), player, 0, outcomeNamed("tnt"));
+                check(rngambling.outcome.Sandbox.inSandbox(player), "a TNT outcome takes the player to the Sandbox");
+                check(player.level().getBlockState(player.blockPosition().below()).is(net.minecraft.world.level.block.Blocks.BEDROCK),
+                        "the player stands on the box's bedrock floor");
+            });
+        });
+        then(20, minecraft -> shot(minecraft, "40-sandbox-tnt"));
+        then(170, minecraft -> { });
+        then(10, minecraft -> onServer(minecraft, player -> {
+            check(!rngambling.outcome.Sandbox.inSandbox(player), "the player is back once the TNT has gone off");
+            check(player.position().distanceTo(sandboxStart) < 1e-6 && Math.abs(player.getYRot() - 47f) < 0.01,
+                    "back exactly where they were: " + player.position() + " vs " + sandboxStart);
+            check(player.level().getBlockState(sandboxMarker).is(net.minecraft.world.level.block.Blocks.DIAMOND_BLOCK),
+                    "the world where the block was is untouched");
+        }));
+        then(10, minecraft -> shot(minecraft, "41-sandbox-back"));
+        // A creeper doesn't settle by itself (it won't chase a creative player): an admin brings the player out.
+        then(10, minecraft -> onServer(minecraft, player ->
+                rngambling.outcome.Outcomes.play(player.level(), sandboxMarker.above(), player, 0, outcomeNamed("creeper"))));
+        then(40, minecraft -> shot(minecraft, "42-sandbox-creeper"));
+        then(10, minecraft -> onServer(minecraft, player -> {
+            command(player, "rngambling sandbox list");
+            command(player, "rngambling sandbox return " + player.getGameProfile().name());
+            check(!rngambling.outcome.Sandbox.inSandbox(player) && player.position().distanceTo(sandboxStart) < 1e-6,
+                    "/rngambling sandbox return brings the player back exactly");
+            // Lose everything, then restore from the copy.
+            player.getInventory().clearContent();
+            command(player, "rngambling sandbox restore " + player.getGameProfile().name());
+            int apples = 0;
+            for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+                net.minecraft.world.item.ItemStack stack = player.getInventory().getItem(slot);
+                apples += stack.is(net.minecraft.world.item.Items.GOLDEN_APPLE) ? stack.getCount() : 0;
+            }
+            check(apples == 5, "/rngambling sandbox restore gives back the inventory copy (" + apples + " apples)");
+            command(player, "rngambling sandbox list");
+        }));
+        then(20, Minecraft::stop);
+    }
+
     private static void plan() {
+        if (SANDBOX) {
+            planSandbox();
+            return;
+        }
         if (VILLAGES) {
             planVillages();
             return;

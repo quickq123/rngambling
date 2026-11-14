@@ -8,8 +8,16 @@ public final class RNGamblingConfig {
 
     public static final ModConfigSpec.IntValue SURFACE_RARITY;
     public static final ModConfigSpec.IntValue CAVE_RARITY;
+    public static final ModConfigSpec.BooleanValue SANDBOX_ENABLED;
 
     static {
+        BUILDER.comment("Lucky block outcomes.").push("outcomes");
+        SANDBOX_ENABLED = BUILDER
+                .comment("true: outcomes that would change or grief the world (explosions, fire, placed or moved blocks) are played out",
+                        "in the Sandbox dimension, in a sealed bedrock box, and the player is brought back afterwards.",
+                        "false: they happen where the lucky block was broken.")
+                .define("sandbox_enabled", true);
+        BUILDER.pop();
         BUILDER.comment("Disguised lucky blocks generated in new chunks of the Overworld.").push("world_generation");
         SURFACE_RARITY = BUILDER
                 .comment("One disguised lucky block on the surface in every this many chunks, on average. 0 turns them off.")

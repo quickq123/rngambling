@@ -53,7 +53,9 @@ public final class RNGamblingGameTests {
             Map.entry("blackjack", RNGamblingGameTests::blackjack),
             Map.entry("machines_drop_themselves", RNGamblingGameTests::machinesDropThemselves),
             Map.entry("placing_rolls_luck", RNGamblingGameTests::placingRollsLuck),
-            Map.entry("themes", RNGamblingGameTests::themes));
+            Map.entry("themes", RNGamblingGameTests::themes),
+            Map.entry("sandbox_fallback", RNGamblingGameTests::sandboxFallback),
+            Map.entry("sandbox_records", RNGamblingGameTests::sandboxRecords));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -567,6 +569,81 @@ public final class RNGamblingGameTests {
                 }
             }
             helper.getLevel().getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    private static Outcome outcome(String id) {
+        return Outcomes.ALL.stream().filter(o -> o.id().equals(id)).findFirst().orElseThrow();
+    }
+
+    /**
+     * The game test server leaves out dimensions added by data files, so the Sandbox isn't there:
+     * a grief-like outcome then happens where the block was (the fallback). The real Sandbox is
+     * checked in a real world by runClientShots -PshotsWorld=sandbox.
+     */
+    private static void sandboxFallback(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        helper.assertTrue(level.getServer().getLevel(rngambling.outcome.Sandbox.LEVEL) == null,
+                "the game test server has no Sandbox (if it does now, test the visit here instead)");
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            BlockPos at = helper.absolutePos(new BlockPos(1, 2, 1));
+            player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+            Outcomes.play(level, at, player, 0, outcome("cobwebs"));
+            helper.assertTrue(player.level() == level && !rngambling.outcome.Sandbox.visiting(player),
+                    "with no Sandbox the player should stay put");
+            helper.assertBlockPresent(Blocks.COBWEB, new BlockPos(1, 2, 1).east());
+            clearUp(helper, level, player);
+        } finally {
+            level.getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The world's record of a visit keeps the exact return point and a copy of the inventory;
+     * restoring replaces the inventory with the copy (never adds to it), and the copy is kept
+     * after the visit ends.
+     */
+    private static void sandboxRecords(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE, 5));
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD));
+            var back = new rngambling.outcome.Sandbox.ReturnPoint(net.minecraft.world.level.Level.OVERWORLD,
+                    new net.minecraft.world.phys.Vec3(12.25, 70.5, -3.125), 33f, 12f);
+            var records = rngambling.outcome.SandboxRecords.get(level.getServer());
+            records.start(player, back, 1000L);
+            var visit = records.get(player.getUUID());
+            helper.assertTrue(visit.active() && visit.x() == 12.25 && visit.y() == 70.5 && visit.z() == -3.125 && visit.yaw() == 33f
+                    && visit.level().equals("minecraft:overworld") && visit.itemCount() == 2, "the record should keep the exact spot and the copy");
+            // The record survives a save and load (it's kept with the world).
+            var ops = level.registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
+            var saved = rngambling.outcome.SandboxRecords.Visit.CODEC.encodeStart(ops, visit).getOrThrow();
+            var loaded = rngambling.outcome.SandboxRecords.Visit.CODEC.parse(ops, saved).getOrThrow();
+            helper.assertTrue(loaded.itemCount() == 2 && loaded.x() == 12.25, "the record should save and load");
+            records.end(player.getUUID());
+            helper.assertTrue(!records.get(player.getUUID()).active() && records.get(player.getUUID()).itemCount() == 2,
+                    "the copy should be kept after the visit");
+
+            player.getInventory().clearContent();
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.DIRT, 7));
+            helper.assertTrue(records.restore(player), "there should be a copy to restore");
+            int apples = 0;
+            int dirt = 0;
+            int swords = 0;
+            for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+                ItemStack stack = player.getInventory().getItem(slot);
+                apples += stack.is(net.minecraft.world.item.Items.GOLDEN_APPLE) ? stack.getCount() : 0;
+                dirt += stack.is(net.minecraft.world.item.Items.DIRT) ? stack.getCount() : 0;
+                swords += stack.is(net.minecraft.world.item.Items.DIAMOND_SWORD) ? 1 : 0;
+            }
+            helper.assertTrue(apples == 5 && swords == 1 && dirt == 0,
+                    "restore should give back the copy exactly: " + apples + " apples, " + swords + " swords, " + dirt + " dirt");
+        } finally {
+            level.getServer().getPlayerList().remove(player);
         }
         helper.succeed();
     }

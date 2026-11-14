@@ -34,10 +34,10 @@ public final class Themes {
     /** The themes, by luck zone name (the zone's file name). */
     public static final Map<String, Theme> BY_ZONE = Map.of(
             "nether", new Theme(Map.of(
-                    "zombies", new Outcome("blazes", 6, -6, c -> Outcomes.spawnMobs(c, EntityType.BLAZE, 2, 3, 3)),
+                    "zombies", new Outcome("blazes", 6, -6, c -> Outcomes.spawnMobs(c, EntityType.BLAZE, 2, 3, 3)).inSandbox(),
                     "silverfish", new Outcome("magma_cubes", 5, -4, c -> Outcomes.spawnMobs(c, EntityType.MAGMA_CUBE, 2, 4, 3)),
                     "creeper", new Outcome("wither_skeletons", 4, -6, c -> Outcomes.spawnMobs(c, EntityType.WITHER_SKELETON, 1, 2, 2)),
-                    "lightning", new Outcome("fire_ring", 4, -5, Themes::fireRing),
+                    "lightning", new Outcome("fire_ring", 4, -5, Themes::fireRing).inSandbox(),
                     "chickens", new Outcome("striders", 5, 0, c -> Outcomes.spawnMobs(c, EntityType.STRIDER, 2, 3, 2)),
                     "ingots", new Outcome("gold_blocks", 8, 3, c -> c.drop(new ItemStack(Items.GOLD_BLOCK, c.between(1, 3)))),
                     "feast", new Outcome("nether_feast", 7, 2, c -> c.drop(new ItemStack(Items.COOKED_PORKCHOP, c.between(6, 12))))),
@@ -45,7 +45,7 @@ public final class Themes {
                             new Outcome("ghast", 2, -7, c -> {
                                 BlockPos up = c.freeSpotNear(c.pos().above(4), 3);
                                 EntityType.GHAST.spawn(c.level(), up, EntitySpawnReason.EVENT);
-                            }),
+                            }).inSandbox(),
                             new Outcome("netherite_scrap", 2, 8, c -> c.drop(new ItemStack(Items.NETHERITE_SCRAP, c.between(1, 2)))),
                             new Outcome("quartz_and_glowstone", 5, 2, c -> {
                                 c.drop(new ItemStack(Items.QUARTZ, c.between(8, 16)));
@@ -60,7 +60,7 @@ public final class Themes {
                                 enderman.setTarget(c.player());
                             }
                         }
-                    }),
+                    }).inSandbox(),
                     "silverfish", new Outcome("shulker", 4, -5, c -> EntityType.SHULKER.spawn(c.level(), c.freeSpotNear(c.pos(), 2), EntitySpawnReason.EVENT)),
                     "launch", new Outcome("levitation", 3, -7, c -> c.player().addEffect(new MobEffectInstance(MobEffects.LEVITATION, 20 * 7, 1))),
                     "lightning", new Outcome("void_gaze", 4, -4, c -> {

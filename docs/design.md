@@ -75,6 +75,33 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   the luck zone there; right-click a disguised one to see what it copies, its luck and its
   zone; sneak + right-click to turn it back.
 
+## The Sandbox
+
+Outcomes that would change or grief the world (`Outcome.sandbox()`: TNT, TNT ring, creeper,
+ghast, lightning, ring of fire, blazes, anvil, cobwebs, silverfish, angry endermen) are played
+out in the **Sandbox** dimension instead (`rngambling:sandbox`, a void), each in a fresh,
+sealed, lit bedrock box (21 x 10 x 21 inside), far from any other. Everything else happens
+where the block was broken. `config/rngambling-common.toml` `sandbox_enabled = false` turns it
+off (outcomes then happen in place, as they also do if the dimension is missing).
+
+- **Coming back:** once nothing is going on in the box (no mobs, TNT, falling blocks,
+  lightning or projectiles) and at least 5 seconds have passed, or after 90 seconds at most,
+  the player is brought back to **exactly** where they broke the block (dimension, position,
+  facing). Items and experience left in the box come back with them.
+- **Safeguards:** the return point is kept three ways: in the running visit, on the player,
+  and with the world (`SandboxRecords`, which survives restarts). A **full copy of the
+  player's inventory** (armour and off-hand too) is saved with the world before they go, and
+  kept afterwards. If they die in the box their drops go to their return point. If they log
+  out or the server stops mid-visit, they're brought back when they next log in.
+- **Admin commands** (operators): `/rngambling sandbox list` (every visit on record: in the
+  Sandbox now or back, the return point, the inventory copy's size, when);
+  `/rngambling sandbox return <player>` (brings them back exactly, ending the visit);
+  `/rngambling sandbox restore <player>` (replaces their inventory with the saved copy; it
+  replaces, never adds, so it can't duplicate items).
+- **Testing:** the game test server leaves out datapack dimensions, so game tests cover the
+  fallback and the records; `runClientShots -PshotsWorld=sandbox` checks the real thing in a
+  real world (logs `SANDBOX CHECK ok/FAILED`).
+
 ## The casino
 
 - **Casino machines can't be crafted: they have to be found.** Each drops itself when broken
@@ -163,6 +190,8 @@ House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
   `-PshotsWorld=casino` places the plains slots casino with a villager, checks it becomes a Casino
   Dealer, and pictures it and its trades. `-PshotsWorld=villages` counts the casinos in the
   nearest villages (from their layouts, without generating terrain).
+- `-PshotsWorld=sandbox`: TNT played out in the Sandbox, the exact return, and the admin
+  commands, in a real world.
 - Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla
   houses it starts from).
 - Textures: `tools/make_textures.py`, run in Docker (see its header).
