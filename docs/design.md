@@ -24,7 +24,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 - Two kinds:
   - **Bought** (done): a plain casino-styled texture, sold by the casino villager. Its luck is set
     by the trade, so higher trade levels sell luckier blocks.
-  - **Disguised** (`mimic_lucky_block`, done; world generation planned): draws the block it
+  - **Disguised** (`mimic_lucky_block`, done): draws the block it
     copies, 12% darker (`MimicTint.SHADE`), including a copied block's own tint such as grass
     colour. It also sounds, mines and resists explosions like the copied block, and creative
     middle-click gives the copied block. Only plain, full, solid, opaque blocks without a block
