@@ -116,7 +116,8 @@ public final class RNGamblingGameTests {
         String blessedCost = null;
         for (int tier = 1; tier <= 5; tier++) {
             var set = tradeSets.getValue(RNGambling.id("dealer/level_" + tier));
-            helper.assertTrue(set != null && set.getTrades().size() == 2, "dealer level " + tier + " should have 2 trades");
+            int expected = tier == 4 ? 1 : 2;
+            helper.assertTrue(set != null && set.getTrades().size() == expected, "dealer level " + tier + " should have " + expected + " trades");
             for (var trade : set.getTrades()) {
                 // The trade's fields are private, so read it back as JSON.
                 var json = net.minecraft.world.item.trading.VillagerTrade.CODEC.encodeStart(

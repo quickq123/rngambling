@@ -1,7 +1,7 @@
 {
   "wants": {
     "id": "rngambling:casino_token",
-    "count": 16.0
+    "count": 32.0
   },
   "gives": {
     "id": "rngambling:extreme_lucky_block"

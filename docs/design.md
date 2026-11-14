@@ -122,10 +122,10 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
   | Level | Trades |
   |---|---|
-  | Novice | 1 emerald for 3 tokens; 8 tokens for a Lucky Block (-100 to +100) |
+  | Novice | 1 emerald for 2 tokens; 8 tokens for a Lucky Block (-100 to +100) |
   | Apprentice | 12 tokens for a Safe Lucky Block (-50 to +50); 16 tokens for a Four-Leaf Clover |
-  | Journeyman | 16 tokens for an Extreme Lucky Block (50 to 100, good or bad); 24 tokens for a Golden Horseshoe |
-  | Expert | 6 tokens for an emerald; 4 Piles of Tokens for a Lucky Seven |
+  | Journeyman | 32 tokens for an Extreme Lucky Block (50 to 100, good or bad); 24 tokens for a Golden Horseshoe |
+  | Expert | 4 Piles of Tokens for a Lucky Seven (the only trade: tokens never go back to emeralds) |
   | Master | 16 Piles of Tokens (144 tokens) for a Blessed Lucky Block (+80 to +100); 2 piles for 3 Lucky Blocks |
 
   **Pile of Tokens**: 9 tokens crafted together (3 x 3), and back into 9, for the dearest trades.

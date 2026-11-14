@@ -1,8 +1,7 @@
 {
-  "amount": 2.0,
+  "amount": 1.0,
   "random_sequence": "rngambling:trade_set/dealer/level_4",
   "trades": [
-    "rngambling:dealer/4/tokens_emerald",
     "rngambling:dealer/4/piles_lucky_seven"
   ]
 }
