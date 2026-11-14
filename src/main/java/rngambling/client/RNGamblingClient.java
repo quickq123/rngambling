@@ -18,7 +18,11 @@ public final class RNGamblingClient {
         modBus.addListener(MimicTint::register);
         modBus.addListener(LuckOverlay::register);
         modBus.addListener((net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) ->
-                event.register(RNGambling.SLOT_MACHINE_MENU.get(), SlotMachineScreen::new));
+        {
+            event.register(RNGambling.SLOT_MACHINE_MENU.get(), SlotMachineScreen::new);
+            event.register(RNGambling.ROULETTE_MENU.get(), RouletteScreen::new);
+            event.register(RNGambling.BLACKJACK_MENU.get(), BlackjackScreen::new);
+        });
         if (ScreenshotRun.enabled()) {
             NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ScreenshotRun.tick(Minecraft.getInstance()));
         }

@@ -38,17 +38,20 @@ public final class RNGamblingGameTests {
     private RNGamblingGameTests() {
     }
 
-    public static final Map<String, Consumer<GameTestHelper>> ALL = Map.of(
-            "every_outcome_runs", RNGamblingGameTests::everyOutcomeRuns,
-            "break_rules", RNGamblingGameTests::breakRules,
-            "luck_tilts_the_odds", RNGamblingGameTests::luckTiltsTheOdds,
-            "luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing,
-            "mimic_wand", RNGamblingGameTests::mimicWand,
-            "world_generation", RNGamblingGameTests::worldGeneration,
-            "luck_zones", RNGamblingGameTests::luckZones,
-            "casino", RNGamblingGameTests::casino,
-            "luck_charms", RNGamblingGameTests::luckCharms,
-            "slot_machine", RNGamblingGameTests::slotMachine);
+    public static final Map<String, Consumer<GameTestHelper>> ALL = Map.ofEntries(
+            Map.entry("every_outcome_runs", RNGamblingGameTests::everyOutcomeRuns),
+            Map.entry("break_rules", RNGamblingGameTests::breakRules),
+            Map.entry("luck_tilts_the_odds", RNGamblingGameTests::luckTiltsTheOdds),
+            Map.entry("luck_survives_placing", RNGamblingGameTests::luckSurvivesPlacing),
+            Map.entry("mimic_wand", RNGamblingGameTests::mimicWand),
+            Map.entry("world_generation", RNGamblingGameTests::worldGeneration),
+            Map.entry("luck_zones", RNGamblingGameTests::luckZones),
+            Map.entry("casino", RNGamblingGameTests::casino),
+            Map.entry("luck_charms", RNGamblingGameTests::luckCharms),
+            Map.entry("slot_machine", RNGamblingGameTests::slotMachine),
+            Map.entry("roulette", RNGamblingGameTests::roulette),
+            Map.entry("blackjack", RNGamblingGameTests::blackjack),
+            Map.entry("machines_drop_themselves", RNGamblingGameTests::machinesDropThemselves));
 
     /**
      * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
@@ -132,13 +135,129 @@ public final class RNGamblingGameTests {
         var pools = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TEMPLATE_POOL);
         for (String village : new String[] {"plains", "desert", "savanna", "snowy", "taiga"}) {
             var pool = pools.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + village + "/houses"));
-            helper.assertTrue(pool.templates.stream().anyMatch(e -> e.toString().contains("rngambling:village/" + village + "/casino")),
-                    "the " + village + " village houses should include the casino");
-            var template = level.getStructureManager().get(RNGambling.id("village/" + village + "/casino"));
-            helper.assertTrue(template.isPresent(), "the " + village + " casino structure should load");
-            boolean hasMachine = template.get().filterBlocks(BlockPos.ZERO,
-                    new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(), RNGambling.SLOT_MACHINE.get()).size() == 1;
-            helper.assertTrue(hasMachine, "the " + village + " casino should have one Slot Machine");
+            net.minecraft.world.level.block.Block[] machines = {RNGambling.SLOT_MACHINE.get(), RNGambling.ROULETTE_TABLE.get(),
+                    RNGambling.BLACKJACK_TABLE.get()};
+            for (int g = 0; g < rngambling.casino.CasinoHouses.GAMES.length; g++) {
+                String name = "village/" + village + "/casino_" + rngambling.casino.CasinoHouses.GAMES[g];
+                helper.assertTrue(pool.templates.stream().anyMatch(e -> e.toString().contains("rngambling:" + name)),
+                        "the " + village + " village houses should include " + name);
+                var template = level.getStructureManager().get(RNGambling.id(name));
+                helper.assertTrue(template.isPresent(), name + " should load");
+                boolean hasMachine = template.get().filterBlocks(BlockPos.ZERO,
+                        new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(), machines[g]).size() == 1;
+                helper.assertTrue(hasMachine, name + " should have its game in it");
+                var machinePoi = net.minecraft.world.entity.ai.village.poi.PoiTypes.forState(machines[g].defaultBlockState());
+                helper.assertTrue(machinePoi.isPresent() && RNGambling.DEALER.get().acquirableJobSite().test(machinePoi.get()),
+                        machines[g].getName().getString() + " should be a Casino Dealer job site");
+            }
+        }
+        helper.succeed();
+    }
+
+    /** Every casino machine drops itself when broken, so a player can take it home. */
+    private static void machinesDropThemselves(GameTestHelper helper) {
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            net.minecraft.world.level.block.Block[] machines = {RNGambling.SLOT_MACHINE.get(), RNGambling.ROULETTE_TABLE.get(),
+                    RNGambling.BLACKJACK_TABLE.get()};
+            for (int i = 0; i < machines.length; i++) {
+                BlockPos pos = new BlockPos(1 + 2 * i, 1, 1);
+                helper.setBlock(pos, machines[i]);
+                player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(
+                        machines[i] == RNGambling.SLOT_MACHINE.get() ? net.minecraft.world.item.Items.IRON_PICKAXE : net.minecraft.world.item.Items.IRON_AXE));
+                player.gameMode.destroyBlock(helper.absolutePos(pos));
+                helper.assertBlockNotPresent(machines[i], pos);
+                helper.assertItemEntityPresent(machines[i].asItem(), pos, 2.0);
+            }
+        } finally {
+            helper.getLevel().getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    /** Every roulette bet returns exactly 36/37 (a 2.7% house edge), and a spin takes the bet and pays a win. */
+    private static void roulette(GameTestHelper helper) {
+        for (rngambling.casino.Roulette.Bet bet : rngambling.casino.Roulette.Bet.values()) {
+            double back = rngambling.casino.Roulette.returnToPlayer(bet, 17);
+            helper.assertTrue(Math.abs(back - 36.0 / 37) < 1e-9, bet + " should return 36/37, not " + back);
+        }
+        int reds = 0;
+        for (int n = 0; n <= 36; n++) {
+            reds += rngambling.casino.Roulette.isRed(n) ? 1 : 0;
+        }
+        helper.assertTrue(reds == 18 && !rngambling.casino.Roulette.isRed(0) && !rngambling.casino.Roulette.isBlack(0),
+                "18 red numbers, and zero is neither red nor black");
+
+        BlockPos pos = new BlockPos(1, 1, 1);
+        helper.setBlock(pos, RNGambling.ROULETTE_TABLE.get());
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 20));
+        rngambling.casino.RouletteMenu menu = new rngambling.casino.RouletteMenu(0, player.getInventory(), helper.absolutePos(pos));
+        menu.clickMenuButton(player, 2); // 10 tokens
+        menu.clickMenuButton(player, rngambling.casino.RouletteMenu.BUTTON_KIND + rngambling.casino.Roulette.Bet.RED.ordinal());
+        menu.clickMenuButton(player, rngambling.casino.RouletteMenu.BUTTON_SPIN);
+        int number = menu.data(rngambling.casino.RouletteMenu.RESULT);
+        helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == 10 && number >= 0 && number <= 36,
+                "a spin should take the 10 token bet and draw a number");
+        int win = rngambling.casino.Roulette.isRed(number) ? 20 : 0;
+        helper.runAfterDelay(rngambling.casino.RouletteMenu.SPIN_TICKS + 2, () -> {
+            menu.broadcastChanges();
+            try {
+                helper.assertTrue(menu.data(rngambling.casino.RouletteMenu.LAST_WIN) == win
+                        && rngambling.casino.Tokens.count(player.getInventory()) == 10 + win,
+                        "10 on red with " + number + " should pay " + win);
+            } finally {
+                helper.getLevel().getServer().getPlayerList().remove(player);
+            }
+            helper.succeed();
+        });
+    }
+
+    /**
+     * Blackjack keeps a small house edge even against perfect play (a million hands by basic
+     * strategy), never shows the dealer's face-down card early, and settles a hand correctly.
+     */
+    private static void blackjack(GameTestHelper helper) {
+        RandomSource random = RandomSource.create(11);
+        double net = 0;
+        int hands = 1_000_000;
+        for (int i = 0; i < hands; i++) {
+            net += rngambling.casino.Blackjack.playOneHand(random);
+        }
+        double edge = -net / hands;
+        LOGGER.info("blackjack by basic strategy over {} hands: house edge {}% of the starting bet", hands, String.format("%.2f", edge * 100));
+        helper.assertTrue(edge > 0.0 && edge < 0.03, "blackjack should keep a small house edge against perfect play: " + edge);
+
+        BlockPos pos = new BlockPos(1, 1, 1);
+        helper.setBlock(pos, RNGambling.BLACKJACK_TABLE.get());
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+            rngambling.casino.BlackjackMenu menu = new rngambling.casino.BlackjackMenu(0, player.getInventory(), helper.absolutePos(pos));
+            int played = 0;
+            int hiddenSeen = 0;
+            for (int hand = 0; hand < 40; hand++) {
+                int before = rngambling.casino.Tokens.count(player.getInventory());
+                menu.clickMenuButton(player, rngambling.casino.BlackjackMenu.BUTTON_DEAL);
+                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) >= before - 2, "a deal takes at most the 2 token bet");
+                if (menu.phase() == rngambling.casino.BlackjackMenu.Phase.PLAYER) {
+                    // While the player decides, the dealer's second card is face down in what the screen is sent.
+                    helper.assertTrue(menu.cards(true).get(1) == rngambling.casino.BlackjackMenu.HIDDEN, "the dealer's hole card should be hidden");
+                    hiddenSeen++;
+                    menu.clickMenuButton(player, rngambling.casino.BlackjackMenu.BUTTON_STAND);
+                    menu.removed(player); // finishes the dealer's turn at once
+                }
+                helper.assertTrue(menu.phase() == rngambling.casino.BlackjackMenu.Phase.BETTING, "the hand should be settled");
+                java.util.List<Integer> dealer = menu.cards(true);
+                helper.assertTrue(!dealer.contains(rngambling.casino.BlackjackMenu.HIDDEN), "the dealer's cards are shown once settled");
+                int win = menu.data(rngambling.casino.BlackjackMenu.LAST_WIN);
+                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == before - 2 + win,
+                        "the tokens should change by the win less the bet");
+                played++;
+            }
+            helper.assertTrue(played == 40 && hiddenSeen > 20, "40 hands should be played, most with a player's turn");
+        } finally {
+            helper.getLevel().getServer().getPlayerList().remove(player);
         }
         helper.succeed();
     }

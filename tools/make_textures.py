@@ -368,6 +368,91 @@ def slot_symbols():
     return px
 
 
+FELT, FELT_DARK, WOOD, WOOD_DARK = (24, 104, 52), (14, 72, 34), (100, 60, 30), (70, 40, 20)
+
+
+def felt():
+    rng = random.Random(11)
+    px = [[shade(FELT, rng.randint(-5, 5)) for _ in range(16)] for _ in range(16)]
+    for i in range(16):
+        for (x, y) in ((i, 0), (i, 15), (0, i), (15, i)):
+            px[y][x] = WOOD
+    return px
+
+
+def roulette_top():
+    """Green felt with the wheel: red and black pockets around a gold hub."""
+    import math
+    px = felt()
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 7.5
+            r = (dx * dx + dy * dy) ** 0.5
+            if r <= 6.6:
+                if r > 5.4:
+                    px[y][x] = WOOD_DARK
+                elif r > 3.2:
+                    pocket = int((math.atan2(dy, dx) + math.pi) / (2 * math.pi) * 12)
+                    px[y][x] = (190, 24, 40) if pocket % 2 else (26, 26, 30)
+                    if pocket == 0:
+                        px[y][x] = (30, 150, 70)
+                elif r > 1.5:
+                    px[y][x] = WOOD
+                else:
+                    px[y][x] = GOLD
+    return px
+
+
+def blackjack_top():
+    """Green felt with the dealer's arc and two cards."""
+    px = felt()
+    for x in range(2, 14):
+        y = 3 + int(((x - 7.5) / 6) ** 2 * 3)
+        px[y][x] = (230, 220, 160)
+    for (cx, cy) in ((5, 8), (9, 8)):
+        for y in range(cy, cy + 5):
+            for x in range(cx, cx + 3):
+                px[y][x] = (240, 238, 228)
+        px[cy + 1][cx + 1] = (190, 24, 40) if cx == 5 else (26, 26, 30)
+    return px
+
+
+def table_side():
+    """Dark wood with a gold trim under the felt edge."""
+    rng = random.Random(5)
+    px = [[shade(WOOD, rng.randint(-8, 8)) for _ in range(16)] for _ in range(16)]
+    for x in range(16):
+        px[0][x] = FELT
+        px[1][x] = FELT_DARK
+        px[2][x] = GOLD
+        px[15][x] = WOOD_DARK
+        for y in range(4, 15, 4):
+            px[y][x] = shade(WOOD_DARK, 5)
+    return px
+
+
+def card_suits():
+    """Four 8 x 8 suit icons side by side (32 x 8): hearts, diamonds, clubs, spades."""
+    red, black = (192, 24, 42), (26, 26, 30)
+    rows = {
+        "heart":   [".##.##..", "#######.", "#######.", ".#####..", "..###...", "...#....", "........", "........"],
+        "diamond": ["...#....", "..###...", ".#####..", "#######.", ".#####..", "..###...", "...#....", "........"],
+        "club":    ["..###...", "..###...", "#.###.#.", "#######.", "#.#.#.#.", "...#....", "..###...", "........"],
+        "spade":   ["...#....", "..###...", ".#####..", "#######.", "#######.", "..#.#...", "..###...", "........"],
+    }
+    px = [[None] * 32 for _ in range(8)]
+    for i, (name, colour) in enumerate((("heart", red), ("diamond", red), ("club", black), ("spade", black))):
+        for y, line in enumerate(rows[name]):
+            for x, ch in enumerate(line):
+                if ch == "#":
+                    px[y][i * 8 + x] = colour
+    return px
+
+
+write_png("block/roulette_table_top.png", roulette_top())
+write_png("block/blackjack_table_top.png", blackjack_top())
+write_png("block/casino_table_side.png", table_side())
+write_png("gui/card_suits.png", card_suits())
 write_png("block/lucky_block.png", lucky_block())
 write_png("gui/slot_symbols.png", slot_symbols())
 write_png("block/slot_machine_front.png", slot_machine_front())

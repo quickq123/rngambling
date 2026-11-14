@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "rngambling:block/roulette_table"
+    }
+  }
+}

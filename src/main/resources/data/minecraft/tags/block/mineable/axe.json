@@ -1,5 +1,7 @@
 {
   "values": [
-    "rngambling:lucky_block"
+    "rngambling:lucky_block",
+    "rngambling:roulette_table",
+    "rngambling:blackjack_table"
   ]
 }

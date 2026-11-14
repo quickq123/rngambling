@@ -418,7 +418,7 @@ public final class ScreenshotRun {
                 base = player.blockPosition().offset(-4, -1, -12);
                 level.getServer().getCommands().performPrefixedCommand(
                         level.getServer().createCommandSourceStack().withSuppressedOutput(), "time set noon");
-                var template = level.getStructureManager().getOrCreate(RNGambling.id("village/plains/casino"));
+                var template = level.getStructureManager().getOrCreate(RNGambling.id("village/plains/casino_slots"));
                 template.placeInWorld(level, base, base, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(),
                         level.getRandom(), net.minecraft.world.level.block.Block.UPDATE_ALL);
                 BlockPos machine = template.filterBlocks(base, new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings(),
@@ -539,6 +539,69 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /** -PshotsWorld=tables: the roulette and blackjack tables, in the world and played. */
+    private static final boolean TABLES = "tables".equals(System.getProperty("rngambling.shotsWorld"));
+    private static final BlockPos[] tablePos = new BlockPos[2];
+
+    private static void button(Minecraft minecraft, int id) {
+        if (minecraft.player != null && minecraft.gameMode != null) {
+            minecraft.gameMode.handleInventoryButtonClick(minecraft.player.containerMenu.containerId, id);
+        }
+    }
+
+    private static void openTable(ServerPlayer player, BlockPos pos) {
+        player.closeContainer();
+        look(player, Vec3.atCenterOf(pos).add(0, 1.2, 2.2), Vec3.atCenterOf(pos));
+        player.level().getBlockState(pos).useWithoutItem(player.level(), player,
+                new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(pos), net.minecraft.core.Direction.UP, pos, false));
+    }
+
+    private static void planTables() {
+        then(10, minecraft -> {
+            minecraft.options.hideGui = true;
+            onServer(minecraft, player -> {
+                ServerLevel level = player.level();
+                base = player.blockPosition().offset(0, 0, -4);
+                level.getServer().getCommands().performPrefixedCommand(level.getServer().createCommandSourceStack().withSuppressedOutput(), "time set noon");
+                tablePos[0] = base.offset(-2, 0, 0);
+                tablePos[1] = base.offset(2, 0, 0);
+                level.setBlockAndUpdate(tablePos[0], RNGambling.ROULETTE_TABLE.get().defaultBlockState());
+                level.setBlockAndUpdate(tablePos[1], RNGambling.BLACKJACK_TABLE.get().defaultBlockState());
+                level.setBlockAndUpdate(base, RNGambling.SLOT_MACHINE.get().defaultBlockState()
+                        .setValue(SlotMachineBlock.FACING, net.minecraft.core.Direction.SOUTH));
+                player.getInventory().add(new net.minecraft.world.item.ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+            });
+        });
+        then(30, minecraft -> onServer(minecraft, player -> look(player, Vec3.atCenterOf(base).add(0, 2.5, 4.5), Vec3.atCenterOf(base))));
+        then(10, minecraft -> shot(minecraft, "30-tables"));
+        // Roulette: 5 on red, spin.
+        then(20, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> openTable(player, tablePos[0]));
+        });
+        then(4, minecraft -> button(minecraft, 1));
+        then(4, minecraft -> button(minecraft, rngambling.casino.RouletteMenu.BUTTON_KIND + rngambling.casino.Roulette.Bet.RED.ordinal()));
+        then(10, minecraft -> shot(minecraft, "31-roulette-ready"));
+        then(30, minecraft -> button(minecraft, rngambling.casino.RouletteMenu.BUTTON_SPIN));
+        then(50, minecraft -> shot(minecraft, "32-roulette-spinning"));
+        then(4, minecraft -> shot(minecraft, "33-roulette-result"));
+        // Blackjack: bet 6, deal, picture, stand, picture the result.
+        then(20, minecraft -> onServer(minecraft, player -> openTable(player, tablePos[1])));
+        then(4, minecraft -> button(minecraft, 1));
+        then(10, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_DEAL));
+        then(4, minecraft -> shot(minecraft, "34-blackjack-dealt"));
+        then(70, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_STAND));
+        then(4, minecraft -> shot(minecraft, "35-blackjack-result"));
+        for (int i = 0; i < 3; i++) {
+            int n = i;
+            then(10, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_DEAL));
+            then(10, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_HIT));
+            then(70, minecraft -> button(minecraft, rngambling.casino.BlackjackMenu.BUTTON_STAND));
+            then(4, minecraft -> shot(minecraft, "36-blackjack-hand-" + n));
+        }
+        then(20, Minecraft::stop);
+    }
+
     private static void plan() {
         if (VILLAGES) {
             planVillages();
@@ -546,6 +609,10 @@ public final class ScreenshotRun {
         }
         if (CASINO) {
             planCasino();
+            return;
+        }
+        if (TABLES) {
+            planTables();
             return;
         }
         if (ZONES) {

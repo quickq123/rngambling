@@ -112,6 +112,22 @@ public final class RNGambling {
             MENUS.register("slot_machine", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
                     (containerId, inventory, buffer) -> new rngambling.casino.SlotMachineMenu(containerId, inventory, buffer.readBlockPos())));
 
+    /** Casino tables: like the Slot Machine, found in village casinos, never crafted, but they drop themselves. */
+    public static final DeferredBlock<rngambling.casino.CasinoTableBlock> ROULETTE_TABLE = BLOCKS.registerBlock("roulette_table",
+            properties -> new rngambling.casino.CasinoTableBlock(rngambling.casino.RouletteMenu::new, properties),
+            properties -> properties.mapColor(MapColor.COLOR_GREEN).strength(2.5f).sound(SoundType.WOOD));
+    public static final DeferredItem<BlockItem> ROULETTE_TABLE_ITEM = ITEMS.registerSimpleBlockItem(ROULETTE_TABLE);
+    public static final DeferredBlock<rngambling.casino.CasinoTableBlock> BLACKJACK_TABLE = BLOCKS.registerBlock("blackjack_table",
+            properties -> new rngambling.casino.CasinoTableBlock(rngambling.casino.BlackjackMenu::new, properties),
+            properties -> properties.mapColor(MapColor.COLOR_GREEN).strength(2.5f).sound(SoundType.WOOD));
+    public static final DeferredItem<BlockItem> BLACKJACK_TABLE_ITEM = ITEMS.registerSimpleBlockItem(BLACKJACK_TABLE);
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<rngambling.casino.RouletteMenu>> ROULETTE_MENU =
+            MENUS.register("roulette", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    (containerId, inventory, buffer) -> new rngambling.casino.RouletteMenu(containerId, inventory, buffer.readBlockPos())));
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<rngambling.casino.BlackjackMenu>> BLACKJACK_MENU =
+            MENUS.register("blackjack", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    (containerId, inventory, buffer) -> new rngambling.casino.BlackjackMenu(containerId, inventory, buffer.readBlockPos())));
+
     /** One-use luck charms, sold by the Casino Dealer. */
     public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
             properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));
@@ -123,7 +139,11 @@ public final class RNGambling {
     private static final DeferredRegister<PoiType> POI_TYPES = DeferredRegister.create(Registries.POINT_OF_INTEREST_TYPE, MOD_ID);
     /** Casino machines, as places a villager can work. */
     public static final DeferredHolder<PoiType, PoiType> CASINO_MACHINE = POI_TYPES.register("casino_machine",
-            () -> new PoiType(com.google.common.collect.ImmutableSet.copyOf(SLOT_MACHINE.get().getStateDefinition().getPossibleStates()), 1, 1));
+            () -> new PoiType(com.google.common.collect.ImmutableSet.<net.minecraft.world.level.block.state.BlockState>builder()
+                    .addAll(SLOT_MACHINE.get().getStateDefinition().getPossibleStates())
+                    .addAll(ROULETTE_TABLE.get().getStateDefinition().getPossibleStates())
+                    .addAll(BLACKJACK_TABLE.get().getStateDefinition().getPossibleStates())
+                    .build(), 1, 1));
 
     private static final DeferredRegister<VillagerProfession> PROFESSIONS = DeferredRegister.create(Registries.VILLAGER_PROFESSION, MOD_ID);
     /** Works a casino machine; trades Casino Tokens for lucky blocks and luck charms (data/rngambling/trade_set/dealer). */
@@ -162,6 +182,8 @@ public final class RNGambling {
                         output.accept(GOLDEN_HORSESHOE.get());
                         output.accept(LUCKY_SEVEN.get());
                         output.accept(SLOT_MACHINE_ITEM.get());
+                        output.accept(ROULETTE_TABLE_ITEM.get());
+                        output.accept(BLACKJACK_TABLE_ITEM.get());
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
                     })

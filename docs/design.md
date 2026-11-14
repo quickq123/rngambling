@@ -63,10 +63,14 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
 ## The casino
 
+- **Casino machines can't be crafted: they have to be found.** Each drops itself when broken
+  and works wherever it's placed, so a player can take the games home (game test
+  `machines_drop_themselves`). Every machine is a Casino Dealer job site.
 - **Casino buildings** (done): each village type's vanilla Fletcher House with its fletching
-  table swapped for a Slot Machine facing into the room (`tools/make_structures.py` makes
-  them from the vanilla files; `CasinoHouses` adds them to the village house pools at three
-  times the Fletcher House's weight). In a survey, 9 of 19 villages had one (some two).
+  table swapped for a casino game, in three variants: Slot Machine (facing into the room),
+  Roulette Table and Blackjack Table (`tools/make_structures.py` makes them from the vanilla
+  files; `CasinoHouses` adds them to the village house pools, together at three times the
+  Fletcher House's weight). In a survey, 9 of 19 villages had a casino (some two).
 - **Slot Machine** (done): right-click to play. Bet 1, 5 or 10 tokens (taken from the
   inventory), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
   decided on the server (`SlotMachine`, `SlotMachineMenu`); the win is paid as the last reel
@@ -84,7 +88,19 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | 7 | 2 | 80 |
   | Lucky block | 2 | 20, plus a lucky block (luck +25) |
 
-  It can't be crafted; it's mined with a pickaxe and drops itself (open: should it?).
+  Mined with a pickaxe.
+- **Roulette Table** (done): European roulette, one zero and 1-36. Bet 1, 5 or 10 on red,
+  black, odd, even, 1-18, 19-36, a dozen (pays 2 to 1) or a single number (35 to 1); even
+  bets pay 1 to 1. The wheel is shown as a strip of its pockets in wheel order, slowing to a
+  stop under a marker. The usual casino odds make every bet return exactly 36/37: a
+  **2.7%** house edge, as in a real casino (`roulette` game test). Mined with an axe.
+- **Blackjack Table** (done): against the dealer, from an endlessly shuffled deck. Deal, then
+  Hit, Stand or Double (first two cards only); no splitting. The dealer hits a soft 17 and
+  plays out one card at a time; blackjack pays 3 to 2; bets are 2, 6 or 10 so that comes to
+  whole tokens. The dealer's face-down card isn't sent to the player's game until it's
+  turned over. Closing the screen mid-hand stands. Played perfectly (basic strategy) the
+  house keeps **1.2%** of the starting bet (a million simulated hands in the `blackjack`
+  game test); played carelessly, more. Mined with an axe.
 - **Casino Dealer** (done): a villager profession whose job site is any casino machine (the
   `rngambling:casino_machine` point of interest). Black vest, white shirt, red bow tie, green
   visor. Trades (data files: `data/rngambling/villager_trade/dealer/<level>/`, and
@@ -112,11 +128,11 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 4. ~~Casino tokens, the Casino Dealer and its trades, the luck charms, and the casino
    buildings in villages.~~ Done.
 5. ~~Playing the Slot Machine.~~ Done.
-6. Roulette, then blackjack. All game logic runs on the server.
+6. ~~Roulette and blackjack.~~ Done.
 7. Themed outcomes per luck zone (Nether: blazes instead of zombies, fire; End: shulkers,
    levitation, ender pearls; ...).
 
-Open: what happens when a casino machine is broken. Roulette and blackjack should keep a similar small house edge.
+House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
 
 ## Working on it
 
@@ -128,7 +144,8 @@ Open: what happens when a casino machine is broken. Roulette and blackjack shoul
   the chunks around the player, and pictures one on the surface and one in a cave.
   `-PshotsWorld=zones` surveys each luck zone: the Overworld, the Nether, the End, then the
   nearest Ancient City and Woodland Mansion (`-PstructuresOnly` for just those two).
-  `-PshotsWorld=casino` places the plains casino with a villager, checks it becomes a Casino
+  `-PshotsWorld=tables` places and plays the roulette and blackjack tables.
+  `-PshotsWorld=casino` places the plains slots casino with a villager, checks it becomes a Casino
   Dealer, and pictures it and its trades. `-PshotsWorld=villages` counts the casinos in the
   nearest villages (from their layouts, without generating terrain).
 - Casino buildings: `tools/make_structures.py` (see its header for extracting the vanilla

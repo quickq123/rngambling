@@ -1,5 +1,6 @@
 """Makes the village casinos: each village type's vanilla Fletcher House, with its fletching
-table swapped for a Slot Machine that faces into the room. Standard library only.
+table swapped for a casino game. Three of each: a Slot Machine (facing into the room), a
+Roulette Table and a Blackjack Table. Standard library only.
 
 The vanilla houses are read from Minecraft's jar, extracted to a folder mounted at /vanilla:
   unzip -j <minecraft jar> 'data/minecraft/structure/village/*/houses/*_fletcher_house_1.nbt' -d <folder>
@@ -102,7 +103,10 @@ def save(path, name, root):
 SIDES = {"north": (0, 0, -1), "south": (0, 0, 1), "west": (-1, 0, 0), "east": (1, 0, 0)}
 
 
-def make_casino(village):
+GAMES = {"slots": "rngambling:slot_machine", "roulette": "rngambling:roulette_table", "blackjack": "rngambling:blackjack_table"}
+
+
+def make_casino(village, game):
     name, root = load(f"/vanilla/{village}_fletcher_house_1.nbt")
     palette = root["palette"][1][1]
     names = [p["Name"][1] for p in palette]
@@ -111,14 +115,17 @@ def make_casino(village):
     blocks = root["blocks"][1][1]
     at = {tuple(b["pos"][1][1]): b["state"][1] for b in blocks}
     table_pos = next(p for p, s in at.items() if s == table)
-    # Face the side with open space (inside the house); a structure's missing positions count as open.
-    facing = next((side for side, (dx, dy, dz) in SIDES.items()
-                   if at.get((table_pos[0] + dx, table_pos[1] + dy, table_pos[2] + dz), next(iter(air), -1)) in air), "north")
-    palette[table] = {"Name": (STRING, "rngambling:slot_machine"),
-                      "Properties": (COMPOUND, {"facing": (STRING, facing)})}
-    save(f"{OUT}/{village}/casino.nbt", name, root)
-    print(f"{village}: slot machine at {table_pos} facing {facing}")
+    entry = {"Name": (STRING, GAMES[game])}
+    if game == "slots":
+        # Face the side with open space (inside the house); a structure's missing positions count as open.
+        facing = next((side for side, (dx, dy, dz) in SIDES.items()
+                       if at.get((table_pos[0] + dx, table_pos[1] + dy, table_pos[2] + dz), next(iter(air), -1)) in air), "north")
+        entry["Properties"] = (COMPOUND, {"facing": (STRING, facing)})
+    palette[table] = entry
+    save(f"{OUT}/{village}/casino_{game}.nbt", name, root)
+    print(f"{village}: {game} at {table_pos}")
 
 
 for v in VILLAGES:
-    make_casino(v)
+    for g in GAMES:
+        make_casino(v, g)

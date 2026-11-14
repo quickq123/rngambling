@@ -16,10 +16,10 @@ import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import rngambling.RNGambling;
 
 /**
- * Adds a casino to each village type's houses: a vanilla Fletcher House with its fletching table
- * swapped for a Slot Machine (the structure files are made by tools/make_structures.py). Added
- * to the house pools as the server starts, at three times the Fletcher House's weight: in a survey
- * of 19 villages, 9 had a casino (some two).
+ * Adds casinos to each village type's houses: a vanilla Fletcher House with its fletching table
+ * swapped for a casino game, one variant per game (the structure files are made by
+ * tools/make_structures.py). Added to the house pools as the server starts, together at three
+ * times the Fletcher House's weight: in a survey of 19 villages, 9 had a casino (some two).
  */
 public final class CasinoHouses {
     /** Village type, and the processor list its Fletcher House uses. */
@@ -30,7 +30,9 @@ public final class CasinoHouses {
             {"savanna", "minecraft:empty"},
             {"snowy", "minecraft:empty"},
     };
-    private static final int WEIGHT = 6;
+    /** The variants, one per game, and each one's weight (6 in all). */
+    public static final String[] GAMES = {"slots", "roulette", "blackjack"};
+    private static final int WEIGHT = 2;
 
     private CasinoHouses() {
     }
@@ -46,14 +48,16 @@ public final class CasinoHouses {
             if (pool == null) {
                 continue;
             }
-            StructurePoolElement casino = StructurePoolElement
-                    .legacy(RNGambling.MOD_ID + ":village/" + village[0] + "/casino", processorList)
-                    .apply(StructureTemplatePool.Projection.RIGID);
-            for (int i = 0; i < WEIGHT; i++) {
-                pool.templates.add(casino);
-            }
             List<Pair<StructurePoolElement, Integer>> raw = new ArrayList<>(pool.rawTemplates);
-            raw.add(Pair.of(casino, WEIGHT));
+            for (String game : GAMES) {
+                StructurePoolElement casino = StructurePoolElement
+                        .legacy(RNGambling.MOD_ID + ":village/" + village[0] + "/casino_" + game, processorList)
+                        .apply(StructureTemplatePool.Projection.RIGID);
+                for (int i = 0; i < WEIGHT; i++) {
+                    pool.templates.add(casino);
+                }
+                raw.add(Pair.of(casino, WEIGHT));
+            }
             pool.rawTemplates = raw;
         }
     }
