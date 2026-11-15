@@ -93,10 +93,8 @@ public final class RNGamblingGameTests {
             // Empowered Wither: full health (600) once its charge-up ends, not vanilla's third plus what it heals.
             var empowered = new rngambling.outcome.Rooms.EmpoweredWither();
             empowered.buildAt(level, new BlockPos(origin.getX() + 3800, 0, origin.getZ()), player, 0);
-            var withers = level.getEntitiesOfClass(net.minecraft.world.entity.boss.wither.WitherBoss.class,
-                    new AABB(new BlockPos(origin.getX() + 3800, 0, origin.getZ())).inflate(20));
-            helper.assertTrue(withers.size() == 1, "one Empowered Wither");
-            var wither = withers.get(0);
+            var wither = empowered.witherForTest();
+            helper.assertTrue(wither != null, "the Empowered Wither should spawn");
             wither.setHealth(420); // as vanilla's charge-up would leave it
             wither.setInvulnerableTicks(0);
             empowered.tickForTest(222);

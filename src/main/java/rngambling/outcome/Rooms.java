@@ -87,6 +87,11 @@ public final class Rooms {
         private int rewardAt = -1;
         private boolean toppedUp;
 
+        /** For tests: the Wither this room spawned (null if it couldn't). */
+        public WitherBoss witherForTest() {
+            return wither;
+        }
+
         @Override
         protected Vec3 build() {
             // A ruined ring of stone bricks, broken in places.
