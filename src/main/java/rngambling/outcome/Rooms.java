@@ -751,6 +751,8 @@ public final class Rooms {
             set(3, 0, -5, slots);
             set(-4, 0, 0, RNGambling.ROULETTE_TABLE.get());
             set(4, 0, 0, RNGambling.BLACKJACK_TABLE.get());
+            set(-4, 0, 3, RNGambling.HIGHER_LOWER_TABLE.get());
+            set(4, 0, 3, RNGambling.CREEPER_FIELD.get());
             // The doorway, and the way out just outside it.
             set(0, 0, 6, Blocks.AIR);
             set(0, 1, 6, Blocks.AIR);

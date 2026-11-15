@@ -22,6 +22,8 @@ public final class RNGamblingClient {
             event.register(RNGambling.SLOT_MACHINE_MENU.get(), SlotMachineScreen::new);
             event.register(RNGambling.ROULETTE_MENU.get(), RouletteScreen::new);
             event.register(RNGambling.BLACKJACK_MENU.get(), BlackjackScreen::new);
+            event.register(RNGambling.HIGHER_LOWER_MENU.get(), HigherLowerScreen::new);
+            event.register(RNGambling.CREEPER_FIELD_MENU.get(), CreeperFieldScreen::new);
         });
         modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions event) ->
                 event.registerLayerDefinition(DragonHatchlingModel.LAYER, DragonHatchlingModel::createBodyLayer));

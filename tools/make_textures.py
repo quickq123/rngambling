@@ -417,13 +417,58 @@ def blackjack_top():
     return px
 
 
-def table_side():
+def higher_lower_top():
+    """Blue felt with a face-up card between an up arrow and a down arrow."""
+    px = [[shade((27, 63, 115), random.Random(x * 31 + y).randint(-6, 6)) for x in range(16)] for y in range(16)]
+    for y in range(4, 12):
+        for x in range(6, 10):
+            px[y][x] = (240, 238, 228)
+    px[6][7] = px[6][8] = (190, 24, 40)
+    px[7][7] = px[7][8] = (190, 24, 40)
+    up, down = (110, 220, 110), (230, 90, 90)
+    for i, row in enumerate(["..#..", ".###.", "#####"]):
+        for j, c in enumerate(row):
+            if c == "#":
+                px[4 + i][0 + j + 0] = up if j < 5 else up
+    for i, row in enumerate(["#####", ".###.", "..#.."]):
+        for j, c in enumerate(row):
+            if c == "#":
+                px[9 + i][11 + j] = down
+    for x in range(16):
+        px[0][x] = px[15][x] = (232, 186, 64)
+    for y in range(16):
+        px[y][0] = px[y][15] = (232, 186, 64)
+    return px
+
+
+def creeper_field_top():
+    """A patch of grass, one block dug to dirt with an emerald, and a creeper face peeking out of another."""
+    rng = random.Random(11)
+    px = [[shade((93, 155, 58), rng.randint(-14, 10)) for _ in range(16)] for _ in range(16)]
+    for y in range(9, 14):
+        for x in range(2, 7):
+            px[y][x] = shade((134, 96, 67), rng.randint(-8, 8))
+    px[11][4] = (40, 200, 90)
+    px[10][4] = px[11][3] = px[11][5] = px[12][4] = (23, 150, 70)
+    face = ["##.##", "##.##", "..#..", ".###.", ".#.#."]
+    for i, row in enumerate(face):
+        for j, c in enumerate(row):
+            px[2 + i][9 + j] = (20, 30, 20) if c == "#" else shade((90, 200, 80), rng.randint(-10, 10))
+    for x in range(16):
+        px[0][x] = px[15][x] = (232, 186, 64)
+    for y in range(16):
+        px[y][0] = px[y][15] = (232, 186, 64)
+    return px
+
+
+def table_side(felt=None, felt_dark=None):
     """Dark wood with a gold trim under the felt edge."""
+    felt, felt_dark = felt or FELT, felt_dark or FELT_DARK
     rng = random.Random(5)
     px = [[shade(WOOD, rng.randint(-8, 8)) for _ in range(16)] for _ in range(16)]
     for x in range(16):
-        px[0][x] = FELT
-        px[1][x] = FELT_DARK
+        px[0][x] = felt
+        px[1][x] = felt_dark
         px[2][x] = GOLD
         px[15][x] = WOOD_DARK
         for y in range(4, 15, 4):
@@ -478,6 +523,9 @@ write_png("item/token_pile.png", token_pile())
 write_png("block/roulette_table_top.png", roulette_top())
 write_png("block/blackjack_table_top.png", blackjack_top())
 write_png("block/casino_table_side.png", table_side())
+write_png("block/higher_lower_table_top.png", higher_lower_top())
+write_png("block/higher_lower_table_side.png", table_side((27, 63, 115), (16, 42, 79)))
+write_png("block/creeper_field_top.png", creeper_field_top())
 write_png("gui/card_suits.png", card_suits())
 write_png("block/lucky_block.png", lucky_block())
 write_png("gui/slot_symbols.png", slot_symbols())

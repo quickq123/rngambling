@@ -2,6 +2,8 @@
   "values": [
     "rngambling:lucky_block",
     "rngambling:roulette_table",
-    "rngambling:blackjack_table"
+    "rngambling:blackjack_table",
+    "rngambling:higher_lower_table",
+    "rngambling:creeper_field"
   ]
 }

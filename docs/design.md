@@ -225,6 +225,29 @@ every room in the test world (the maze always solvable, the tomb's weak pair the
 the puzzle always solvable); `runClientShots -PshotsWorld=rooms` enters each in the real
 Sandbox, pictures it and leaves by its way out.
 
+### Higher or Lower and Creeper Field (done)
+
+Two games that aren't from a real casino, each its own block (craftable with a Pile of Tokens in
+the middle, and in the Casino Invitation room; village casinos keep the first three games).
+Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs little.
+
+- **Pots, not multipliers:** the screen shows tokens throughout ("Higher: 25", "Next block:
+  19", "Cash out 16"). A pot is the bet times the fair odds of everything won so far, less a 3%
+  house cut, rounded down, and never less than before. Rounding down only favours the house, so no
+  way of playing gets back more than about 97% (about 96-97% at a bet of 10, 88-96% at 5;
+  game test `casino_games`). Pots stop at 10,000 tokens (data slots are 16-bit), paid at once.
+- **Higher or Lower** (`HigherLower`, `HigherLowerMenu`): a card is turned up (endless deck,
+  aces low); guess Higher or Lower, ties win. Each button shows the pot if it's right. Skip
+  changes the card for free; Cash out any time; a wrong guess loses the pot. Closing the screen
+  cashes out.
+- **Creeper Field** (`CreeperField`, `CreeperFieldMenu`): a 5 x 5 field of grass hides 1-20
+  creepers (chosen before starting; placed when the game starts). Dig a block: an emerald and a
+  bigger pot, or a creeper and the pot is lost. Cash out any time; clearing every safe block
+  pays at once. The field is shown at the end. Closing the screen cashes out.
+- **Luck** tilts both like the other games: Higher or Lower re-draws a losing card, Creeper Field
+  moves the creeper you dug elsewhere (Bad Luck the other way), at the same chances. Luck II at
+  Higher or Lower over three guesses comes to about 119%.
+
 ## Luck and Bad Luck (the vanilla effects)
 
 The vanilla **Luck** and **Bad Luck** effects (`PlayerLuck`) give a player a luck level: Luck's

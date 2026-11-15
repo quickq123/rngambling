@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:grass_block",
+    "S": "minecraft:gunpowder",
+    "T": "rngambling:token_pile",
+    "P": "#minecraft:planks"
+  },
+  "pattern": [
+    "GGG",
+    "STS",
+    "P P"
+  ],
+  "result": {
+    "id": "rngambling:creeper_field"
+  }
+}

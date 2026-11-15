@@ -9,6 +9,9 @@ public record Bets(int min, int max, int step, int start) {
     public static final Bets SLOTS = new Bets(1, 100, 1, 5);
     public static final Bets ROULETTE = new Bets(1, 100, 1, 5);
     public static final Bets BLACKJACK = new Bets(2, 100, 2, 10);
+    /** Pots are rounded down to whole tokens, so these start at 5, where rounding costs little. */
+    public static final Bets HIGHER_LOWER = new Bets(5, 100, 1, 10);
+    public static final Bets CREEPER_FIELD = new Bets(5, 100, 1, 10);
 
     public static final int DOWN_BIG = 0, DOWN = 1, UP = 2, UP_BIG = 3;
     public static final int BIG_STEP = 10;

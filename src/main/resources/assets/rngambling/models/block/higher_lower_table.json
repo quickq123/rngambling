@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "rngambling:block/higher_lower_table_top",
+    "side": "rngambling:block/higher_lower_table_side",
+    "bottom": "minecraft:block/dark_oak_planks"
+  }
+}

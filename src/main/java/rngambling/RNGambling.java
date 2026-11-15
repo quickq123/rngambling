@@ -191,6 +191,22 @@ public final class RNGambling {
             MENUS.register("blackjack", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
                     (containerId, inventory, buffer) -> new rngambling.casino.BlackjackMenu(containerId, inventory, buffer.readBlockPos())));
 
+    /** Higher or Lower and Creeper Field: casino games that aren't from a real casino. Craftable with a Pile of Tokens. */
+    public static final DeferredBlock<rngambling.casino.CasinoTableBlock> HIGHER_LOWER_TABLE = BLOCKS.registerBlock("higher_lower_table",
+            properties -> new rngambling.casino.CasinoTableBlock(rngambling.casino.HigherLowerMenu::new, properties),
+            properties -> properties.mapColor(MapColor.COLOR_BLUE).strength(2.5f).sound(SoundType.WOOD));
+    public static final DeferredItem<BlockItem> HIGHER_LOWER_TABLE_ITEM = ITEMS.registerSimpleBlockItem(HIGHER_LOWER_TABLE);
+    public static final DeferredBlock<rngambling.casino.CasinoTableBlock> CREEPER_FIELD = BLOCKS.registerBlock("creeper_field",
+            properties -> new rngambling.casino.CasinoTableBlock(rngambling.casino.CreeperFieldMenu::new, properties),
+            properties -> properties.mapColor(MapColor.GRASS).strength(2.5f).sound(SoundType.WOOD));
+    public static final DeferredItem<BlockItem> CREEPER_FIELD_ITEM = ITEMS.registerSimpleBlockItem(CREEPER_FIELD);
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<rngambling.casino.HigherLowerMenu>> HIGHER_LOWER_MENU =
+            MENUS.register("higher_lower", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    (containerId, inventory, buffer) -> new rngambling.casino.HigherLowerMenu(containerId, inventory, buffer.readBlockPos())));
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<rngambling.casino.CreeperFieldMenu>> CREEPER_FIELD_MENU =
+            MENUS.register("creeper_field", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    (containerId, inventory, buffer) -> new rngambling.casino.CreeperFieldMenu(containerId, inventory, buffer.readBlockPos())));
+
     /** The way out of a Sandbox room (walk into it). Unbreakable, no item. */
     public static final DeferredBlock<rngambling.outcome.SandboxExitBlock> SANDBOX_EXIT = BLOCKS.registerBlock("sandbox_exit",
             rngambling.outcome.SandboxExitBlock::new, properties -> properties.mapColor(MapColor.COLOR_PURPLE).noCollision()
@@ -267,6 +283,8 @@ public final class RNGambling {
                         output.accept(SLOT_MACHINE_ITEM.get());
                         output.accept(ROULETTE_TABLE_ITEM.get());
                         output.accept(BLACKJACK_TABLE_ITEM.get());
+                        output.accept(HIGHER_LOWER_TABLE_ITEM.get());
+                        output.accept(CREEPER_FIELD_ITEM.get());
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
                         output.accept(HOT_POTATO.get());

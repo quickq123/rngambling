@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "rngambling:block/higher_lower_table"
+    }
+  }
+}

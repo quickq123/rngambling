@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "minecraft:paper",
+    "W": "minecraft:blue_wool",
+    "T": "rngambling:token_pile",
+    "P": "#minecraft:planks"
+  },
+  "pattern": [
+    "CWC",
+    "PTP",
+    "P P"
+  ],
+  "result": {
+    "id": "rngambling:higher_lower_table"
+  }
+}

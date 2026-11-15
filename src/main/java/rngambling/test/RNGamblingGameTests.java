@@ -60,7 +60,8 @@ public final class RNGamblingGameTests {
             Map.entry("custom_effects", RNGamblingGameTests::customEffects),
             Map.entry("effect_commands", RNGamblingGameTests::effectCommands),
             Map.entry("rooms_play", RNGamblingGameTests::roomsPlay),
-            Map.entry("casino_luck", RNGamblingGameTests::casinoLuck));
+            Map.entry("casino_luck", RNGamblingGameTests::casinoLuck),
+            Map.entry("casino_games", RNGamblingGameTests::casinoGames));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -939,6 +940,134 @@ public final class RNGamblingGameTests {
      * Collector's quarter and his drops, the Mystery Item list, the Ghost Block's three vanishings,
      * the Phoenix rising once, the Disco Floor putting the floor back, and which mobs Mob Shuffle swaps.
      */
+    /** Higher or Lower: one game played by a fixed plan (the likelier guess each time, cash out after {@code stopAfter} right guesses); returns what comes back. */
+    private static int playHigherLower(RandomSource random, int bet, int stopAfter, int luck) {
+        int card = rngambling.casino.Blackjack.draw(random);
+        int pot = bet;
+        double odds = 1;
+        for (int k = 0; k < stopAfter; k++) {
+            var guess = rngambling.casino.HigherLower.chance(rngambling.casino.HigherLower.Guess.HIGHER, card) >= 0.5
+                    ? rngambling.casino.HigherLower.Guess.HIGHER : rngambling.casino.HigherLower.Guess.LOWER;
+            int before = card;
+            int next = rngambling.casino.CasinoLuck.spin(random, luck, () -> rngambling.casino.Blackjack.draw(random),
+                    x -> rngambling.casino.HigherLower.wins(guess, before, x));
+            if (!rngambling.casino.HigherLower.wins(guess, before, next)) {
+                return 0;
+            }
+            odds /= rngambling.casino.HigherLower.chance(guess, before);
+            pot = rngambling.casino.HigherLower.pot(bet, odds, pot);
+            card = next;
+        }
+        return pot;
+    }
+
+    /** Creeper Field: one game digging {@code digs} blocks then cashing out; returns what comes back. */
+    private static int playCreeperField(RandomSource random, int bet, int creepers, int digs) {
+        int hidden = rngambling.casino.CreeperField.BLOCKS, left = creepers, pot = bet;
+        for (int k = 0; k < digs && hidden > left; k++) {
+            if (random.nextInt(hidden) < left) {
+                return 0;
+            }
+            hidden--;
+            pot = rngambling.casino.CreeperField.pot(bet, creepers, k + 1, pot);
+        }
+        return pot;
+    }
+
+    /** The two newer casino games: no plan beats the house, the pots stay whole tokens, and the menus keep every token. */
+    private static void casinoGames(GameTestHelper helper) {
+        RandomSource random = RandomSource.create(9);
+        int n = 100_000;
+        for (int bet : new int[] {5, 10, 100}) {
+            for (int stop : new int[] {1, 2, 3, 5, 8}) {
+                double back = 0;
+                for (int i = 0; i < n; i++) {
+                    back += playHigherLower(random, bet, stop, 0);
+                }
+                double rtp = back / n / bet;
+                LOGGER.info("Higher or Lower, bet {}, cash out after {}: {}", bet, stop, String.format("%.3f", rtp));
+                helper.assertTrue(rtp < 0.985 && rtp > 0.75, "Higher or Lower at bet " + bet + ", " + stop + " guesses: " + rtp);
+            }
+            for (int creepers : new int[] {1, 3, 5, 10, 20}) {
+                for (int digs : new int[] {1, 3, 6}) {
+                    if (digs > rngambling.casino.CreeperField.BLOCKS - creepers) {
+                        continue;
+                    }
+                    // Exact: the chance of digging that many safe blocks is 1 / the fair odds.
+                    int pot = bet;
+                    for (int k = 1; k <= digs; k++) {
+                        pot = rngambling.casino.CreeperField.pot(bet, creepers, k, pot);
+                    }
+                    if (bet * rngambling.casino.CreeperField.odds(creepers, digs) > rngambling.casino.HigherLower.TABLE_LIMIT) {
+                        helper.assertTrue(pot == rngambling.casino.HigherLower.TABLE_LIMIT, "pots stop at the table limit");
+                        continue; // the limit caps the top end on purpose
+                    }
+                    double rtp = pot / rngambling.casino.CreeperField.odds(creepers, digs) / bet;
+                    LOGGER.info("Creeper Field, bet {}, {} creepers, {} digs: {}", bet, creepers, digs, String.format("%.3f", rtp));
+                    helper.assertTrue(rtp < 0.985 && rtp > 0.7, "Creeper Field at bet " + bet + ", " + creepers + " creepers, " + digs + " digs: " + rtp);
+                }
+            }
+        }
+        double lucky = 0;
+        for (int i = 0; i < n; i++) {
+            lucky += playHigherLower(random, 10, 3, 2);
+        }
+        LOGGER.info("Higher or Lower with Luck II, 3 guesses: {}", String.format("%.3f", lucky / n / 10));
+        helper.assertTrue(lucky / n / 10 > 1.05, "Luck II should tip Higher or Lower to the player");
+
+        // The menus: tokens in = tokens out, whatever happens.
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            BlockPos at = helper.absolutePos(new BlockPos(1, 1, 1));
+            for (int game = 0; game < 40; game++) {
+                player.getInventory().clearContent();
+                player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+                var hilo = new rngambling.casino.HigherLowerMenu(0, player.getInventory(), at);
+                hilo.clickMenuButton(player, rngambling.casino.HigherLowerMenu.BUTTON_DEAL);
+                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == 54, "Deal should take the bet of 10");
+                for (int g = 0; g < 4 && hilo.phase() == rngambling.casino.HigherLowerMenu.Phase.PLAYING; g++) {
+                    hilo.clickMenuButton(player, rngambling.casino.HigherLowerMenu.BUTTON_HIGHER);
+                }
+                int pot = hilo.data(rngambling.casino.HigherLowerMenu.POT);
+                boolean playing = hilo.phase() == rngambling.casino.HigherLowerMenu.Phase.PLAYING;
+                hilo.removed(player); // closing cashes out
+                int expected = 54 + (playing ? pot : 0);
+                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == expected,
+                        "Higher or Lower should pay exactly the pot: " + rngambling.casino.Tokens.count(player.getInventory()) + " vs " + expected);
+
+                player.getInventory().clearContent();
+                player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+                var field = new rngambling.casino.CreeperFieldMenu(0, player.getInventory(), at);
+                field.clickMenuButton(player, rngambling.casino.CreeperFieldMenu.BUTTON_MORE); // 4 creepers
+                field.clickMenuButton(player, rngambling.casino.CreeperFieldMenu.BUTTON_START);
+                for (int tile = 0; tile < 25 && field.phase() == rngambling.casino.CreeperFieldMenu.Phase.DIGGING; tile += 3) {
+                    field.clickMenuButton(player, rngambling.casino.CreeperFieldMenu.BUTTON_TILE + tile);
+                }
+                boolean digging = field.phase() == rngambling.casino.CreeperFieldMenu.Phase.DIGGING;
+                int fieldPot = field.data(rngambling.casino.CreeperFieldMenu.POT);
+                int lastWin = field.data(rngambling.casino.CreeperFieldMenu.LAST_WIN);
+                field.clickMenuButton(player, rngambling.casino.CreeperFieldMenu.BUTTON_CASH);
+                int paid = digging ? fieldPot : lastWin;
+                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == 54 + paid,
+                        "Creeper Field should pay exactly the pot: " + rngambling.casino.Tokens.count(player.getInventory()) + " vs " + (54 + paid));
+                int creepers = 0;
+                for (int i = 0; i < 25; i++) {
+                    int shown = field.data(i);
+                    creepers += shown == rngambling.casino.CreeperFieldMenu.CREEPER || shown == rngambling.casino.CreeperFieldMenu.BOOM ? 1 : 0;
+                }
+                helper.assertTrue(creepers == 4, "the field should show its 4 creepers at the end: " + creepers);
+            }
+        } finally {
+            player.discard();
+        }
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+        for (String recipe : new String[] {"higher_lower_table", "creeper_field"}) {
+            helper.assertTrue(recipes.byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE,
+                    RNGambling.id(recipe))).isPresent(), "the " + recipe + " recipe should load");
+        }
+        helper.succeed();
+    }
+
     /** Luck and Bad Luck: their levels, what they add to lucky blocks, how they tilt each casino game, and the luck potions. */
     private static void casinoLuck(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

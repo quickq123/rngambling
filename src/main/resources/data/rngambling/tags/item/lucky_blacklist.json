@@ -26,6 +26,8 @@
     "minecraft:bedrock",
     "minecraft:spawner",
     "minecraft:trial_spawner",
-    "minecraft:vault"
+    "minecraft:vault",
+    "rngambling:higher_lower_table",
+    "rngambling:creeper_field"
   ]
 }

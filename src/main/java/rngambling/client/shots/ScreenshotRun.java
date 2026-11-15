@@ -610,6 +610,61 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /** -PshotsWorld=games: the Higher or Lower table and the Creeper Field, in the world and played. */
+    private static final boolean GAMES = "games".equals(System.getProperty("rngambling.shotsWorld"));
+
+    private static void planGames() {
+        then(10, minecraft -> {
+            minecraft.options.hideGui = true;
+            onServer(minecraft, player -> {
+                ServerLevel level = player.level();
+                base = player.blockPosition().offset(0, 0, -4);
+                level.getServer().getCommands().performPrefixedCommand(level.getServer().createCommandSourceStack().withSuppressedOutput(), "time set noon");
+                tablePos[0] = base.offset(-1, 0, 0);
+                tablePos[1] = base.offset(1, 0, 0);
+                level.setBlockAndUpdate(tablePos[0], RNGambling.HIGHER_LOWER_TABLE.get().defaultBlockState());
+                level.setBlockAndUpdate(tablePos[1], RNGambling.CREEPER_FIELD.get().defaultBlockState());
+                player.getInventory().add(new net.minecraft.world.item.ItemStack(RNGambling.CASINO_TOKEN.get(), 64));
+            });
+        });
+        then(30, minecraft -> onServer(minecraft, player -> look(player, Vec3.atCenterOf(base).add(0, 2.2, 3.0), Vec3.atCenterOf(base))));
+        then(10, minecraft -> shot(minecraft, "40-games"));
+        // Higher or Lower: deal, guess the likelier way twice, cash out.
+        then(20, minecraft -> {
+            minecraft.options.hideGui = false;
+            onServer(minecraft, player -> openTable(player, tablePos[0]));
+        });
+        then(10, minecraft -> button(minecraft, rngambling.casino.HigherLowerMenu.BUTTON_DEAL));
+        then(10, minecraft -> shot(minecraft, "41-higher-lower-dealt"));
+        for (int i = 0; i < 2; i++) {
+            then(10, minecraft -> {
+                if (minecraft.player.containerMenu instanceof rngambling.casino.HigherLowerMenu menu
+                        && menu.phase() == rngambling.casino.HigherLowerMenu.Phase.PLAYING) {
+                    int rank = rngambling.casino.Blackjack.rank(menu.card(rngambling.casino.HigherLowerMenu.CARD));
+                    button(minecraft, rank <= 6 ? rngambling.casino.HigherLowerMenu.BUTTON_HIGHER : rngambling.casino.HigherLowerMenu.BUTTON_LOWER);
+                }
+            });
+        }
+        then(10, minecraft -> shot(minecraft, "42-higher-lower-guessed"));
+        then(10, minecraft -> button(minecraft, rngambling.casino.HigherLowerMenu.BUTTON_CASH));
+        then(10, minecraft -> shot(minecraft, "43-higher-lower-result"));
+        // Creeper Field: 3 creepers, start, dig four blocks, picture, cash out.
+        then(20, minecraft -> onServer(minecraft, player -> openTable(player, tablePos[1])));
+        then(10, minecraft -> button(minecraft, rngambling.casino.CreeperFieldMenu.BUTTON_START));
+        for (int tile : new int[] {0, 6, 12, 18}) {
+            then(6, minecraft -> button(minecraft, rngambling.casino.CreeperFieldMenu.BUTTON_TILE + tile));
+        }
+        then(10, minecraft -> shot(minecraft, "44-creeper-field-digging"));
+        then(10, minecraft -> button(minecraft, rngambling.casino.CreeperFieldMenu.BUTTON_CASH));
+        then(10, minecraft -> shot(minecraft, "45-creeper-field-result"));
+        then(10, minecraft -> {
+            int client = rngambling.casino.Tokens.count(minecraft.player.getInventory());
+            onServer(minecraft, player -> check(rngambling.casino.Tokens.count(player.getInventory()) == client,
+                    "tokens match with the games open: client " + client + ", server " + rngambling.casino.Tokens.count(player.getInventory())));
+        });
+        then(20, Minecraft::stop);
+    }
+
     /**
      * -PshotsWorld=sandbox: the Sandbox in a real world (the game test server has no datapack
      * dimensions). Logs each check as "SANDBOX CHECK ok/FAILED" and pictures the arena.
@@ -844,6 +899,10 @@ public final class ScreenshotRun {
         }
         if (CASINO) {
             planCasino();
+            return;
+        }
+        if (GAMES) {
+            planGames();
             return;
         }
         if (TABLES) {
