@@ -91,7 +91,7 @@ public class BlackjackMenu extends AbstractContainerMenu {
         } else if (id == BUTTON_DEAL && phase == Phase.BETTING) {
             deal(serverPlayer);
         } else if (id == BUTTON_HIT && phase == Phase.PLAYER) {
-            playerHand.add(Blackjack.draw(serverPlayer.level().getRandom()));
+            playerHand.add(CasinoLuck.playerCard(serverPlayer.level().getRandom(), luck(serverPlayer), playerHand));
             sound(SoundEvents.BOOK_PAGE_TURN, 1.4f);
             if (Blackjack.total(playerHand) > 21) {
                 settle(serverPlayer, Blackjack.Outcome.BUST);
@@ -102,7 +102,7 @@ public class BlackjackMenu extends AbstractContainerMenu {
             startDealer(serverPlayer);
         } else if (id == BUTTON_DOUBLE && phase == Phase.PLAYER && playerHand.size() == 2 && Tokens.take(serverPlayer.getInventory(), stake)) {
             stake *= 2;
-            playerHand.add(Blackjack.draw(serverPlayer.level().getRandom()));
+            playerHand.add(CasinoLuck.playerCard(serverPlayer.level().getRandom(), luck(serverPlayer), playerHand));
             sound(SoundEvents.BOOK_PAGE_TURN, 1.4f);
             if (Blackjack.total(playerHand) > 21) {
                 settle(serverPlayer, Blackjack.Outcome.BUST);
@@ -124,10 +124,11 @@ public class BlackjackMenu extends AbstractContainerMenu {
         playerHand.clear();
         dealerHand.clear();
         var random = player.level().getRandom();
-        playerHand.add(Blackjack.draw(random));
-        dealerHand.add(Blackjack.draw(random));
-        playerHand.add(Blackjack.draw(random));
-        dealerHand.add(Blackjack.draw(random));
+        int luck = luck(player);
+        playerHand.add(CasinoLuck.playerCard(random, luck, playerHand));
+        dealerHand.add(CasinoLuck.dealerCard(random, luck, dealerHand));
+        playerHand.add(CasinoLuck.playerCard(random, luck, playerHand));
+        dealerHand.add(CasinoLuck.dealerCard(random, luck, dealerHand));
         data.set(OUTCOME, Blackjack.Outcome.NONE.ordinal());
         data.set(LAST_WIN, 0);
         data.set(HANDS, data.get(HANDS) + 1);
@@ -142,6 +143,11 @@ public class BlackjackMenu extends AbstractContainerMenu {
         }
     }
 
+    /** The player's luck level (Luck minus Bad Luck), which tilts the cards: see CasinoLuck. */
+    private static int luck(Player player) {
+        return rngambling.luck.PlayerLuck.level(player);
+    }
+
     private void startDealer(ServerPlayer player) {
         phase = Phase.DEALER;
         nextDealerCard = player.level().getGameTime() + DEALER_CARD_TICKS;
@@ -151,7 +157,7 @@ public class BlackjackMenu extends AbstractContainerMenu {
     private void dealerStep(Player player, boolean all) {
         while (phase == Phase.DEALER && (all || player.level().getGameTime() >= nextDealerCard)) {
             if (Blackjack.dealerHits(dealerHand)) {
-                dealerHand.add(Blackjack.draw(player.level().getRandom()));
+                dealerHand.add(CasinoLuck.dealerCard(player.level().getRandom(), luck(player), dealerHand));
                 sound(SoundEvents.BOOK_PAGE_TURN, 1.0f);
                 nextDealerCard = player.level().getGameTime() + DEALER_CARD_TICKS;
             } else {

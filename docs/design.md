@@ -25,7 +25,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (217 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (221 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
   Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
   **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
@@ -224,6 +224,34 @@ Rooms are left out of the draw when the Sandbox is off or missing. Tests: `rooms
 every room in the test world (the maze always solvable, the tomb's weak pair the only way out,
 the puzzle always solvable); `runClientShots -PshotsWorld=rooms` enters each in the real
 Sandbox, pictures it and leaves by its way out.
+
+## Luck and Bad Luck (the vanilla effects)
+
+The vanilla **Luck** and **Bad Luck** effects (`PlayerLuck`) give a player a luck level: Luck's
+level minus Bad Luck's, each counted up to II, so -2 to +2.
+- **Lucky blocks:** each level adds 10 to the luck of a block the player breaks (Luck I +10,
+  Luck II +20; Bad Luck I -10, II -20), before the effect is drawn. The block's own stored luck
+  doesn't change (the Luck Glasses still show it).
+- **The casino** (`CasinoLuck`): Luck sometimes gives a second draw. Slots and roulette re-spin
+  a losing spin (15% of the time at I, 33% at II); Bad Luck re-spins a winning one. Blackjack
+  draws a card twice and keeps the better one for the player (7% at I, 20% at II; the worse with
+  Bad Luck). What comes back of what is bet (game test `casino_luck`):
+
+  | Luck | Slots | Roulette (red/black) | Blackjack (played well) |
+  |---|---|---|---|
+  | Bad Luck II | 68% | 81% | 84% |
+  | Bad Luck I | 82% | 90% | 93% |
+  | none | 92% | 98% | 99% |
+  | Luck I | 102% | 105% | 104% |
+  | Luck II | 115% | 114% | 115% |
+
+  Long-shot roulette bets (a single number, green) gain and lose more.
+- **Getting it:** effects Lucky Streak (GOD-42, Luck I) and Fortune's Favor (VGD-29, Luck II),
+  Broken Mirror (BAD-35, Bad Luck I) and Black Cat (VBD-35, Bad Luck II, with a black cat), all
+  5 minutes. **Brewing:** Awkward Potion + Pile of Tokens = Potion of Luck (vanilla's, Luck I,
+  5:00); + glowstone = Luck II (3:00); Fermented Spider Eye turns Luck into Bad Luck (I 5:00,
+  II 3:00), and glowstone strengthens Bad Luck. Splash and lingering versions brew as usual, so
+  Bad Luck can be thrown at other players.
 
 ## The casino
 

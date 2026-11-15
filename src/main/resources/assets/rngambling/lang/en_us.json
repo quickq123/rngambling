@@ -638,5 +638,17 @@
   "outcome.rngambling.elixir_stash.quip": "Drink responsibly.",
   "outcome.rngambling.trident_of_storms.quip": "Thunder at your command.",
   "outcome.rngambling.heavenly_mace.quip": "Gravity is your weapon now.",
-  "outcome.rngambling.statue_of_you.name": "%s, Legend"
+  "outcome.rngambling.statue_of_you.name": "%s, Legend",
+  "outcome.rngambling.black_cat": "Black Cat",
+  "outcome.rngambling.black_cat.quip": "It crossed your path. On purpose.",
+  "outcome.rngambling.broken_mirror": "Broken Mirror",
+  "outcome.rngambling.broken_mirror.quip": "Seven years. Or five minutes. Whichever comes first.",
+  "outcome.rngambling.lucky_streak": "Lucky Streak",
+  "outcome.rngambling.lucky_streak.quip": "You're on a roll!",
+  "outcome.rngambling.fortunes_favor": "Fortune's Favor",
+  "outcome.rngambling.fortunes_favor.quip": "Lady Luck is smiling. Go to the casino.",
+  "item.minecraft.potion.effect.bad_luck": "Potion of Bad Luck",
+  "item.minecraft.splash_potion.effect.bad_luck": "Splash Potion of Bad Luck",
+  "item.minecraft.lingering_potion.effect.bad_luck": "Lingering Potion of Bad Luck",
+  "item.minecraft.tipped_arrow.effect.bad_luck": "Arrow of Bad Luck"
 }

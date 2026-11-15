@@ -59,7 +59,8 @@ public final class RNGamblingGameTests {
             Map.entry("rooms_build", RNGamblingGameTests::roomsBuild),
             Map.entry("custom_effects", RNGamblingGameTests::customEffects),
             Map.entry("effect_commands", RNGamblingGameTests::effectCommands),
-            Map.entry("rooms_play", RNGamblingGameTests::roomsPlay));
+            Map.entry("rooms_play", RNGamblingGameTests::roomsPlay),
+            Map.entry("casino_luck", RNGamblingGameTests::casinoLuck));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -938,6 +939,74 @@ public final class RNGamblingGameTests {
      * Collector's quarter and his drops, the Mystery Item list, the Ghost Block's three vanishings,
      * the Phoenix rising once, the Disco Floor putting the floor back, and which mobs Mob Shuffle swaps.
      */
+    /** Luck and Bad Luck: their levels, what they add to lucky blocks, how they tilt each casino game, and the luck potions. */
+    private static void casinoLuck(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            helper.assertTrue(rngambling.luck.PlayerLuck.level(player) == 0, "no effects, no luck");
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.LUCK, 200, 0));
+            helper.assertTrue(rngambling.luck.PlayerLuck.blockBonus(player) == 10, "Luck I adds 10");
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.LUCK, 200, 4));
+            helper.assertTrue(rngambling.luck.PlayerLuck.blockBonus(player) == 20, "Luck V counts as II: 20");
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 200, 0));
+            helper.assertTrue(rngambling.luck.PlayerLuck.level(player) == 1, "Luck II and Bad Luck I make 1");
+            player.removeAllEffects();
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 200, 1));
+            helper.assertTrue(rngambling.luck.PlayerLuck.blockBonus(player) == -20, "Bad Luck II takes 20");
+            player.removeAllEffects();
+        } finally {
+            player.discard();
+        }
+
+        // What comes back of what is bet, at each luck level, over many plays.
+        RandomSource random = RandomSource.create(42);
+        int n = 200_000;
+        double[] slots = new double[5], red = new double[5], jack = new double[5];
+        for (int luck = -2; luck <= 2; luck++) {
+            int l = luck;
+            double s = 0, r = 0, b = 0;
+            for (int i = 0; i < n; i++) {
+                var reels = rngambling.casino.CasinoLuck.spin(random, l, () -> rngambling.casino.SlotMachine.spin(random),
+                        x -> rngambling.casino.SlotMachine.pays(x) > 0);
+                s += rngambling.casino.SlotMachine.pays(reels);
+                int number = rngambling.casino.CasinoLuck.spin(random, l, () -> rngambling.casino.Roulette.spin(random),
+                        x -> rngambling.casino.Roulette.wins(rngambling.casino.Roulette.Bet.RED, 0, x));
+                r += rngambling.casino.Roulette.returns(rngambling.casino.Roulette.Bet.RED, 0, number);
+                b += 1 + rngambling.casino.Blackjack.playOneHand(random, l);
+            }
+            slots[luck + 2] = s / n;
+            red[luck + 2] = r / n;
+            jack[luck + 2] = b / n;
+            LOGGER.info("Casino at luck {}: slots {}, red {}, blackjack {}", luck, String.format("%.3f", s / n), String.format("%.3f", r / n),
+                    String.format("%.3f", b / n));
+        }
+        for (double[] game : new double[][] {slots, red, jack}) {
+            helper.assertTrue(game[0] < game[1] && game[1] < game[2] && game[2] < game[3] && game[3] < game[4], "luck should order the returns");
+            helper.assertTrue(game[2] < 1.0, "without luck the house wins");
+            helper.assertTrue(game[3] > 1.0 && game[3] < 1.09, "Luck I: a slight edge for the player");
+            helper.assertTrue(game[4] > 1.09 && game[4] < 1.2, "Luck II: a good edge for the player");
+            helper.assertTrue(game[1] < 0.95, "Bad Luck I: worse than the house's usual edge");
+        }
+
+        // Brewing: a Pile of Tokens makes Luck; glowstone strengthens; a fermented spider eye turns it bad.
+        var brewing = level.potionBrewing();
+        java.util.function.BiFunction<net.minecraft.world.item.Item, net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>, ItemStack> brew =
+                (ingredient, from) -> brewing.mix(new ItemStack(ingredient), net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                        net.minecraft.world.item.Items.POTION, from));
+        java.util.function.BiPredicate<ItemStack, net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>> is = (stack, potion) ->
+                stack.getOrDefault(net.minecraft.core.component.DataComponents.POTION_CONTENTS, net.minecraft.world.item.alchemy.PotionContents.EMPTY).is(potion);
+        helper.assertTrue(is.test(brew.apply(RNGambling.TOKEN_PILE.get(), net.minecraft.world.item.alchemy.Potions.AWKWARD), net.minecraft.world.item.alchemy.Potions.LUCK),
+                "awkward + token pile = luck");
+        helper.assertTrue(is.test(brew.apply(net.minecraft.world.item.Items.GLOWSTONE_DUST, net.minecraft.world.item.alchemy.Potions.LUCK), RNGambling.STRONG_LUCK),
+                "luck + glowstone = luck II");
+        helper.assertTrue(is.test(brew.apply(net.minecraft.world.item.Items.FERMENTED_SPIDER_EYE, net.minecraft.world.item.alchemy.Potions.LUCK), RNGambling.BAD_LUCK),
+                "luck + fermented spider eye = bad luck");
+        helper.assertTrue(is.test(brew.apply(net.minecraft.world.item.Items.GLOWSTONE_DUST, RNGambling.BAD_LUCK), RNGambling.STRONG_BAD_LUCK),
+                "bad luck + glowstone = bad luck II");
+        helper.succeed();
+    }
+
     private static void customEffects(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));

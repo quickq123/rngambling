@@ -40,7 +40,9 @@ public class LuckyBlock extends Block implements EntityBlock {
         int chain = level.getBlockEntity(pos) instanceof LuckyBlockEntity lucky ? lucky.chain() : 0;
         boolean removed = super.onDestroyedByPlayer(state, level, pos, player, tool, willHarvest, fluid);
         if (removed && level instanceof ServerLevel serverLevel && countsAsPlayerBreak(player)) {
-            Outcomes.roll(serverLevel, pos, (ServerPlayer) player, luck, chain);
+            // The breaker's Luck or Bad Luck effect adds or takes 10 per level (see PlayerLuck).
+            int rolled = rngambling.luck.Luck.clamp(luck + rngambling.luck.PlayerLuck.blockBonus(player));
+            Outcomes.roll(serverLevel, pos, (ServerPlayer) player, rolled, chain);
         }
         return removed;
     }

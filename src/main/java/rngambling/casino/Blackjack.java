@@ -137,8 +137,17 @@ public final class Blackjack {
      * much this loses on average, per starting bet.
      */
     public static double playOneHand(RandomSource random) {
-        List<Integer> player = new java.util.ArrayList<>(List.of(draw(random), draw(random)));
-        List<Integer> dealer = new java.util.ArrayList<>(List.of(draw(random), draw(random)));
+        return playOneHand(random, 0);
+    }
+
+    /** The same, with the player's luck level tilting the cards (see {@link CasinoLuck}). */
+    public static double playOneHand(RandomSource random, int luck) {
+        List<Integer> player = new java.util.ArrayList<>();
+        List<Integer> dealer = new java.util.ArrayList<>();
+        player.add(CasinoLuck.playerCard(random, luck, player));
+        dealer.add(CasinoLuck.dealerCard(random, luck, dealer));
+        player.add(CasinoLuck.playerCard(random, luck, player));
+        dealer.add(CasinoLuck.dealerCard(random, luck, dealer));
         if (blackjack(player) || blackjack(dealer)) {
             return blackjack(player) && blackjack(dealer) ? 0 : blackjack(player) ? 1.5 : -1;
         }
@@ -148,7 +157,7 @@ public final class Blackjack {
             if (move == Move.STAND) {
                 break;
             }
-            player.add(draw(random));
+            player.add(CasinoLuck.playerCard(random, luck, player));
             if (move == Move.DOUBLE) {
                 stake = 2;
                 break;
@@ -161,7 +170,7 @@ public final class Blackjack {
             return -stake;
         }
         while (dealerHits(dealer)) {
-            dealer.add(draw(random));
+            dealer.add(CasinoLuck.dealerCard(random, luck, dealer));
         }
         return switch (compare(player, dealer)) {
             case WIN, DEALER_BUST -> stake;

@@ -43,6 +43,9 @@ final class MoreEffects {
     private MoreEffects() {
     }
 
+    /** How long the luck effects (Lucky Streak, Fortune's Favor, Broken Mirror, Black Cat) last: 5 minutes. */
+    static final int LUCK_SECONDS = 5 * 60;
+
     static final List<Outcome> ALL = List.of(
             // ================= Catastrophic =================
             of("CAT-23", "piglin_brute_squad", CATASTROPHIC, -100, -75, 4, c -> {
@@ -91,6 +94,17 @@ final class MoreEffects {
                 c.player().setItemSlot(slot, ItemStack.EMPTY);
                 double angle = c.random().nextDouble() * Math.PI * 2;
                 fling(c, piece, Math.cos(angle) * 1.3, 0.7, Math.sin(angle) * 1.3);
+            }),
+            of("VBD-35", "black_cat", VERY_BAD, -65, -40, 5, c -> {
+                // Bad Luck II for 5 minutes (-20 on every lucky block broken, the casino against you), and the cat that did it.
+                c.effect(MobEffects.UNLUCK, LUCK_SECONDS, 1);
+                var cat = c.spawn(EntityType.CAT, Vec3.atBottomCenterOf(c.freeSpotNear(c.pos(), 3)));
+                if (cat != null) {
+                    c.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.CAT_VARIANT)
+                            .get(net.minecraft.world.entity.animal.feline.CatVariants.ALL_BLACK)
+                            .ifPresent(black -> cat.setComponent(DataComponents.CAT_VARIANT, black));
+                }
+                sound(c, SoundEvents.CAT_HISS_BABY.value(), 0.7f);
             }),
 
             // ================= Bad =================
@@ -166,6 +180,11 @@ final class MoreEffects {
                 int slot = c.pickOne(food);
                 int count = Math.min(inventory.getItem(slot).getCount(), Items.ROTTEN_FLESH.getDefaultMaxStackSize());
                 inventory.setItem(slot, new ItemStack(Items.ROTTEN_FLESH, count));
+            }),
+            of("BAD-35", "broken_mirror", BAD, -35, -10, 5, c -> {
+                // Bad Luck I for 5 minutes: -10 on every lucky block broken, the casino a little against you.
+                c.effect(MobEffects.UNLUCK, LUCK_SECONDS, 0);
+                sound(c, SoundEvents.GLASS_BREAK, 1.0f);
             }),
 
             // ================= Neutral =================
@@ -274,6 +293,11 @@ final class MoreEffects {
                     c.drop(c.pickOne(trims), 1);
                 }
             }),
+            of("GOD-42", "lucky_streak", GOOD, 15, 40, 5, c -> {
+                // Luck I for 5 minutes: +10 on every lucky block broken, a slight edge at the casino.
+                c.effect(MobEffects.LUCK, LUCK_SECONDS, 0);
+                sound(c, SoundEvents.AMETHYST_BLOCK_CHIME, 1.4f);
+            }),
 
             // ================= Very good =================
             of("VGD-25", "netherite_upgrade_kit", VERY_GOOD, 55, 80, 4, c -> {
@@ -288,6 +312,11 @@ final class MoreEffects {
             of("VGD-27", "wind_charge_arsenal", VERY_GOOD, 45, 75, 4, c -> {
                 c.drop(Items.WIND_CHARGE, 48);
                 c.drop(Items.BREEZE_ROD, 4);
+            }),
+            of("VGD-29", "fortunes_favor", VERY_GOOD, 45, 80, 4, c -> {
+                // Luck II for 5 minutes: +20 on every lucky block broken, a good edge at the casino.
+                c.effect(MobEffects.LUCK, LUCK_SECONDS, 1);
+                sound(c, SoundEvents.PLAYER_LEVELUP, 1.6f);
             }),
             of("VGD-28", "elixir_stash", VERY_GOOD, 45, 75, 5, c -> {
                 for (var potion : List.of(Potions.STRONG_STRENGTH, Potions.STRONG_REGENERATION, Potions.LONG_FIRE_RESISTANCE,

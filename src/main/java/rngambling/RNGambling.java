@@ -74,6 +74,36 @@ public final class RNGambling {
                     .persistent(Codec.LONG)
                     .networkSynchronized(ByteBufCodecs.VAR_LONG));
 
+    /**
+     * Luck potions, brewed with tokens (see {@link #registerBrewing}). Potion of Luck itself is
+     * vanilla's (Luck I, 5:00); these add Luck II and Bad Luck. Luck and Bad Luck tilt lucky blocks
+     * and the casino: see rngambling.luck.PlayerLuck.
+     */
+    private static final DeferredRegister<net.minecraft.world.item.alchemy.Potion> POTIONS = DeferredRegister.create(Registries.POTION, MOD_ID);
+    public static final DeferredHolder<net.minecraft.world.item.alchemy.Potion, net.minecraft.world.item.alchemy.Potion> STRONG_LUCK =
+            POTIONS.register("strong_luck", () -> new net.minecraft.world.item.alchemy.Potion("luck",
+                    new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.LUCK, 20 * 60 * 3, 1)));
+    public static final DeferredHolder<net.minecraft.world.item.alchemy.Potion, net.minecraft.world.item.alchemy.Potion> BAD_LUCK =
+            POTIONS.register("bad_luck", () -> new net.minecraft.world.item.alchemy.Potion("bad_luck",
+                    new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 20 * 60 * 5, 0)));
+    public static final DeferredHolder<net.minecraft.world.item.alchemy.Potion, net.minecraft.world.item.alchemy.Potion> STRONG_BAD_LUCK =
+            POTIONS.register("strong_bad_luck", () -> new net.minecraft.world.item.alchemy.Potion("bad_luck",
+                    new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 20 * 60 * 3, 1)));
+
+    /**
+     * Awkward Potion + Pile of Tokens: Potion of Luck (vanilla's, Luck I 5:00). Glowstone: Luck II
+     * (3:00). Fermented Spider Eye turns Luck into Bad Luck (I 5:00, II 3:00), and glowstone
+     * strengthens Bad Luck. Splash and lingering versions follow as for any potion.
+     */
+    private static void registerBrewing(net.neoforged.neoforge.event.brewing.RegisterBrewingRecipesEvent event) {
+        var brewing = event.getBuilder();
+        brewing.addMix(net.minecraft.world.item.alchemy.Potions.AWKWARD, TOKEN_PILE.get(), net.minecraft.world.item.alchemy.Potions.LUCK);
+        brewing.addMix(net.minecraft.world.item.alchemy.Potions.LUCK, net.minecraft.world.item.Items.GLOWSTONE_DUST, STRONG_LUCK);
+        brewing.addMix(net.minecraft.world.item.alchemy.Potions.LUCK, net.minecraft.world.item.Items.FERMENTED_SPIDER_EYE, BAD_LUCK);
+        brewing.addMix(STRONG_LUCK, net.minecraft.world.item.Items.FERMENTED_SPIDER_EYE, STRONG_BAD_LUCK);
+        brewing.addMix(BAD_LUCK, net.minecraft.world.item.Items.GLOWSTONE_DUST, STRONG_BAD_LUCK);
+    }
+
     private static final DeferredRegister<net.neoforged.neoforge.attachment.AttachmentType<?>> ATTACHMENTS =
             DeferredRegister.create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.ATTACHMENT_TYPES, MOD_ID);
     /** LEG-11 Phoenix Blessing: the player will rise once from death (see EffectEvents). Saved with the player. */
@@ -254,6 +284,8 @@ public final class RNGambling {
         MENUS.register(modBus);
         PROFESSIONS.register(modBus);
         ATTACHMENTS.register(modBus);
+        POTIONS.register(modBus);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(RNGambling::registerBrewing);
         ENTITY_TYPES.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent event) ->
                 event.put(DRAGON_HATCHLING.get(), rngambling.entity.DragonHatchling.createAttributes().build()));
