@@ -25,11 +25,15 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (178 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (217 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
   Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
   **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
   **Casino Invitation** (GOD-31, a casino room in the Sandbox), and **Lucky Sense** (GOD-32).
+  A **second batch** of 39 (`MoreEffects`, all vanilla parts) added variety where most breaks
+  land: 9 Bad, 9 Neutral, 9 Good, and 4 Very Bad, 4 Very Good, 2 Catastrophic, 2 Legendary
+  (rows CAT-23..24, VBD-31..34, BAD-26..34, NEU-25..33, GOD-33..41, VGD-25..28, LEG-20..21).
+  None of them changes blocks, and items are only moved or changed, never deleted.
 - **Past the limits:** the best gear goes beyond vanilla's enchantment levels: Netherite Armor
   Set (Protection VI, Unbreaking V), God Sword (Sharpness VII, Looting IV, Fire Aspect III,
   Mending), Perfect Pickaxe (Efficiency VII, Fortune IV, Unbreaking V, Mending), Elytra &
@@ -79,7 +83,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
 
   | Zone | Luck | Rate (1 in N chunks) | Surveyed |
   |---|---|---|---|
-  | Overworld | spread around 0 (±30) | config: surface 8, cave 8 | 18 blocks, -57 to +82 |
+  | Overworld | spread around 0 (±15; was ±30, which made the far tiers too common: about 1 in 25 blocks each end, now about 1 in 60) | config: surface 8, cave 8 | |
   | Mushroom Fields | spread around +20 (±25) | as Overworld | |
   | Pale Garden | spread around +15 (±25) | as Overworld | |
   | Nether | extremes ±50-100, half good | caves 6 | 31 blocks, none within ±49, 19 good |

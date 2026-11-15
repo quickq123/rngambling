@@ -65,7 +65,7 @@ public record LuckZone(
 
     /** Used where no zone matches: the original Overworld behaviour. */
     public static final LuckZone FALLBACK = new LuckZone(Optional.empty(), Optional.empty(), Optional.empty(),
-            new LuckRoll.Spread(0, 30), Optional.empty(), Optional.empty(), 0, 0);
+            new LuckRoll.Spread(0, 15), Optional.empty(), Optional.empty(), 0, 0);
 
     public int surfaceRarity() {
         return surfaceOneInChunks.orElseGet(RNGamblingConfig.SURFACE_RARITY::getAsInt);

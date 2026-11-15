@@ -1025,6 +1025,29 @@ public final class RNGamblingGameTests {
             level.setBlockAndUpdate(plainSpot, Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(disguisedSpot, Blocks.AIR.defaultBlockState());
 
+            // Second batch: items are moved or changed, never lost.
+            second.getInventory().clearContent();
+            second.getInventory().setItem(3, new ItemStack(net.minecraft.world.item.Items.BREAD, 5));
+            outcome("spoiled_food").action().run(c);
+            helper.assertTrue(second.getInventory().getItem(3).is(net.minecraft.world.item.Items.ROTTEN_FLESH)
+                    && second.getInventory().getItem(3).getCount() == 5, "the bread should have gone off, all 5");
+            for (int slot = 0; slot < 9; slot++) {
+                second.getInventory().setItem(slot, new ItemStack(net.minecraft.world.item.Items.STICK, slot + 1));
+            }
+            outcome("hotbar_shuffle").action().run(c);
+            int sticks = 0;
+            for (int slot = 0; slot < 9; slot++) {
+                sticks += second.getInventory().getItem(slot).getCount();
+            }
+            helper.assertTrue(sticks == 45, "the hotbar shuffle should keep every item: " + sticks);
+            second.getInventory().clearContent();
+            second.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE));
+            outcome("lost_armor").action().run(c);
+            helper.assertTrue(second.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).isEmpty()
+                    && !level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(pos).inflate(8),
+                            e -> e.getItem().is(net.minecraft.world.item.Items.IRON_CHESTPLATE)).isEmpty(), "the chestplate should fly off, not vanish");
+            clearUp(helper, level, second);
+
             // The best gear goes past vanilla's limits.
             second.getInventory().clearContent();
             outcome("god_sword").action().run(c);

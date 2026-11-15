@@ -1,4 +1,4 @@
 {
   "dimension": "minecraft:overworld",
-  "luck": {"type": "spread", "mean": 0, "spread": 30}
+  "luck": {"type": "spread", "mean": 0, "spread": 15}
 }
