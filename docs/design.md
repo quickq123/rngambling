@@ -248,6 +248,30 @@ Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs
   moves the creeper you dug elsewhere (Bad Luck the other way), at the same chances. Luck II at
   Higher or Lower over three guesses comes to about 119%.
 
+## The Lucky Journal, announcements and lucky loot
+
+- **Lucky Journal** (`Journal`, `client.JournalScreen`, item `lucky_journal`: book + Casino
+  Token, shapeless): every effect there is (catalog and zone variants, 239), by tier with a
+  found/total count. An effect is written in the first time it happens to the player (a surprise
+  once it's revealed; admin `effect play` counts too), with a chat note "New in your Lucky
+  Journal (n of 239)". Written-in effects show their luck range, where they happen (zone, Sandbox),
+  the chat line and a description of what they do (`outcome.rngambling.<id>.desc`, generated
+  from the effect guide); the rest are "???". Kept through death; synced to the player's game.
+  Admin: `/rngambling journal reveal|reset [player]`.
+- **Server-wide announcements:** a Legendary or Catastrophic pull is told to everyone else on
+  the server ("Steve pulled a Legendary: God Sword!"). Config `announce_big_pulls` (default on).
+- **The dealer's luck potions** (a chance: each level's trade set picks 2 of 3, or 1 of 2):
+  level 2, 12 tokens for a Potion of Luck; level 3, 10 tokens for a Splash Potion of Bad Luck;
+  level 4, 2 Piles of Tokens for a Potion of Luck II.
+- **Lucky loot in chests** (NeoForge global loot modifiers adding `rngambling:chests/lucky_loot`
+  or `lucky_treasure`): one extra draw in ordinary chests (dungeon, mineshaft, desert and jungle
+  temples, stronghold corridor/crossing, shipwreck treasure, outpost, ruined portal, big ocean
+  ruin, igloo, Nether fortress, trial chamber reward), about 2 in 3 something: 2-8 tokens, a
+  Pile, Potion of Luck (or II), lucky blocks (plain, Safe, Extreme), a Four-Leaf Clover. Two
+  richer draws in treasure chests (bastion treasure, End city, Ancient City, mansion, buried
+  treasure, stronghold library), up to Blessed lucky blocks and the Golden Horseshoe. In a test,
+  300 dungeon chests gave 112 with tokens, 37 luck potions and 58 lucky blocks.
+
 ## Luck and Bad Luck (the vanilla effects)
 
 The vanilla **Luck** and **Bad Luck** effects (`PlayerLuck`) give a player a luck level: Luck's

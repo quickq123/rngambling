@@ -71,6 +71,29 @@ public final class Themes {
                     })),
                     List.of()));
 
+    /** For an effect only one zone has (a swap or an extra): the zone's name, else null. */
+    public static String zoneOf(String id) {
+        for (Map.Entry<String, Theme> theme : BY_ZONE.entrySet()) {
+            if (theme.getValue().extras().stream().anyMatch(o -> o.id().equals(id))
+                    || theme.getValue().swaps().values().stream().anyMatch(s -> s.id().equals(id))) {
+                return theme.getKey();
+            }
+        }
+        return null;
+    }
+
+    /** For a zone's swap: the id of the catalog effect it replaces there, else null. */
+    public static String replaces(String id) {
+        for (Theme theme : BY_ZONE.values()) {
+            for (Map.Entry<String, Swap> swap : theme.swaps().entrySet()) {
+                if (swap.getValue().id().equals(id)) {
+                    return swap.getKey();
+                }
+            }
+        }
+        return null;
+    }
+
     private static final Map<String, List<Outcome>> CACHE = new ConcurrentHashMap<>();
 
     /** The effects for a luck zone: the catalog with the zone's theme applied, if it has one. */

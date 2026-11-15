@@ -61,7 +61,8 @@ public final class RNGamblingGameTests {
             Map.entry("effect_commands", RNGamblingGameTests::effectCommands),
             Map.entry("rooms_play", RNGamblingGameTests::roomsPlay),
             Map.entry("casino_luck", RNGamblingGameTests::casinoLuck),
-            Map.entry("casino_games", RNGamblingGameTests::casinoGames));
+            Map.entry("casino_games", RNGamblingGameTests::casinoGames),
+            Map.entry("journal_and_loot", RNGamblingGameTests::journalAndLoot));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -243,7 +244,7 @@ public final class RNGamblingGameTests {
         String blessedCost = null;
         for (int tier = 1; tier <= 5; tier++) {
             var set = tradeSets.getValue(RNGambling.id("dealer/level_" + tier));
-            int expected = tier == 4 ? 1 : 2;
+            int expected = tier == 2 || tier == 3 ? 3 : 2; // with the luck potions
             helper.assertTrue(set != null && set.getTrades().size() == expected, "dealer level " + tier + " should have " + expected + " trades");
             for (var trade : set.getTrades()) {
                 // The trade's fields are private, so read it back as JSON.
@@ -940,6 +941,56 @@ public final class RNGamblingGameTests {
      * Collector's quarter and his drops, the Mystery Item list, the Ghost Block's three vanishings,
      * the Phoenix rising once, the Disco Floor putting the floor back, and which mobs Mob Shuffle swaps.
      */
+    /** The Lucky Journal records each effect once; the dealer sells luck potions; chests hold lucky loot. */
+    private static void journalAndLoot(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            helper.assertTrue(rngambling.outcome.Journal.seen(player).isEmpty(), "a new player's journal is empty");
+            BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
+            player.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+            Outcome legendary = outcome("god_sword");
+            Outcomes.play(level, pos, player, 90, legendary); // a Legendary: also announced to the server
+            Outcomes.play(level, pos, player, 90, legendary);
+            helper.assertTrue(rngambling.outcome.Journal.seen(player).equals(java.util.List.of("god_sword")), "recorded once: " + rngambling.outcome.Journal.seen(player));
+            rngambling.outcome.Journal.setAll(player, true);
+            helper.assertTrue(rngambling.outcome.Journal.seen(player).size() == rngambling.outcome.Journal.total(), "reveal fills the journal");
+            rngambling.outcome.Journal.setAll(player, false);
+            helper.assertTrue(rngambling.outcome.Journal.seen(player).isEmpty(), "reset empties it");
+            helper.assertTrue("nether".equals(rngambling.outcome.Themes.zoneOf("blaze_horde")) && "zombie_horde".equals(rngambling.outcome.Themes.replaces("blaze_horde"))
+                    && rngambling.outcome.Themes.zoneOf("god_sword") == null, "zone variants know their zone");
+            clearUp(helper, level, player);
+        } finally {
+            player.discard();
+        }
+
+        // The dealer's potion trades.
+        var trades = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.VILLAGER_TRADE);
+        for (String trade : new String[] {"dealer/2/tokens_potion_of_luck", "dealer/3/tokens_splash_bad_luck", "dealer/4/piles_strong_luck"}) {
+            helper.assertTrue(trades.getValue(RNGambling.id(trade)) != null, "the dealer should have the " + trade + " trade");
+        }
+
+        // A dungeon chest, rolled many times, turns up tokens and luck potions.
+        var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.LOOT_TABLE, net.minecraft.resources.Identifier.withDefaultNamespace("chests/simple_dungeon")));
+        int tokens = 0, potions = 0, blocks = 0;
+        for (int i = 0; i < 300; i++) {
+            var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
+                    .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(helper.absolutePos(BlockPos.ZERO)))
+                    .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+            for (ItemStack stack : table.getRandomItems(params)) {
+                tokens += stack.is(RNGambling.CASINO_TOKEN.get()) || stack.is(RNGambling.TOKEN_PILE.get()) ? 1 : 0;
+                potions += stack.is(net.minecraft.world.item.Items.POTION) && stack.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS) != null
+                        && (stack.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS).is(net.minecraft.world.item.alchemy.Potions.LUCK)
+                        || stack.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS).is(RNGambling.STRONG_LUCK)) ? 1 : 0;
+                blocks += stack.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof rngambling.block.LuckyBlock ? 1 : 0;
+            }
+        }
+        LOGGER.info("300 dungeon chests: {} with tokens, {} luck potions, {} lucky blocks", tokens, potions, blocks);
+        helper.assertTrue(tokens > 50 && potions > 10 && blocks > 20, "dungeon chests should hold lucky loot: " + tokens + "/" + potions + "/" + blocks);
+        helper.succeed();
+    }
+
     /** Higher or Lower: one game played by a fixed plan (the likelier guess each time, cash out after {@code stopAfter} right guesses); returns what comes back. */
     private static int playHigherLower(RandomSource random, int bet, int stopAfter, int luck) {
         int card = rngambling.casino.Blackjack.draw(random);
@@ -1434,6 +1485,7 @@ public final class RNGamblingGameTests {
         for (Outcome outcome : all) {
             helper.assertTrue(language.has("outcome.rngambling." + outcome.id()), "no message for " + outcome.id());
             helper.assertTrue(language.has("outcome.rngambling." + outcome.id() + ".quip"), "no chat one-liner for " + outcome.id());
+            helper.assertTrue(language.has("outcome.rngambling." + outcome.id() + ".desc"), "no Lucky Journal description for " + outcome.id());
             ids.add(outcome.id());
         }
         java.util.Set<String> catalogIds = new java.util.HashSet<>();

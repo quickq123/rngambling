@@ -2,6 +2,7 @@
   "amount": 1.0,
   "random_sequence": "rngambling:trade_set/dealer/level_4",
   "trades": [
-    "rngambling:dealer/4/piles_lucky_seven"
+    "rngambling:dealer/4/piles_lucky_seven",
+    "rngambling:dealer/4/piles_strong_luck"
   ]
 }

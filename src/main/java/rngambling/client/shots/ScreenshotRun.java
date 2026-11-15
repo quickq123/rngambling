@@ -610,6 +610,28 @@ public final class ScreenshotRun {
         then(20, Minecraft::stop);
     }
 
+    /** -PshotsWorld=journal: the Lucky Journal, part filled in, with an effect picked. */
+    private static final boolean JOURNAL = "journal".equals(System.getProperty("rngambling.shotsWorld"));
+
+    private static void planJournal() {
+        then(10, minecraft -> onServer(minecraft, player -> {
+            java.util.List<String> some = new java.util.ArrayList<>();
+            for (var outcome : rngambling.outcome.Outcomes.everyEffect().values()) {
+                if (outcome.tier() == rngambling.outcome.Tier.LEGENDARY || some.size() < 40) {
+                    some.add(outcome.id());
+                }
+            }
+            player.setData(RNGambling.SEEN_EFFECTS, java.util.List.copyOf(some));
+        }));
+        then(20, minecraft -> minecraft.setScreen(new rngambling.client.JournalScreen()));
+        then(10, minecraft -> shot(minecraft, "50-journal-open"));
+        then(5, minecraft -> ((rngambling.client.JournalScreen) minecraft.screen).select(0, 0, 1));
+        then(10, minecraft -> shot(minecraft, "51-journal-legendary"));
+        then(5, minecraft -> ((rngambling.client.JournalScreen) minecraft.screen).select(6, 0, 0));
+        then(10, minecraft -> shot(minecraft, "52-journal-catastrophic"));
+        then(20, Minecraft::stop);
+    }
+
     /** -PshotsWorld=games: the Higher or Lower table and the Creeper Field, in the world and played. */
     private static final boolean GAMES = "games".equals(System.getProperty("rngambling.shotsWorld"));
 
@@ -899,6 +921,10 @@ public final class ScreenshotRun {
         }
         if (CASINO) {
             planCasino();
+            return;
+        }
+        if (JOURNAL) {
+            planJournal();
             return;
         }
         if (GAMES) {

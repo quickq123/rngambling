@@ -1,0 +1,103 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 2.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:empty",
+          "weight": 10
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:casino_token",
+          "weight": 20,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 4,
+                "max": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:token_pile",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "weight": 8,
+          "functions": [
+            {
+              "function": "minecraft:set_potion",
+              "id": "minecraft:luck"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "weight": 6,
+          "functions": [
+            {
+              "function": "minecraft:set_potion",
+              "id": "rngambling:strong_luck"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:safe_lucky_block",
+          "weight": 6,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:extreme_lucky_block",
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:blessed_lucky_block",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:four_leaf_clover",
+          "weight": 4
+        },
+        {
+          "type": "minecraft:item",
+          "name": "rngambling:golden_horseshoe",
+          "weight": 2
+        }
+      ]
+    }
+  ],
+  "random_sequence": "rngambling:chests/lucky_treasure"
+}

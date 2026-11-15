@@ -60,6 +60,24 @@ public final class EffectCommands {
                         .then(Commands.literal("play").then(effect))
                         .then(roll)
                         .then(list)));
+        // /rngambling journal reveal|reset [player]: every effect marked as had, or none (for testing the Lucky Journal).
+        for (String action : new String[] {"reveal", "reset"}) {
+            boolean all = action.equals("reveal");
+            dispatcher.register(Commands.literal("rngambling")
+                    .then(Commands.literal("journal")
+                            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                            .then(Commands.literal(action)
+                                    .executes(context -> journal(context.getSource(), self(context), all))
+                                    .then(Commands.argument("player", EntityArgument.player())
+                                            .executes(context -> journal(context.getSource(), EntityArgument.getPlayer(context, "player"), all))))));
+        }
+    }
+
+    private static int journal(CommandSourceStack source, ServerPlayer player, boolean all) {
+        Journal.setAll(player, all);
+        source.sendSuccess(() -> Component.translatable(all ? "commands.rngambling.journal.reveal" : "commands.rngambling.journal.reset",
+                player.getDisplayName()), true);
+        return 1;
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, Integer> luck() {

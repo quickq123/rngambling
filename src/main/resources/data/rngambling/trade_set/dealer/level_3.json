@@ -3,6 +3,7 @@
   "random_sequence": "rngambling:trade_set/dealer/level_3",
   "trades": [
     "rngambling:dealer/3/tokens_extreme_lucky_block",
-    "rngambling:dealer/3/tokens_golden_horseshoe"
+    "rngambling:dealer/3/tokens_golden_horseshoe",
+    "rngambling:dealer/3/tokens_splash_bad_luck"
   ]
 }

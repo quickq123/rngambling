@@ -116,6 +116,13 @@ public final class RNGambling {
             ATTACHMENTS.register("sandbox_death", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> rngambling.outcome.SandboxDeaths.Kit.EMPTY)
                     .serialize(rngambling.outcome.SandboxDeaths.Kit.CODEC, kit -> !kit.isEmpty()).copyOnDeath().build());
 
+    /** The Lucky Journal: the effects a player has had (see rngambling.outcome.Journal). Kept through death, sent to their game. */
+    public static final DeferredHolder<net.neoforged.neoforge.attachment.AttachmentType<?>, net.neoforged.neoforge.attachment.AttachmentType<java.util.List<String>>> SEEN_EFFECTS =
+            ATTACHMENTS.register("seen_effects", () -> net.neoforged.neoforge.attachment.AttachmentType.<java.util.List<String>>builder(() -> java.util.List.of())
+                    .serialize(Codec.STRING.listOf().fieldOf("seen"), seen -> !seen.isEmpty())
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8.apply(net.minecraft.network.codec.ByteBufCodecs.list()))
+                    .copyOnDeath().build());
+
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
@@ -153,6 +160,9 @@ public final class RNGambling {
     public static final DeferredItem<Item> CASINO_TOKEN = ITEMS.registerSimpleItem("casino_token");
     /** Nine Casino Tokens, crafted together (and back apart), for the dealer's dearest trades. */
     public static final DeferredItem<Item> TOKEN_PILE = ITEMS.registerSimpleItem("token_pile");
+    /** Opens the Lucky Journal (every effect; the ones you've had, explained). Book + Casino Token. */
+    public static final DeferredItem<rngambling.item.LuckyJournalItem> LUCKY_JOURNAL = ITEMS.registerItem("lucky_journal",
+            rngambling.item.LuckyJournalItem::new, () -> new Item.Properties().stacksTo(1));
 
     /**
      * Creative only: worn as a helmet, shows every nearby lucky block's luck through walls.
@@ -277,6 +287,7 @@ public final class RNGambling {
                         }
                         output.accept(CASINO_TOKEN.get());
                         output.accept(TOKEN_PILE.get());
+                        output.accept(LUCKY_JOURNAL.get());
                         output.accept(FOUR_LEAF_CLOVER.get());
                         output.accept(GOLDEN_HORSESHOE.get());
                         output.accept(LUCKY_SEVEN.get());

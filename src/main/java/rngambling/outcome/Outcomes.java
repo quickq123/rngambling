@@ -175,11 +175,13 @@ public final class Outcomes {
      * Sent before the effect plays, so effects with a message of their own follow it.
      */
     static void announce(ServerPlayer player, Outcome outcome) {
+        Journal.broadcast(player, outcome);
         player.sendSystemMessage(Component.translatable("outcome.rngambling.announce").withStyle(net.minecraft.ChatFormatting.GOLD)
                 .append(Component.translatable("outcome.rngambling." + outcome.id()).withStyle(outcome.tier().colour, net.minecraft.ChatFormatting.BOLD))
                 .append(Component.literal(": ").withStyle(net.minecraft.ChatFormatting.GRAY))
                 .append(Component.translatable("outcome.rngambling." + outcome.id() + ".quip")
                         .withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC)));
+        Journal.record(player, outcome);
     }
 
     /** Every effect there is: the catalog's and every theme's own, by id. */

@@ -461,6 +461,29 @@ def creeper_field_top():
     return px
 
 
+def lucky_journal():
+    """A leather-bound book with a gold clasp and a green four-leaf clover on the cover."""
+    leather, dark, page, gold, green = (122, 72, 36), (82, 46, 22), (236, 228, 204), (232, 186, 64), (60, 170, 70)
+    px = [[None] * 16 for _ in range(16)]
+    for y in range(2, 15):
+        for x in range(3, 14):
+            px[y][x] = leather
+        px[y][3] = dark
+        px[y][13] = page
+    for x in range(4, 14):
+        px[14][x] = page
+        px[2][x] = shade(leather, 15)
+    for (cx, cy) in ((8, 6), (10, 8), (8, 10), (6, 8)):
+        for dy in (-1, 0):
+            for dx in (-1, 0):
+                px[cy + dy][cx + dx] = green
+    px[8][8] = px[7][7] = shade(green, -30)
+    px[11][9] = px[12][10] = shade(green, -40)
+    for y in (7, 8, 9):
+        px[y][12] = gold
+    return px
+
+
 def table_side(felt=None, felt_dark=None):
     """Dark wood with a gold trim under the felt edge."""
     felt, felt_dark = felt or FELT, felt_dark or FELT_DARK
@@ -639,6 +662,7 @@ write_png("item/luck_glasses.png", luck_glasses_item())
 write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())
 write_png("item/casino_token.png", casino_token())
+write_png("item/lucky_journal.png", lucky_journal())
 write_png("item/hot_potato.png", hot_potato())
 write_png("entity/dragon_hatchling.png", dragon_hatchling())
 print("textures written")

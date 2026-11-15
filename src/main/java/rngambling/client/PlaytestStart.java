@@ -68,6 +68,7 @@ public final class PlaytestStart {
             give(player, new ItemStack(RNGambling.FOUR_LEAF_CLOVER.get(), 2));
             give(player, new ItemStack(RNGambling.GOLDEN_HORSESHOE.get(), 1));
             give(player, new ItemStack(net.minecraft.world.item.Items.BREAD, 16));
+            give(player, new ItemStack(RNGambling.LUCKY_JOURNAL.get()));
         }
         for (String key : new String[] {"intro", "play", "roll", "list", "sandbox", "creative"}) {
             player.sendSystemMessage(Component.translatable("message.rngambling.playtest." + key)

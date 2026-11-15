@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:book",
+    "rngambling:casino_token"
+  ],
+  "result": {
+    "id": "rngambling:lucky_journal"
+  }
+}

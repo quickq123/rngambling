@@ -12,6 +12,7 @@ public final class RNGamblingConfig {
     public static final ModConfigSpec.BooleanValue GLOBAL_EFFECTS_IN_MULTIPLAYER;
     public static final ModConfigSpec.DoubleValue MAX_EXPLOSION;
     public static final ModConfigSpec.IntValue MAX_BONUS_HEARTS;
+    public static final ModConfigSpec.BooleanValue ANNOUNCE_BIG_PULLS;
     public static final ModConfigSpec.IntValue VILLAGE_CASINO_PERCENT;
     public static final ModConfigSpec.BooleanValue CASINOS_IN_MODDED_VILLAGES;
 
@@ -32,6 +33,9 @@ public final class RNGamblingConfig {
         MAX_BONUS_HEARTS = BUILDER
                 .comment("The most extra hearts Heart Container can give a player, in all.")
                 .defineInRange("max_bonus_hearts", 10, 0, 100);
+        ANNOUNCE_BIG_PULLS = BUILDER
+                .comment("true: when a player pulls a Legendary or Catastrophic effect, everyone else on the server is told in chat.")
+                .define("announce_big_pulls", true);
         BUILDER.pop();
         BUILDER.comment("Disguised lucky blocks generated in new chunks of the Overworld.").push("world_generation");
         SURFACE_RARITY = BUILDER
