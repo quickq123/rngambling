@@ -209,7 +209,7 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 | Mob Arena Waves (VBD-16) | walled arena, three waves (zombies and skeletons; spiders and a creeper; vindicators, witches, husks, strays) | 10 s after the last wave, with iron, emeralds and golden apples (5 min) |
 | Skyblock Strand (VBD-17) | 3x3 island 90 up, the exit island 18 away; 24 cobblestone | the way out; falling fails |
 | Drowned Pit (VBD-24) | 18-deep flooded pit, 4 Drowned with tridents | the way out on a ledge at the top (2 min) |
-| Treasure Vault (VGD-09) | honeycomb-walled room (gold to look at, worthless to mine), 6 loot chests | 40 s timer bar (or the way out) |
+| Treasure Vault (VGD-09) | gold-block room, 6 loot chests; only the chests can be broken (true of every room unless it says otherwise), so the gold stays put | 40 s timer bar (or the way out) |
 | Parkour Course (VGD-10) | 14 jumps in the sky, an End City chest at the end | the way out; falling fails, and you keep nothing |
 | Puzzle Vault (VGD-11) | 5 levers, 5 lamps: each lever flips its lamp and its neighbours'; light them all and the vault door opens to an End City chest | the way out in the vault (4 min) |
 | Treasure Island (LEG-06) | sand island with palms and a moat, 4 treasure chests; anything can be broken | 3 min timer bar |

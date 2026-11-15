@@ -783,11 +783,11 @@ public final class Rooms {
 
     // ======================= Very good =======================
 
-    /** VGD-09: a gold-lined vault of loot chests; 60 seconds to grab what you can. */
+    /** VGD-09: a gold-lined vault of loot chests (only the chests can be broken); 40 seconds to grab what you can. */
     public static final class TreasureVault extends Room {
         @Override
         protected Vec3 build() {
-            box(-6, -1, -6, 6, 6, 6, Blocks.HONEYCOMB_BLOCK, true);
+            box(-6, -1, -6, 6, 6, 6, Blocks.GOLD_BLOCK, true);
             for (int x = -4; x <= 4; x += 4) {
                 set(x, 6, 0, Blocks.GLOWSTONE);
             }
@@ -829,7 +829,7 @@ public final class Rooms {
                 z -= 2 + random.nextInt(2);
                 x += random.nextInt(3) - 1;
                 y += random.nextInt(3) == 0 ? 1 : 0;
-                set(x, y, z, jump % 3 == 2 ? Blocks.YELLOW_CONCRETE : Blocks.QUARTZ_BLOCK);
+                set(x, y, z, jump % 3 == 2 ? Blocks.GOLD_BLOCK : Blocks.QUARTZ_BLOCK);
             }
             z -= 3;
             box(x - 1, y, z - 2, x + 1, y, z, Blocks.QUARTZ_BLOCK, false);
@@ -874,8 +874,8 @@ public final class Rooms {
         protected Vec3 build() {
             box(-6, -1, -6, 6, 6, 10, Blocks.QUARTZ_BLOCK, true);
             box(-5, 0, 5, 5, 5, 5, Blocks.QUARTZ_BLOCK, false); // the wall between the room and the reward chamber
-            set(0, 0, 5, Blocks.CHISELED_STONE_BRICKS);
-            set(0, 1, 5, Blocks.CHISELED_STONE_BRICKS);
+            set(0, 0, 5, Blocks.IRON_BLOCK);
+            set(0, 1, 5, Blocks.IRON_BLOCK);
             chest(0, 0, 8, LEGENDARY_CHEST);
             exit(2, 0, 8);
             set(-3, 5, 0, Blocks.GLOWSTONE);
