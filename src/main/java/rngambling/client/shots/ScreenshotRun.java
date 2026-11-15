@@ -531,8 +531,10 @@ public final class ScreenshotRun {
                     counts[0]++;
                     counts[1] += casinos > 0 ? 1 : 0;
                     counts[2] += (int) casinos;
-                    LOGGER.info("Screenshot run: {} at {}: {} pieces, {} casino(s)", found.getSecond().getRegisteredName(),
-                            found.getFirst().toShortString(), start.getPieces().size(), casinos);
+                    LOGGER.info("Screenshot run: {} at {}: {} pieces, {} casino(s) {}", found.getSecond().getRegisteredName(),
+                            found.getFirst().toShortString(), start.getPieces().size(), casinos, start.getPieces().stream()
+                                    .map(Object::toString).filter(t -> t.contains("rngambling:village"))
+                                    .map(t -> t.replaceAll(".*rngambling:village/[a-z]+/casino_([a-z_]+).*", "$1")).toList());
                 }
             }));
         }

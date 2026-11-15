@@ -85,6 +85,7 @@ public final class Rooms {
     public static final class EmpoweredWither extends Room {
         private WitherBoss wither;
         private int rewardAt = -1;
+        private boolean toppedUp;
 
         @Override
         protected Vec3 build() {
@@ -116,6 +117,12 @@ public final class Rooms {
         @Override
         protected void tick(int age) {
             boolean alive = wither != null && wither.isAlive();
+            // Vanilla's charge-up drops a Wither to a third of its health and heals only about 220 back,
+            // which would leave this one at about 420 of 600: top it up as the fight starts.
+            if (alive && !toppedUp && age > 1 && wither.getInvulnerableTicks() <= 0) {
+                wither.setHealth(wither.getMaxHealth());
+                toppedUp = true;
+            }
             if (alive && age % 400 == 399) {
                 spawn(EntityType.WITHER_SKELETON, wither.getX() - centre.getX() - 1, 0, wither.getZ() - centre.getZ());
                 spawn(EntityType.WITHER_SKELETON, wither.getX() - centre.getX() + 1, 0, wither.getZ() - centre.getZ());

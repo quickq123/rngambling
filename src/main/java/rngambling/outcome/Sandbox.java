@@ -274,6 +274,10 @@ public final class Sandbox {
             }
         }
         ServerPlayer holder = player != null ? player : server.getPlayerList().getPlayer(session.player());
+        if (holder != null && session.room() != null && !keepLoot) {
+            // Failed a room that keeps its loot: what was picked up there doesn't come home either.
+            session.room().takeBackLoot(holder);
+        }
         if (holder != null) {
             // Items a room handed out exist only for the visit.
             var inventory = holder.getInventory();

@@ -1,6 +1,6 @@
 """Makes the village casinos: each village type's vanilla Fletcher House, with its fletching
-table swapped for a casino game. Three of each: a Slot Machine (facing into the room), a
-Roulette Table and a Blackjack Table. Standard library only.
+table swapped for a casino game. Five of each: a Slot Machine (facing into the room), a
+Roulette Table, a Blackjack Table, a Higher or Lower Table and a Creeper Field. Standard library only.
 
 The vanilla houses are read from Minecraft's jar, extracted to a folder mounted at /vanilla:
   unzip -j <minecraft jar> 'data/minecraft/structure/village/*/houses/*_fletcher_house_1.nbt' -d <folder>
@@ -103,7 +103,8 @@ def save(path, name, root):
 SIDES = {"north": (0, 0, -1), "south": (0, 0, 1), "west": (-1, 0, 0), "east": (1, 0, 0)}
 
 
-GAMES = {"slots": "rngambling:slot_machine", "roulette": "rngambling:roulette_table", "blackjack": "rngambling:blackjack_table"}
+GAMES = {"slots": "rngambling:slot_machine", "roulette": "rngambling:roulette_table", "blackjack": "rngambling:blackjack_table",
+         "higher_lower": "rngambling:higher_lower_table", "creeper_field": "rngambling:creeper_field"}
 
 
 def make_casino(village, game):

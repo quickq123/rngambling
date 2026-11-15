@@ -76,6 +76,35 @@ public final class RNGamblingGameTests {
         ServerPlayer player = player(helper, GameType.SURVIVAL);
         BlockPos origin = helper.absolutePos(BlockPos.ZERO);
         try {
+            // Parkour Course: a fall takes back what was picked up, and leaves what was brought.
+            player.getInventory().clearContent();
+            player.getInventory().setItem(0, new ItemStack(net.minecraft.world.item.Items.BREAD, 5));
+            var parkour = new rngambling.outcome.Rooms.ParkourCourse();
+            parkour.buildAt(level, new BlockPos(origin.getX() + 3400, 0, origin.getZ()), player, 0);
+            player.getInventory().setItem(0, ItemStack.EMPTY); // moved about: brought bread now in another slot, with more
+            player.getInventory().setItem(7, new ItemStack(net.minecraft.world.item.Items.BREAD, 8));
+            player.getInventory().setItem(3, new ItemStack(net.minecraft.world.item.Items.DIAMOND, 4));
+            int taken = parkour.takeBackLoot(player);
+            helper.assertTrue(taken == 7 && player.getInventory().countItem(net.minecraft.world.item.Items.BREAD) == 5
+                    && player.getInventory().countItem(net.minecraft.world.item.Items.DIAMOND) == 0,
+                    "a fall should take the diamonds and the extra bread: took " + taken);
+            player.getInventory().clearContent();
+
+            // Empowered Wither: full health (600) once its charge-up ends, not vanilla's third plus what it heals.
+            var empowered = new rngambling.outcome.Rooms.EmpoweredWither();
+            empowered.buildAt(level, new BlockPos(origin.getX() + 3800, 0, origin.getZ()), player, 0);
+            var withers = level.getEntitiesOfClass(net.minecraft.world.entity.boss.wither.WitherBoss.class,
+                    new AABB(new BlockPos(origin.getX() + 3800, 0, origin.getZ())).inflate(20));
+            helper.assertTrue(withers.size() == 1, "one Empowered Wither");
+            var wither = withers.get(0);
+            wither.setHealth(420); // as vanilla's charge-up would leave it
+            wither.setInvulnerableTicks(0);
+            empowered.tickForTest(222);
+            helper.assertTrue(wither.getHealth() == wither.getMaxHealth() && wither.getMaxHealth() == 600,
+                    "the Empowered Wither should start the fight at 600: " + wither.getHealth() + "/" + wither.getMaxHealth());
+            wither.discard();
+            empowered.endForTest();
+
             // Void Platform: stand still at the start.
             var platform = new rngambling.outcome.Rooms.VoidPlatform();
             BlockPos centre = new BlockPos(origin.getX() + 2600, 0, origin.getZ());
@@ -280,7 +309,7 @@ public final class RNGamblingGameTests {
 
         var pools = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TEMPLATE_POOL);
         // How often, and in which style other mods' villages get them.
-        helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(87, 6) == 2, "6% of vanilla's plains houses is about 2 per game");
+        helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(87, 6) == 1, "6% of vanilla's plains houses is about 1 per game (five games)");
         helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(87, 0) == 0, "0% turns casinos off");
         helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(10, 1) == 1, "any percent gives at least 1 each");
         helper.assertTrue("desert".equals(rngambling.casino.CasinoHouses.styleFor("mesa_fortified")), "a mesa village gets the desert style");
@@ -292,7 +321,7 @@ public final class RNGamblingGameTests {
         for (String village : new String[] {"plains", "desert", "savanna", "snowy", "taiga"}) {
             var pool = pools.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + village + "/houses"));
             net.minecraft.world.level.block.Block[] machines = {RNGambling.SLOT_MACHINE.get(), RNGambling.ROULETTE_TABLE.get(),
-                    RNGambling.BLACKJACK_TABLE.get()};
+                    RNGambling.BLACKJACK_TABLE.get(), RNGambling.HIGHER_LOWER_TABLE.get(), RNGambling.CREEPER_FIELD.get()};
             for (int g = 0; g < rngambling.casino.CasinoHouses.GAMES.length; g++) {
                 String name = "village/" + village + "/casino_" + rngambling.casino.CasinoHouses.GAMES[g];
                 helper.assertTrue(pool.templates.stream().anyMatch(e -> e.toString().contains("rngambling:" + name)),
@@ -372,7 +401,7 @@ public final class RNGamblingGameTests {
         ServerPlayer player = player(helper, GameType.SURVIVAL);
         try {
             net.minecraft.world.level.block.Block[] machines = {RNGambling.SLOT_MACHINE.get(), RNGambling.ROULETTE_TABLE.get(),
-                    RNGambling.BLACKJACK_TABLE.get()};
+                    RNGambling.BLACKJACK_TABLE.get(), RNGambling.HIGHER_LOWER_TABLE.get(), RNGambling.CREEPER_FIELD.get()};
             for (int i = 0; i < machines.length; i++) {
                 BlockPos pos = new BlockPos(1 + 2 * i, 1, 1);
                 helper.setBlock(pos, machines[i]);

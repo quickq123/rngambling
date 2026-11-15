@@ -43,7 +43,7 @@ public final class CasinoHouses {
             "savanna", "minecraft:empty",
             "snowy", "minecraft:empty");
     /** The variants, one per game. */
-    public static final String[] GAMES = {"slots", "roulette", "blackjack"};
+    public static final String[] GAMES = {"slots", "roulette", "blackjack", "higher_lower", "creeper_field"};
     /** {@code village/<type>/house} or {@code houses}, in any namespace (vanilla's zombie variants are deeper, so they're left alone). */
     private static final Pattern HOUSE_POOL = Pattern.compile("village/([a-z0-9_]+)/houses?");
     /** Village types whose houses don't stand on ordinary ground (up trees, underground, underwater): a casino wouldn't fit. */

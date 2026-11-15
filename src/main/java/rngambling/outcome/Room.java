@@ -58,6 +58,49 @@ public abstract class Room {
         this.player = player;
         this.random = level.getRandom();
         this.luck = luck;
+        broughtIn.clear();
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (!stack.isEmpty()) {
+                broughtIn.add(stack.copy());
+            }
+        }
+    }
+
+    /** What the player carried in, for rooms whose failure sends them home with nothing new. */
+    private final java.util.List<ItemStack> broughtIn = new java.util.ArrayList<>();
+
+    /**
+     * After a failure in a room that doesn't keep its loot: takes from the player's inventory
+     * whatever they didn't bring in (by item and its components, count by count). What they brought
+     * stays, wherever it is in their inventory now. Returns how many items were taken.
+     */
+    public int takeBackLoot(ServerPlayer player) {
+        java.util.List<ItemStack> allowance = new java.util.ArrayList<>();
+        for (ItemStack stack : broughtIn) {
+            allowance.add(stack.copy());
+        }
+        int taken = 0;
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            int keep = 0;
+            for (ItemStack allowed : allowance) {
+                if (keep < stack.getCount() && !allowed.isEmpty() && ItemStack.isSameItemSameComponents(allowed, stack)) {
+                    int take = Math.min(allowed.getCount(), stack.getCount() - keep);
+                    allowed.shrink(take);
+                    keep += take;
+                }
+            }
+            if (keep < stack.getCount()) {
+                taken += stack.getCount() - keep;
+                inventory.setItem(slot, keep == 0 ? ItemStack.EMPTY : stack.copyWithCount(keep));
+            }
+        }
+        return taken;
     }
 
     /** Builds the room and returns where the player starts. */
@@ -93,7 +136,10 @@ public abstract class Room {
         return false;
     }
 
-    /** Whether items left in the room come home with the player (not after falling off a parkour course). */
+    /**
+     * Whether the room's loot comes home with the player: items left in the arena, and items they
+     * picked up (false: both are taken back, see {@link #takeBackLoot}; not after falling off a parkour course).
+     */
     protected boolean keepsLoot(boolean success) {
         return true;
     }

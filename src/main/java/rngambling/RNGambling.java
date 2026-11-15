@@ -254,6 +254,8 @@ public final class RNGambling {
                     .addAll(SLOT_MACHINE.get().getStateDefinition().getPossibleStates())
                     .addAll(ROULETTE_TABLE.get().getStateDefinition().getPossibleStates())
                     .addAll(BLACKJACK_TABLE.get().getStateDefinition().getPossibleStates())
+                    .addAll(HIGHER_LOWER_TABLE.get().getStateDefinition().getPossibleStates())
+                    .addAll(CREEPER_FIELD.get().getStateDefinition().getPossibleStates())
                     .build(), 1, 1));
 
     private static final DeferredRegister<VillagerProfession> PROFESSIONS = DeferredRegister.create(Registries.VILLAGER_PROFESSION, MOD_ID);
@@ -306,6 +308,14 @@ public final class RNGambling {
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
                         output.accept(HOT_POTATO.get());
+                        // Luck potions (see PlayerLuck): Luck I is vanilla's, the rest are this mod's.
+                        for (net.minecraft.world.item.Item bottle : new net.minecraft.world.item.Item[] {net.minecraft.world.item.Items.POTION,
+                                net.minecraft.world.item.Items.SPLASH_POTION, net.minecraft.world.item.Items.LINGERING_POTION}) {
+                            for (net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> potion : java.util.List.<net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>>of(
+                                    net.minecraft.world.item.alchemy.Potions.LUCK, STRONG_LUCK, BAD_LUCK, STRONG_BAD_LUCK)) {
+                                output.accept(net.minecraft.world.item.alchemy.PotionContents.createItemStack(bottle, potion));
+                            }
+                        }
                     })
                     .build());
 

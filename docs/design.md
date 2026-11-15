@@ -228,7 +228,7 @@ Sandbox, pictures it and leaves by its way out.
 ### Higher or Lower and Creeper Field (done)
 
 Two games that aren't from a real casino, each its own block (craftable with a Pile of Tokens in
-the middle, and in the Casino Invitation room; village casinos keep the first three games).
+the middle, in the Casino Invitation room, and in village casinos like the others).
 Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs little.
 
 - **Pots, not multipliers:** the screen shows tokens throughout ("Higher: 25", "Next block:
@@ -318,7 +318,7 @@ level minus Bad Luck's, each counted up to II, so -2 to +2.
   itself when broken and works wherever it's placed, so a player can take the games home (game test
   `machines_drop_themselves`). Every machine is a Casino Dealer job site.
 - **Casino buildings** (done): each village type's vanilla Fletcher House with its fletching
-  table swapped for a casino game, in three variants: Slot Machine (facing into the room),
+  table swapped for a casino game, in five variants (Higher or Lower and Creeper Field too): Slot Machine (facing into the room),
   Roulette Table and Blackjack Table (`tools/make_structures.py` makes them from the vanilla
   files; `CasinoHouses` adds them to the village house pools as the server starts). How often is
   `village_casino_percent` in `rngambling-common.toml`: the casinos' share of each house pool's
