@@ -258,7 +258,7 @@ Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs
   the chat line and a description of what they do (`outcome.rngambling.<id>.desc`, generated
   from the effect guide); the rest are "???". Kept through death; synced to the player's game.
   Admin: `/rngambling journal reveal|reset [player]`.
-- **Variety** (`Variety`, config `vary_effects`, default on): each player's tally of how often
+- **Variety** (`Variety`, config `variety_strength`, 0-5, default 1; 0 is off): each player's tally of how often
   and how recently each effect has happened to them. Within a tier (never across tiers: which
   tier comes up is luck alone), an effect's weight is multiplied by 1 / (1 + 5 x recent + 0.6 x
   times), where recent adds 0.85^(draws since) for its last four occurrences; at least 0.1, so

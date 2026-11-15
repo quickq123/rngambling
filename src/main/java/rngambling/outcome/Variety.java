@@ -65,17 +65,27 @@ public record Variety(int draws, Map<String, Entry> effects) {
         return entry == null ? 0 : entry.total();
     }
 
-    /** What this effect's weight is multiplied by, for this player, at their next draw. */
+    /** What this effect's weight is multiplied by, for this player, at their next draw (at strength 1). */
     public double factor(String id) {
+        return factor(id, 1.0);
+    }
+
+    /**
+     * The same at a strength (config {@code variety_strength}): 0 leaves every weight alone, 1 is
+     * the default, and higher pushes repeats further down. Both pulls scale with it, and so does the
+     * floor (0.1 up to strength 1, then 0.1 / strength), so a strong setting can make a repeat rare.
+     */
+    public double factor(String id, double strength) {
         Entry entry = effects.get(id);
-        if (entry == null) {
+        if (entry == null || strength <= 0) {
             return 1.0;
         }
         double recent = 0;
         for (int at : entry.recent()) {
             recent += Math.pow(RECENT_DECAY, Math.max(0, draws - at));
         }
-        return Math.max(FLOOR, 1.0 / (1.0 + RECENT_WEIGHT * recent + TOTAL_WEIGHT * entry.total()));
+        double floor = FLOOR / Math.max(1.0, strength);
+        return Math.max(floor, 1.0 / (1.0 + strength * (RECENT_WEIGHT * recent + TOTAL_WEIGHT * entry.total())));
     }
 
     /** After a draw: one more draw, and one more of this effect. */

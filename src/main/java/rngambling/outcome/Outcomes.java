@@ -212,11 +212,12 @@ public final class Outcomes {
 
     /** A player's variety factors (see {@link Variety}), or none if the config turns it off. */
     public static java.util.function.ToDoubleFunction<Outcome> variety(ServerPlayer player) {
-        if (!rngambling.RNGamblingConfig.VARY_EFFECTS.getAsBoolean()) {
+        double strength = rngambling.RNGamblingConfig.VARIETY_STRENGTH.getAsDouble();
+        if (strength <= 0) {
             return PLAIN;
         }
         Variety variety = player.getData(rngambling.RNGambling.VARIETY);
-        return outcome -> variety.factor(outcome.id());
+        return outcome -> variety.factor(outcome.id(), strength);
     }
 
     /** Counts a drawn effect towards the player's variety. */

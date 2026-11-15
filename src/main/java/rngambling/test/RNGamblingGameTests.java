@@ -956,16 +956,21 @@ public final class RNGamblingGameTests {
         helper.assertTrue(many.factor("endermite_burst") == rngambling.outcome.Variety.FLOOR, "never below the floor: " + many.factor("endermite_burst"));
         helper.assertTrue(many.times("endermite_burst") == 101, "counted");
 
-        // 300 draws in a row by one player at luck 0, with and without variety: more different effects, fewer quick repeats.
-        int[] distinct = new int[2], repeats = new int[2];
-        for (int mode = 0; mode < 2; mode++) for (int seed = 0; seed < 10; seed++) {
+        helper.assertTrue(once.factor("endermite_burst", 0) == 1.0, "strength 0 is off");
+        helper.assertTrue(many.factor("endermite_burst", 5) == rngambling.outcome.Variety.FLOOR / 5, "the floor shrinks at high strength");
+
+        // 300 draws in a row by ten players at luck 0, at each strength: more different effects, fewer quick repeats, the stronger it is.
+        double[] strengths = {0, 0.5, 1, 2, 5};
+        int[] distinct = new int[strengths.length], repeats = new int[strengths.length];
+        for (int mode = 0; mode < strengths.length; mode++) for (int seed = 0; seed < 10; seed++) {
+            double strength = strengths[mode];
             RandomSource random = RandomSource.create(seed);
             var tally = rngambling.outcome.Variety.EMPTY;
             java.util.Set<String> seen = new java.util.HashSet<>();
             java.util.List<String> lastTen = new java.util.ArrayList<>();
             for (int i = 0; i < 300; i++) {
                 var current = tally;
-                Outcome drawn = Outcomes.pick(random, 0, Outcomes.ALL, mode == 0 ? Outcomes.PLAIN : o -> current.factor(o.id()));
+                Outcome drawn = Outcomes.pick(random, 0, Outcomes.ALL, o -> current.factor(o.id(), strength));
                 if (i < 100) {
                     seen.add(drawn.id());
                 }
@@ -978,9 +983,13 @@ public final class RNGamblingGameTests {
             }
             distinct[mode] += seen.size();
         }
-        LOGGER.info("Variety (10 players): different effects in the first 100 draws {} plain, {} varied; repeats within 10 draws over 300: {} plain, {} varied",
-                distinct[0], distinct[1], repeats[0], repeats[1]);
-        helper.assertTrue(distinct[1] > distinct[0] && repeats[1] < repeats[0], "variety should spread the draws");
+        for (int mode = 0; mode < strengths.length; mode++) {
+            LOGGER.info("Variety strength {} (10 players): {} different effects in their first 100 draws, {} repeats within 10 draws over 300",
+                    strengths[mode], distinct[mode] / 10.0, repeats[mode] / 10.0);
+        }
+        for (int mode = 1; mode < strengths.length; mode++) {
+            helper.assertTrue(repeats[mode] < repeats[mode - 1], "stronger variety, fewer repeats: " + java.util.Arrays.toString(repeats));
+        }
 
         // A real roll counts towards the player's tally.
         ServerPlayer player = player(helper, GameType.SURVIVAL);
