@@ -25,14 +25,19 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (177 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (178 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
   Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
   **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
-  **Casino Invitation** (GOD-31, a casino room in the Sandbox).
+  **Casino Invitation** (GOD-31, a casino room in the Sandbox), and **Lucky Sense** (GOD-32).
+- **Past the limits:** the best gear goes beyond vanilla's enchantment levels: Netherite Armor
+  Set (Protection VI, Unbreaking V), God Sword (Sharpness VII, Looting IV, Fire Aspect III,
+  Mending), Perfect Pickaxe (Efficiency VII, Fortune IV, Unbreaking V, Mending), Elytra &
+  Rockets (Unbreaking V), Enchanted Bow (Power VI, Punch II, Infinity, Flame), and Genie's Wish's
+  sword, pickaxe, elytra, trident (Impaling VII) and mace (Density VII, Wind Burst II).
 - **Grief:** explosions and fire happen in the world. Effects that build or place blocks (or
-  would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop, The
-  Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
+  would tear a lot up, like a Wither) go to the Sandbox. Effects that dig (Trapdoor Drop: a 2x2 shaft
+  under where the player stands, so it can't miss a player between blocks; The Crater) only dig natural ground (stone, dirt, sand, gravel...), never what players built.
   Effects that put blocks into empty space and take them away again (Melting Ice Prison,
   Jukebox) and chain effects (more lucky blocks, only into empty space) stay in the world.
 - **Chains:** effects that place lucky blocks (Echo Blocks, Bonus Lucky Blocks, Lucky Fountain,
@@ -50,11 +55,12 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
     other mods' block-transport tools keep their saved luck. The creative tab's fixed-luck
     test blocks keep their luck only when a creative player places them.
   - **Disguised** (`mimic_lucky_block`, done): draws the block it
-    copies, 12% darker (`MimicTint.SHADE`), including a copied block's own tint such as grass
+    copies, 24% darker (`MimicTint.SHADE`), including a copied block's own tint such as grass
     colour. Dark blocks, whose texture averages below 0.36 brightness (`MimicLook.DARK_BELOW`:
     deepslate 0.32, basalt, blackstone, obsidian, mud, dark planks; stone is 0.49), are drawn
-    lighter instead, by a faint white overlay (`block/mimic_lighten`, 7% opaque: about as
-    noticeable on deepslate as 12% darkening is on stone), since
+    lighter instead, by a faint white overlay (`block/mimic_lighten`, 14% opaque: about as
+    noticeable on deepslate as 24% darkening is on stone; both doubled after survival play,
+    when grass-topped disguises were too hard to spot), since
     a tint can only darken and darkening a dark texture barely shows. It also sounds, mines and resists explosions like the copied block, and creative
     middle-click gives the copied block. Only plain, full, solid, opaque blocks without a block
     entity can be copied. Its luck is rolled by the luck zone it's in (below), by world
@@ -112,6 +118,7 @@ In `rngambling.outcome.CustomEffects` (first versions, to tune in playtesting):
 | Mob Shuffle (NEU-21) | wild mobs within 16 blocks swap for another of their kind (hostile for hostile, animal for animal); never pets, named or leashed mobs, villagers, golems or bosses |
 | Ghost Block (NEU-24) | the lucky block comes back: hit, it vanishes and reappears, three times; then it breaks into a fresh roll |
 | Ore Vision (GOD-17) | ores within 16 blocks (up to 300) glow through walls for a minute, coloured by ore |
+| Lucky Sense (GOD-32) | lucky blocks within 64 blocks (up to 100, disguised ones too) glow through walls for two minutes, coloured by luck (red bad, white even, green good); found through loaded chunks' block entities |
 | Mystery Item (GOD-29), Mystery Treasure (LEG-19) | one / three random items that can be crafted or found (recipes, loot tables, natural blocks' drops; any mod's), less `#rngambling:lucky_blacklist`; rebuilt after /reload (about 1,230 items in vanilla) |
 | Villager Friends (VGD-19) | a master librarian (Mending, Unbreaking III, Efficiency V, Protection IV books) and a master toolsmith (diamonds, enchanted diamond tools and chestplate), trades fixed |
 | Genie's Wish (LEG-09) | a window with three of twelve Legendary items; click one. Closing it grants one at random |
@@ -216,14 +223,24 @@ Sandbox, pictures it and leaves by its way out.
 
 ## The casino
 
-- **Casino machines can't be crafted: they have to be found.** Each drops itself when broken
-  and works wherever it's placed, so a player can take the games home (game test
+- **Casino machines can be found or crafted**, each recipe with a Pile of Tokens (9 tokens) in the
+  middle: Slot Machine (iron ingots, glass pane, redstone, an iron block), Roulette Table (red
+  and black wool, gold ingots, planks), Blackjack Table (green wool, paper, planks). Each drops
+  itself when broken and works wherever it's placed, so a player can take the games home (game test
   `machines_drop_themselves`). Every machine is a Casino Dealer job site.
 - **Casino buildings** (done): each village type's vanilla Fletcher House with its fletching
   table swapped for a casino game, in three variants: Slot Machine (facing into the room),
   Roulette Table and Blackjack Table (`tools/make_structures.py` makes them from the vanilla
-  files; `CasinoHouses` adds them to the village house pools, together at three times the
-  Fletcher House's weight). In a survey, 9 of 19 villages had a casino (some two).
+  files; `CasinoHouses` adds them to the village house pools as the server starts). How often is
+  `village_casino_percent` in `rngambling-common.toml`: the casinos' share of each house pool's
+  weight, 6 by default (what it was before it was configurable; in a survey, 9 of 19 vanilla
+  villages had a casino, some two); 15 puts one in nearly every village. With
+  `casinos_in_modded_villages` (on by default), other mods' village house pools
+  (`<mod>:village/<type>/house` or `houses`) get them too, in the nearest vanilla style by the
+  type's name (mesa to desert, christmas to snowy, mountain to taiga, anything else plains);
+  types up trees, underground or underwater are skipped. Their roads join buildings by the same
+  `minecraft:building_entrance` jigsaw. With ChoiceTheorem's Overhauled Village that's 20 of
+  its 22 village types (all but jungle_tree and underground). The log lists every pool.
 - **Slot Machine** (done): right-click to play. Bet 1 to 100 tokens (taken from the
   inventory; see Betting below), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
   decided on the server (`SlotMachine`, `SlotMachineMenu`); the win is paid as the last reel

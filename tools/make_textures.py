@@ -489,9 +489,9 @@ write_png("item/golden_horseshoe.png", golden_horseshoe())
 write_png("item/lucky_seven.png", lucky_seven())
 write_png("entity/villager/profession/dealer.png", dealer_outfit())
 write_png("entity/zombie_villager/profession/dealer.png", dealer_outfit())
-# The lightening overlay for dark disguised blocks: white at 7% (18 of 255), so a face is drawn
-# 7% of the way to white. On deepslate that's about as noticeable as the 12% darkening of stone
-# (12% looked clearly stronger).
+# The lightening overlay for dark disguised blocks: white at 14% (36 of 255), so a face is drawn
+# 14% of the way to white. On deepslate that's about as noticeable as the 24% darkening of stone
+# (doubled from 7% and 12% after survival play: grass-topped disguises were too hard to spot).
 
 def hot_potato():
     """A baked potato glowing red-hot: orange-brown skin, bright cracks, a spark on top."""
@@ -586,7 +586,7 @@ def dragon_hatchling():
     cube(0, 40, 1, 5, 8, flat(gold), flat(membrane), wing, flat(gold_dark), flat(gold_dark))
     return px
 
-write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 18)
+write_png_alpha("block/mimic_lighten.png", (255, 255, 255), 36)
 write_png("item/luck_glasses.png", luck_glasses_item())
 write_png("entity/equipment/humanoid/luck_glasses.png", luck_glasses_worn())
 write_png("item/mimic_wand.png", mimic_wand())

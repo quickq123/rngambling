@@ -56,7 +56,7 @@ BAD-05,Sand Drop,-35,-10,Bad,Hazard,Real world (light grief),6,A column of sand/
 BAD-06,Sluggish Brew,-30,-10,Bad,Status effect,Player only,7,Slowness II and Mining Fatigue II for 60 seconds.,,Vanilla only,
 BAD-07,Nausea Spin,-30,-10,Bad,Status effect,Player only,6,Nausea and Weakness for 30 seconds.,,Vanilla only,
 BAD-08,Random Teleport,-40,-10,Bad,Movement,Player only,6,Player is teleported to a random safe spot up to 50 blocks away.,Safe-spot check to avoid lava/void.,Vanilla only,
-BAD-09,Trapdoor Drop,-40,-15,Bad,Trap,Real world (light grief),5,A 10-block-deep hole opens beneath the player.,,Vanilla only,
+BAD-09,Trapdoor Drop,-40,-15,Bad,Trap,Real world (light grief),5,A 2x2 hole up to 10 blocks deep opens beneath the player.,"2x2 under where the player stands, so a player between blocks still falls. Natural ground only.",Vanilla only,
 BAD-10,Silent Creeper,-40,-20,Bad,Explosion,Real world (light grief),4,An invisible creeper spawns nearby. Listen for the hiss.,Glowing on fuse start for fairness.,Vanilla only,Vanilla creeper with Invisibility. A tick check adds Glowing once its fuse starts (getSwellDir() > 0) so players can react.
 BAD-11,Yeet Held Item,-35,-10,Bad,Penalty,Player only,6,The held item is flung 10 blocks away.,,Vanilla only,
 BAD-12,Pumpkin Head,-30,-10,Bad,Curse,Player only,6,A carved pumpkin with Curse of Binding is stuck on the player's head for 60 seconds.,"Remove automatically after timer; drop their helmet.",Vanilla only,
@@ -114,6 +114,7 @@ GOD-14,Dungeon Chest,15,40,Good,Loot,Player only,6,A chest filled from the simpl
 GOD-15,Builder's Bundle,10,30,Good,Loot,Player only,7,"Stacks of logs, stone bricks and glass.",,Vanilla only,
 GOD-16,Bloom Burst,10,30,Good,World gift,Real world (light grief),5,"Bone meal pulse: flowers and grass bloom in a radius, saplings grow.",Benign world change.,Vanilla only,
 GOD-17,Ore Vision,15,40,Good,Buff,Player only,5,Nearby ores glow through walls for 60 seconds.,"Uses glowing Block Display entities; no client rendering code.",Easy custom,"No client code: spawn vanilla Block Display entities copying each ore block within 16 blocks, with setGlowingTag(true), and remove them after 60 seconds. The glow shows through walls. Other players see it too."
+GOD-32,Lucky Sense,15,45,Good,Buff,Player only,5,"Every lucky block within 64 blocks, disguised ones too, glows through walls for two minutes, coloured by its luck.",Requested addition. Like Ore Vision; also hints at each block's luck.,Easy custom,"Glowing Block Display entities like Ore Vision's, found through the loaded chunks' block entities (not a block scan), up to 100, glow colour from the luck."
 GOD-18,Fortune Pickaxe,20,40,Good,Loot,Player only,5,Iron pickaxe with Fortune II and Efficiency II.,,Vanilla only,
 GOD-19,Lucky Rod,15,35,Good,Loot,Player only,4,Fishing rod with Luck of the Sea III and Lure II.,,Vanilla only,
 GOD-20,Ender Pearl Stash,20,40,Good,Loot,Player only,5,8 ender pearls.,,Vanilla only,
@@ -145,13 +146,13 @@ VGD-16,Lucky Fountain,50,75,Very Good,Chain,Real world (temporary),4,Three lucky
 VGD-17,Ancient Debris,55,80,Very Good,Loot,Player only,4,4 ancient debris.,,Vanilla only,
 VGD-18,Warhorse,45,75,Very Good,Companion,Player only,4,Fast horse with diamond horse armor.,,Vanilla only,
 VGD-19,Villager Friends,41,70,Very Good,Companion,Player only,4,Two villagers with strong locked trades.,,Vanilla only,
-VGD-20,Enchanted Bow,45,75,Very Good,Loot,Player only,4,"Bow with Power IV, Punch and Infinity.",,Vanilla only,
+VGD-20,Enchanted Bow,45,75,Very Good,Loot,Player only,4,"Bow with Power VI, Punch II, Infinity and Flame (past vanilla's limits).",,Vanilla only,
 VGD-21,Hero of the Village,41,70,Very Good,Buff,Player only,4,Hero of the Village V for 20 minutes.,,Vanilla only,
 VGD-22,Mob Repellent,45,75,Very Good,Buff,Player only,4,Hostile mobs won't spawn within 32 blocks for 10 minutes.,,Vanilla only,Cancel hostile mob spawns within 32 blocks of the player using the loader's spawn-check event (NeoForge: MobSpawnEvent.PositionCheck).
 VGD-23,Ocean Heart,50,80,Very Good,Loot,Player only,3,Heart of the Sea and nautilus shells for a conduit.,,Vanilla only,
-LEG-01,Netherite Armor Set,80,100,Legendary,Loot,Player only,4,Full netherite armor with Protection IV and Unbreaking III.,,Vanilla only,
-LEG-02,God Sword,85,100,Legendary,Loot,Player only,3,"Netherite sword with Sharpness V, Looting III, Fire Aspect II, Mending.",,Vanilla only,
-LEG-03,Elytra & Rockets,80,100,Legendary,Loot,Player only,4,Elytra with Unbreaking III and 64 rockets.,,Vanilla only,
+LEG-01,Netherite Armor Set,80,100,Legendary,Loot,Player only,4,Full netherite armor with Protection VI and Unbreaking V (past vanilla's limits).,,Vanilla only,
+LEG-02,God Sword,85,100,Legendary,Loot,Player only,3,"Netherite sword with Sharpness VII, Looting IV, Fire Aspect III, Mending (past vanilla's limits).",,Vanilla only,
+LEG-03,Elytra & Rockets,80,100,Legendary,Loot,Player only,4,Elytra with Unbreaking V and 64 rockets.,,Vanilla only,
 LEG-04,Complete Beacon,85,100,Legendary,Loot,Player only,3,Beacon plus enough iron blocks for a full pyramid.,,Vanilla only,
 LEG-05,Nether Star,76,100,Legendary,Loot,Player only,3,One nether star.,,Vanilla only,
 LEG-06,Treasure Island,76,100,Legendary,Sandbox reward,Sandbox,4,Tropical island scattered with loot chests. 3 minutes to explore.,,Structure (.nbt),"Build the room in a creative test world, save it with a Structure Block to .nbt, ship it in data/<modid>/structure/, and place it in the sandbox dimension with StructureTemplate.placeInWorld. Spawn the vanilla mobs after placing it."
@@ -162,7 +163,7 @@ LEG-10,Lucky Piñata,80,100,Legendary,Chain,Real world (temporary),3,Ten lucky b
 LEG-11,Phoenix Blessing,80,100,Legendary,Buff,Player only,3,"One-time auto-revive on death, with fire burst.",Stored as a player attachment.,Easy custom,"A boolean data attachment on the player. On the death event, if it's true: cancel the death, set health to 50%, play the totem animation, clear the flag."
 LEG-12,Golden Feast,76,100,Legendary,Buff,Player only,4,Saturation and Regeneration for 10 minutes.,,Vanilla only,
 LEG-13,Enchanter's Study,76,100,Legendary,Loot,Player only,3,"Enchanting table, 15 bookshelves and lapis.",,Vanilla only,
-LEG-14,Perfect Pickaxe,85,100,Legendary,Loot,Player only,3,"Netherite pickaxe with Efficiency V, Fortune III, Unbreaking III, Mending.",,Vanilla only,
+LEG-14,Perfect Pickaxe,85,100,Legendary,Loot,Player only,3,"Netherite pickaxe with Efficiency VII, Fortune IV, Unbreaking V, Mending (past vanilla's limits).",,Vanilla only,
 LEG-15,Diamond Pillar,90,100,Legendary,World gift,Real world (light grief),2,A pillar of diamond blocks rises from the ground.,"Benign world change; still places blocks.",Vanilla only,
 LEG-16,Dragon Hatchling,90,100,Legendary,Companion,Player only,2,"A small tame dragon pet that walks with the player and fights mobs, like a wolf. Ground-only, no flight.",Custom entity - signature reward.,Moderate custom,"Re-skin the wolf. class DragonHatchling extends Wolf keeps taming, sit, follow-owner and attack-target goals as they are. Register the EntityType and use Wolf.createAttributes() with more health and damage. Spawn it already tamed: tame(player). Model in Blockbench (Modded Entity → export Java model), renderer extends MobRenderer. Write your own renderer instead of WolfRenderer so the wolf variant/collar/armor layers aren't drawn. Copy setupAnim from WolfModel for the walk cycle. Return null from getBreedOffspring. Ground-only: flight AI is cut as too difficult."
 LEG-17,Shulker Stash,80,100,Legendary,Loot,Player only,3,Five empty shulker boxes in random colors.,,Vanilla only,

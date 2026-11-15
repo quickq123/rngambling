@@ -23,6 +23,13 @@ public final class Luck {
         return Math.max(MIN, Math.min(MAX, luck));
     }
 
+    /** Luck as a colour: red at -100, white at 0, green at +100, opaque ARGB. */
+    public static int colour(int luck) {
+        float t = Math.abs(clamp(luck)) / 100f;
+        int fade = Math.round(255 * (1 - t * 0.75f));
+        return luck >= 0 ? 0xFF000000 | (fade << 16) | (0xFF << 8) | fade : 0xFF000000 | (0xFF << 16) | (fade << 8) | fade;
+    }
+
     /** The factor an outcome's base weight is multiplied by at this luck. */
     public static double weightFactor(int luck, int rating) {
         return Math.exp(TILT * (clamp(luck) / 100.0) * (rating / 10.0));

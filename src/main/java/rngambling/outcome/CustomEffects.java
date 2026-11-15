@@ -90,6 +90,10 @@ public final class CustomEffects {
         return phoenixRise(player);
     }
 
+    public static List<LuckyBlockEntity> luckyBlocksNearForTest(ServerLevel level, BlockPos centre, int radius) {
+        return luckyBlocksNear(level, centre, radius);
+    }
+
     public static boolean shufflesForTest(Mob mob) {
         return shuffles(mob);
     }
@@ -316,6 +320,62 @@ public final class CustomEffects {
         Scheduler.undoLater(20 * 60, () -> glows.forEach(Entity::discard));
     }
 
+    // ---------------------------------------------------------------- GOD-32 Lucky Sense
+
+    /** How far Lucky Sense reaches, in blocks (it looks through loaded chunks' block entities, not every block). */
+    static final int SENSE_RADIUS = 64, MAX_SENSED = 100;
+
+    /** Lucky blocks within this many blocks of {@code centre}, nearest first: every kind, disguised ones included. */
+    static List<LuckyBlockEntity> luckyBlocksNear(ServerLevel level, BlockPos centre, int radius) {
+        List<LuckyBlockEntity> found = new ArrayList<>();
+        int fromX = (centre.getX() - radius) >> 4, toX = (centre.getX() + radius) >> 4;
+        int fromZ = (centre.getZ() - radius) >> 4, toZ = (centre.getZ() + radius) >> 4;
+        for (int cx = fromX; cx <= toX; cx++) {
+            for (int cz = fromZ; cz <= toZ; cz++) {
+                var chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) {
+                    continue;
+                }
+                for (var entity : chunk.getBlockEntities().values()) {
+                    if (entity instanceof LuckyBlockEntity lucky && !entity.isRemoved()
+                            && entity.getBlockPos().distSqr(centre) <= (double) radius * radius) {
+                        found.add(lucky);
+                    }
+                }
+            }
+        }
+        found.sort(Comparator.comparingDouble(e -> e.getBlockPos().distSqr(centre)));
+        return found;
+    }
+
+    /**
+     * Every lucky block within 64 blocks (up to 100, nearest first) glows through walls for two
+     * minutes, disguised ones included, each in its luck's colour (red bad, white even, green good).
+     */
+    static void luckySense(OutcomeContext c) {
+        List<LuckyBlockEntity> found = luckyBlocksNear(c.level(), c.player().blockPosition(), SENSE_RADIUS);
+        // Not the block that was just broken (if it's still there for a moment).
+        found.removeIf(e -> e.getBlockPos().equals(c.pos()));
+        List<Display.BlockDisplay> glows = new ArrayList<>();
+        for (LuckyBlockEntity lucky : found.subList(0, Math.min(MAX_SENSED, found.size()))) {
+            BlockPos p = lucky.getBlockPos();
+            BlockState look = lucky.mimic() != null ? lucky.mimic() : lucky.getBlockState();
+            Display.BlockDisplay glow = new Display.BlockDisplay(EntityType.BLOCK_DISPLAY, c.level());
+            glow.setBlockState(look);
+            glow.setGlowingTag(true);
+            glow.setGlowColorOverride(rngambling.luck.Luck.colour(lucky.luck()) & 0xFFFFFF);
+            glow.setTransformation(new Transformation(new Vector3f(-0.005f), null, new Vector3f(1.01f), null));
+            glow.addTag(TEMPORARY_TAG);
+            glow.setPos(p.getX(), p.getY(), p.getZ());
+            c.level().addFreshEntity(glow);
+            glows.add(glow);
+        }
+        c.player().sendSystemMessage(Component.translatable(found.isEmpty() ? "outcome.rngambling.lucky_sense.none" : "outcome.rngambling.lucky_sense.found",
+                found.size()).withStyle(ChatFormatting.GREEN));
+        c.level().playSound(null, c.player().blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 1.2f);
+        Scheduler.undoLater(20 * 120, () -> glows.forEach(Entity::discard));
+    }
+
     // ---------------------------------------------------------------- GOD-29 / LEG-19 Mystery Item, Mystery Treasure
 
     static void mysteryItem(OutcomeContext c) {
@@ -332,11 +392,11 @@ public final class CustomEffects {
 
     static List<ItemStack> genieWishes(OutcomeContext c) {
         List<ItemStack> pool = new ArrayList<>(List.of(
-                c.enchanted(Items.NETHERITE_SWORD, Enchantments.SHARPNESS, 5, Enchantments.LOOTING, 3, Enchantments.MENDING, 1),
-                c.enchanted(Items.NETHERITE_PICKAXE, Enchantments.EFFICIENCY, 5, Enchantments.FORTUNE, 3, Enchantments.MENDING, 1),
-                c.enchanted(Items.ELYTRA, Enchantments.UNBREAKING, 3, Enchantments.MENDING, 1),
-                c.enchanted(Items.TRIDENT, Enchantments.LOYALTY, 3, Enchantments.IMPALING, 5, Enchantments.MENDING, 1),
-                c.enchanted(Items.MACE, Enchantments.DENSITY, 5, Enchantments.WIND_BURST, 1),
+                c.enchanted(Items.NETHERITE_SWORD, Enchantments.SHARPNESS, 7, Enchantments.LOOTING, 4, Enchantments.MENDING, 1),
+                c.enchanted(Items.NETHERITE_PICKAXE, Enchantments.EFFICIENCY, 7, Enchantments.FORTUNE, 4, Enchantments.MENDING, 1),
+                c.enchanted(Items.ELYTRA, Enchantments.UNBREAKING, 5, Enchantments.MENDING, 1),
+                c.enchanted(Items.TRIDENT, Enchantments.LOYALTY, 3, Enchantments.IMPALING, 7, Enchantments.MENDING, 1),
+                c.enchanted(Items.MACE, Enchantments.DENSITY, 7, Enchantments.WIND_BURST, 2),
                 new ItemStack(Items.NETHER_STAR),
                 new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 3),
                 new ItemStack(Items.TOTEM_OF_UNDYING, 2),

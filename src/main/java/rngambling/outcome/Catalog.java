@@ -421,14 +421,16 @@ public final class Catalog {
             }),
             of("BAD-08", "random_teleport", BAD, -40, -10, 6, Catalog::randomTeleport),
             of("BAD-09", "trapdoor_drop", BAD, -40, -15, 5, c -> {
-                // A shaft opens under the player, through natural ground only (never through what players built).
-                BlockPos feet = c.player().blockPosition();
-                for (int dy = 1; dy <= 10; dy++) {
-                    BlockPos p = feet.below(dy);
-                    if (!natural(c.level().getBlockState(p))) {
-                        break;
+                // A 2x2 shaft opens under the player, through natural ground only (never through what players built).
+                // 2x2 around where they stand: their feet can rest on up to four blocks, so a 1x1 hole could miss.
+                for (BlockPos column : trapdoorColumns(c.player().position())) {
+                    for (int dy = 1; dy <= 10; dy++) {
+                        BlockPos p = column.below(dy);
+                        if (!natural(c.level().getBlockState(p))) {
+                            break;
+                        }
+                        c.level().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
                     }
-                    c.level().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
                 }
             }),
             of("BAD-10", "silent_creeper", BAD, -40, -20, 4, c -> {
@@ -743,6 +745,7 @@ public final class Catalog {
             of("GOD-31", "casino_invitation", GOOD, 15, 45, 4, c -> room(c, new Rooms.CasinoRoom())).room(),
             of("GOD-13", "iron_golem_bodyguard", GOOD, 20, 40, 5, CustomEffects::ironGolemBodyguard),
             of("GOD-17", "ore_vision", GOOD, 15, 40, 5, CustomEffects::oreVision),
+            of("GOD-32", "lucky_sense", GOOD, 15, 45, 5, CustomEffects::luckySense),
             of("GOD-29", "mystery_item", GOOD, 15, 60, 6, CustomEffects::mysteryItem),
 
             // ================= Very good =================
@@ -793,7 +796,7 @@ public final class Catalog {
             of("VGD-17", "ancient_debris", VERY_GOOD, 55, 80, 4, c -> c.drop(Items.ANCIENT_DEBRIS, 4)),
             of("VGD-18", "warhorse", VERY_GOOD, 45, 75, 4, c -> horse(c, true)),
             of("VGD-20", "enchanted_bow", VERY_GOOD, 45, 75, 4, c ->
-                    c.drop(c.enchanted(Items.BOW, Enchantments.POWER, 4, Enchantments.PUNCH, 1, Enchantments.INFINITY, 1))),
+                    c.drop(c.enchanted(Items.BOW, Enchantments.POWER, 6, Enchantments.PUNCH, 2, Enchantments.INFINITY, 1, Enchantments.FLAME, 1))),
             of("VGD-21", "hero_of_the_village", VERY_GOOD, 41, 70, 4, c -> c.effect(MobEffects.HERO_OF_THE_VILLAGE, 20 * 60, 4)),
             of("VGD-22", "mob_repellent", VERY_GOOD, 45, 75, 4, c -> EffectEvents.repelMobs(c.player(), 20 * 60 * 10)),
             of("VGD-23", "ocean_heart", VERY_GOOD, 50, 80, 3, c -> {
@@ -807,13 +810,13 @@ public final class Catalog {
             // ================= Legendary =================
             of("LEG-01", "netherite_armor_set", LEGENDARY, 80, 100, 4, c -> {
                 for (Item piece : List.of(Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS)) {
-                    c.drop(c.enchanted(piece, Enchantments.PROTECTION, 4, Enchantments.UNBREAKING, 3));
+                    c.drop(c.enchanted(piece, Enchantments.PROTECTION, 6, Enchantments.UNBREAKING, 5));
                 }
             }),
-            of("LEG-02", "god_sword", LEGENDARY, 85, 100, 3, c -> c.drop(c.enchanted(Items.NETHERITE_SWORD, Enchantments.SHARPNESS, 5,
-                    Enchantments.LOOTING, 3, Enchantments.FIRE_ASPECT, 2, Enchantments.MENDING, 1))),
+            of("LEG-02", "god_sword", LEGENDARY, 85, 100, 3, c -> c.drop(c.enchanted(Items.NETHERITE_SWORD, Enchantments.SHARPNESS, 7,
+                    Enchantments.LOOTING, 4, Enchantments.FIRE_ASPECT, 3, Enchantments.MENDING, 1))),
             of("LEG-03", "elytra_rockets", LEGENDARY, 80, 100, 4, c -> {
-                c.drop(c.enchanted(Items.ELYTRA, Enchantments.UNBREAKING, 3));
+                c.drop(c.enchanted(Items.ELYTRA, Enchantments.UNBREAKING, 5));
                 c.drop(Items.FIREWORK_ROCKET, 64);
             }),
             of("LEG-04", "complete_beacon", LEGENDARY, 85, 100, 3, c -> {
@@ -847,8 +850,8 @@ public final class Catalog {
                 c.drop(Items.BOOKSHELF, 15);
                 c.drop(Items.LAPIS_LAZULI, 64);
             }),
-            of("LEG-14", "perfect_pickaxe", LEGENDARY, 85, 100, 3, c -> c.drop(c.enchanted(Items.NETHERITE_PICKAXE, Enchantments.EFFICIENCY, 5,
-                    Enchantments.FORTUNE, 3, Enchantments.UNBREAKING, 3, Enchantments.MENDING, 1))),
+            of("LEG-14", "perfect_pickaxe", LEGENDARY, 85, 100, 3, c -> c.drop(c.enchanted(Items.NETHERITE_PICKAXE, Enchantments.EFFICIENCY, 7,
+                    Enchantments.FORTUNE, 4, Enchantments.UNBREAKING, 5, Enchantments.MENDING, 1))),
             of("LEG-15", "diamond_pillar", LEGENDARY, 90, 100, 2, c -> {
                 // Rises in the Sandbox, then breaks into items that come back with the player.
                 BlockPos base = c.player().blockPosition().offset(3, 0, 0);
@@ -912,6 +915,17 @@ public final class Catalog {
     public static boolean isCursed(ItemStack stack) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         return data != null && data.copyTag().getBooleanOr(CURSED_TAG, false);
+    }
+
+    /**
+     * Trapdoor Drop's four columns, at the height of the player's feet: the 2x2 of blocks nearest
+     * where they stand. A player is 0.6 wide, so their feet always lie within it.
+     */
+    public static List<BlockPos> trapdoorColumns(Vec3 at) {
+        int x = (int) Math.floor(at.x - 0.5);
+        int z = (int) Math.floor(at.z - 0.5);
+        int y = (int) Math.floor(at.y + 1.0E-4);
+        return List.of(new BlockPos(x, y, z), new BlockPos(x + 1, y, z), new BlockPos(x, y, z + 1), new BlockPos(x + 1, y, z + 1));
     }
 
     /** Ground players didn't build: stone, dirt, sand, gravel and the like. Effects that dig only dig this. */

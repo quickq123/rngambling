@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": "minecraft:red_wool",
+    "K": "minecraft:black_wool",
+    "G": "minecraft:gold_ingot",
+    "T": "rngambling:token_pile",
+    "P": "#minecraft:planks"
+  },
+  "pattern": [
+    "RKR",
+    "GTG",
+    "P P"
+  ],
+  "result": {
+    "id": "rngambling:roulette_table"
+  }
+}

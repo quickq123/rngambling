@@ -102,8 +102,6 @@ final class LuckOverlay {
 
     /** Red at -100, white at 0, green at +100, opaque. */
     static int colour(int luck) {
-        float t = Math.abs(luck) / 100f;
-        int fade = Math.round(255 * (1 - t * 0.75f));
-        return luck >= 0 ? 0xFF000000 | (fade << 16) | (0xFF << 8) | fade : 0xFF000000 | (0xFF << 16) | (fade << 8) | fade;
+        return rngambling.luck.Luck.colour(luck);
     }
 }

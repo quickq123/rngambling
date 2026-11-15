@@ -264,7 +264,7 @@ public final class RNGamblingGameTests {
         helper.assertTrue("16 rngambling:token_pile".equals(blessedCost), "a Blessed Lucky Block should cost 16 piles, not " + blessedCost);
         // Piles: nine tokens make one, and one makes nine.
         var recipes = level.getServer().getRecipeManager();
-        for (String recipe : new String[] {"token_pile", "casino_tokens_from_token_pile"}) {
+        for (String recipe : new String[] {"token_pile", "casino_tokens_from_token_pile", "slot_machine", "roulette_table", "blackjack_table"}) {
             helper.assertTrue(recipes.byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE,
                     RNGambling.id(recipe))).isPresent(), "the " + recipe + " recipe should load");
         }
@@ -275,6 +275,16 @@ public final class RNGamblingGameTests {
         helper.assertTrue(poi.get().is(net.minecraft.tags.PoiTypeTags.ACQUIRABLE_JOB_SITE), "villagers should look for it as a job site");
 
         var pools = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TEMPLATE_POOL);
+        // How often, and in which style other mods' villages get them.
+        helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(87, 6) == 2, "6% of vanilla's plains houses is about 2 per game");
+        helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(87, 0) == 0, "0% turns casinos off");
+        helper.assertTrue(rngambling.casino.CasinoHouses.weightEach(10, 1) == 1, "any percent gives at least 1 each");
+        helper.assertTrue("desert".equals(rngambling.casino.CasinoHouses.styleFor("mesa_fortified")), "a mesa village gets the desert style");
+        helper.assertTrue("snowy".equals(rngambling.casino.CasinoHouses.styleFor("christmas")), "a christmas village gets the snowy style");
+        helper.assertTrue("taiga".equals(rngambling.casino.CasinoHouses.styleFor("mountain")), "a mountain village gets the taiga style");
+        helper.assertTrue("plains".equals(rngambling.casino.CasinoHouses.styleFor("beach")), "anything else gets the plains style");
+        helper.assertTrue(rngambling.casino.CasinoHouses.styleFor("jungle_tree") == null
+                && rngambling.casino.CasinoHouses.styleFor("underground") == null, "no casinos up trees or underground");
         for (String village : new String[] {"plains", "desert", "savanna", "snowy", "taiga"}) {
             var pool = pools.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("village/" + village + "/houses"));
             net.minecraft.world.level.block.Block[] machines = {RNGambling.SLOT_MACHINE.get(), RNGambling.ROULETTE_TABLE.get(),
@@ -981,6 +991,50 @@ public final class RNGamblingGameTests {
             helper.assertTrue(collectors.size() == 1, "one Tax Collector");
             var takings = rngambling.outcome.CustomEffects.takingsForTest(collectors.get(0), level);
             helper.assertTrue(takings.size() == 1 && takings.get(0).getCount() == 3, "he should carry the 3 emeralds: " + takings);
+            second.getInventory().clearContent();
+            clearUp(helper, level, second);
+
+            // Trapdoor Drop: its 2x2 holds every block the player's feet can rest on, wherever they stand.
+            for (double[] at : new double[][] {{10.5, 4.0, 10.5}, {10.95, 4.0, 10.05}, {-3.3, 4.0, -7.99}, {0.01, 4.0, 0.99}}) {
+                var columns = rngambling.outcome.Catalog.trapdoorColumns(new net.minecraft.world.phys.Vec3(at[0], at[1], at[2]));
+                for (double dx : new double[] {-0.3, 0.3}) {
+                    for (double dz : new double[] {-0.3, 0.3}) {
+                        BlockPos foot = BlockPos.containing(at[0] + dx, at[1], at[2] + dz);
+                        helper.assertTrue(columns.contains(foot), "the trapdoor at " + java.util.Arrays.toString(at) + " misses " + foot);
+                    }
+                }
+            }
+
+            // Lucky Sense: every lucky block nearby glows, disguised ones too, then the glows go.
+            BlockPos plainSpot = pos.offset(4, 0, 0), disguisedSpot = pos.offset(-4, 0, 2);
+            level.setBlockAndUpdate(plainSpot, RNGambling.LUCKY_BLOCK.get().defaultBlockState());
+            level.setBlockAndUpdate(disguisedSpot, RNGambling.MIMIC_LUCKY_BLOCK.get().defaultBlockState());
+            if (level.getBlockEntity(disguisedSpot) instanceof rngambling.block.LuckyBlockEntity disguised) {
+                disguised.setMimic(Blocks.STONE.defaultBlockState());
+                disguised.setLuck(-60);
+            }
+            var sensed = rngambling.outcome.CustomEffects.luckyBlocksNearForTest(level, pos, 64);
+            helper.assertTrue(sensed.stream().anyMatch(e -> e.getBlockPos().equals(plainSpot))
+                    && sensed.stream().anyMatch(e -> e.getBlockPos().equals(disguisedSpot)), "Lucky Sense should find both lucky blocks: " + sensed.size());
+            outcome("lucky_sense").action().run(c);
+            var senseGlows = level.getEntitiesOfClass(net.minecraft.world.entity.Display.BlockDisplay.class, new AABB(pos).inflate(8),
+                    e -> e.entityTags().contains(rngambling.outcome.CustomEffects.TEMPORARY_TAG));
+            helper.assertTrue(senseGlows.size() >= 2 && senseGlows.stream().allMatch(Entity::hasGlowingTag), "both should glow: " + senseGlows.size());
+            rngambling.outcome.Scheduler.clear();
+            helper.assertTrue(senseGlows.stream().allMatch(Entity::isRemoved), "the glows should go when the effect ends");
+            level.setBlockAndUpdate(plainSpot, Blocks.AIR.defaultBlockState());
+            level.setBlockAndUpdate(disguisedSpot, Blocks.AIR.defaultBlockState());
+
+            // The best gear goes past vanilla's limits.
+            second.getInventory().clearContent();
+            outcome("god_sword").action().run(c);
+            var swords = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(pos).inflate(8),
+                    e -> e.getItem().is(net.minecraft.world.item.Items.NETHERITE_SWORD));
+            var sharpness = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS);
+            helper.assertTrue(!swords.isEmpty() && swords.get(0).getItem().getEnchantments().getLevel(sharpness) == 7
+                    || second.getInventory().contains(st -> st.is(net.minecraft.world.item.Items.NETHERITE_SWORD) && st.getEnchantments().getLevel(sharpness) == 7),
+                    "the God Sword should have Sharpness VII");
             second.getInventory().clearContent();
             clearUp(helper, level, second);
 
