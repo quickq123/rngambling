@@ -6,12 +6,12 @@ package rngambling.casino;
  * Cards come from an endless deck, as at blackjack.
  *
  * <p>The pot is always a whole number of tokens: the bet times the fair odds of every guess so
- * far, less a 3% house cut, rounded down, and never less than it was. Rounding down only ever
- * favours the house, so however a player plays, about 97% comes back at most (less at small bets;
- * the {@code casino_games} game test simulates it). Pots stop at {@link #TABLE_LIMIT}.
+ * far, rounded to the nearest token, and never less than it was. It's a fair game: however a
+ * player plays, what comes back is about what was bet (the {@code casino_games} game test
+ * simulates it). Luck makes every pot bigger, Bad Luck smaller (see {@link CasinoLuck#potFactor}),
+ * though not the pot of guesses that can't lose. Pots stop at {@link #TABLE_LIMIT}.
  */
 public final class HigherLower {
-    public static final double HOUSE = 0.97;
     /** The most a pot can reach: it's paid out at once when a guess would pass it. */
     public static final int TABLE_LIMIT = 10_000;
 
@@ -31,9 +31,13 @@ public final class HigherLower {
         return guess == Guess.HIGHER ? b >= a : b <= a;
     }
 
-    /** The pot after a right guess: from the bet and the fair odds so far (1 / the chance of every guess, multiplied). */
-    public static int pot(int bet, double odds, int before) {
-        int fair = (int) Math.min(TABLE_LIMIT, Math.floor(bet * odds * HOUSE + 1e-9));
-        return Math.max(before, fair);
+    /**
+     * The pot after a right guess: from the bet, the fair odds so far (1 / the chance of every
+     * guess, multiplied) and the player's luck level.
+     */
+    public static int pot(int bet, double odds, int before, int luck) {
+        double factor = odds > 1 + 1e-9 ? CasinoLuck.potFactor(luck) : 1;
+        int pot = (int) Math.min(TABLE_LIMIT, Math.round(bet * odds * factor));
+        return Math.max(before, pot);
     }
 }

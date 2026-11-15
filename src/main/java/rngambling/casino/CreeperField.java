@@ -6,9 +6,9 @@ package rngambling.casino;
  * any time. Where the creepers are is decided when the game starts.
  *
  * <p>The pot is always a whole number of tokens: the bet times the fair odds of digging that many
- * safe blocks, less a 3% house cut, rounded down, and never less than it was. More creepers, bigger
- * steps. As at Higher or Lower, no way of playing gets back more than about 97% (less at small
- * bets; the {@code casino_games} game test simulates it). Pots stop at {@link HigherLower#TABLE_LIMIT}.
+ * safe blocks, rounded to the nearest token, and never less than it was. More creepers, bigger
+ * steps. As at Higher or Lower it's a fair game, and luck makes pots bigger or smaller (the
+ * {@code casino_games} game test simulates it). Pots stop at {@link HigherLower#TABLE_LIMIT}.
  */
 public final class CreeperField {
     public static final int SIZE = 5, BLOCKS = SIZE * SIZE;
@@ -27,7 +27,7 @@ public final class CreeperField {
     }
 
     /** The pot after {@code dug} safe blocks. */
-    public static int pot(int bet, int creepers, int dug, int before) {
-        return HigherLower.pot(bet, odds(creepers, dug), before);
+    public static int pot(int bet, int creepers, int dug, int before, int luck) {
+        return HigherLower.pot(bet, odds(creepers, dug), before, luck);
     }
 }

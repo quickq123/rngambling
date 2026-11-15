@@ -85,8 +85,8 @@ public class SlotMachineMenu extends AbstractContainerMenu {
         }
         takeTokens(player.getInventory(), bet);
         var random = player.level().getRandom();
-        SlotMachine.Symbol[] reels = CasinoLuck.spin(random, rngambling.luck.PlayerLuck.level(player),
-                () -> SlotMachine.spin(random), r -> SlotMachine.pays(r) > 0);
+        SlotMachine.Symbol[] reels = CasinoLuck.spin(random, rngambling.luck.PlayerLuck.level(player), SlotMachine.ODDS,
+                () -> SlotMachine.spin(random), SlotMachine::pays);
         for (int i = 0; i < 3; i++) {
             data.set(REEL_0 + i, reels[i].ordinal());
         }

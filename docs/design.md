@@ -229,13 +229,15 @@ Sandbox, pictures it and leaves by its way out.
 
 Two games that aren't from a real casino, each its own block (craftable with a Pile of Tokens in
 the middle, in the Casino Invitation room, and in village casinos like the others).
-Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs little.
+Bets 5 to 100: pots are whole tokens, rounded to the nearest, and from 5 up rounding matters little.
 
 - **Pots, not multipliers:** the screen shows tokens throughout ("Higher: 25", "Next block:
-  19", "Cash out 16"). A pot is the bet times the fair odds of everything won so far, less a 3%
-  house cut, rounded down, and never less than before. Rounding down only favours the house, so no
-  way of playing gets back more than about 97% (about 96-97% at a bet of 10, 88-96% at 5;
-  game test `casino_games`). Pots stop at 10,000 tokens (data slots are 16-bit), paid at once.
+  19", "Cash out 16"). A pot is the bet times the fair odds of everything won so far, rounded
+  to the nearest token, and never less than before. They're fair games: whatever the plan, what
+  comes back is about what was bet (within 4% at a bet of 100, 12% at 5; game test
+  `casino_games`). Luck multiplies every pot (x1.10 at I, x1.25 at II; Bad Luck x0.90, x0.75),
+  but not a pot that a sure guess can't lose (higher on an ace). Pots stop at 10,000 tokens (data
+  slots are 16-bit), paid at once.
 - **Higher or Lower** (`HigherLower`, `HigherLowerMenu`): a card is turned up (endless deck,
   aces low); guess Higher or Lower, ties win. Each button shows the pot if it's right. Skip
   changes the card for free; Cash out any time; a wrong guess loses the pot. Closing the screen
@@ -289,20 +291,14 @@ level minus Bad Luck's, each counted up to II, so -2 to +2.
 - **Lucky blocks:** each level adds 10 to the luck of a block the player breaks (Luck I +10,
   Luck II +20; Bad Luck I -10, II -20), before the effect is drawn. The block's own stored luck
   doesn't change (the Luck Glasses still show it).
-- **The casino** (`CasinoLuck`): Luck sometimes gives a second draw. Slots and roulette re-spin
-  a losing spin (15% of the time at I, 33% at II); Bad Luck re-spins a winning one. Blackjack
-  draws a card twice and keeps the better one for the player (7% at I, 20% at II; the worse with
-  Bad Luck). What comes back of what is bet (game test `casino_luck`):
-
-  | Luck | Slots | Roulette (red/black) | Blackjack (played well) |
-  |---|---|---|---|
-  | Bad Luck II | 68% | 81% | 84% |
-  | Bad Luck I | 82% | 90% | 93% |
-  | none | 92% | 98% | 99% |
-  | Luck I | 102% | 105% | 104% |
-  | Luck II | 115% | 114% | 115% |
-
-  Long-shot roulette bets (a single number, green) gain and lose more.
+- **The casino** (`CasinoLuck`): every game is fair without luck, and every game comes to the
+  same figures with it: about 110% of what is bet back at Luck I, 125% at Luck II, 90% at Bad
+  Luck I and 75% at Bad Luck II (game test `casino_luck`). Slots and roulette re-spin a losing
+  spin with Luck, a winning one with Bad Luck, as often as that game's exact odds need for the
+  edge (slots: 17% / 43% of losses at Luck I / II; red: 21% / 51%; the same of wins with Bad
+  Luck). Blackjack draws a card twice and keeps the
+  better one for the player (13.5% of cards at I, 33.5% at II; the worse with Bad Luck, 14% /
+  35%, found by simulation). Higher or Lower and Creeper Field pots grow or shrink by the edge.
 - **Getting it:** effects Lucky Streak (GOD-42, Luck I) and Fortune's Favor (VGD-29, Luck II),
   Broken Mirror (BAD-35, Bad Luck I) and Black Cat (VBD-35, Bad Luck II, with a black cat), all
   5 minutes. **Brewing:** Awkward Potion + Pile of Tokens = Potion of Luck (vanilla's, Luck I,
@@ -333,33 +329,36 @@ level minus Bad Luck's, each counted up to II, so -2 to +2.
 - **Slot Machine** (done): right-click to play. Bet 1 to 100 tokens (taken from the
   inventory; see Betting below), spin, and three reels stop one by one (`SlotMachineScreen`). All results are
   decided on the server (`SlotMachine`, `SlotMachineMenu`); the win is paid as the last reel
-  stops, or at once if the screen is closed. Like a real casino it's weighted slightly
-  against the player: it pays back **91.6%** of tokens bet (an 8.4% house edge; the
-  `slot_machine` game test checks the exact figure is 90-94%, and a 300,000-spin simulation
-  gave 91.9%). About 1 spin in 4 wins something. Reel weights (out of 24) and pay table:
+  stops, or at once if the screen is closed. It's a fair game: it pays back **99.99%** of
+  tokens bet (the `slot_machine` game test checks the exact figure and a 300,000-spin
+  simulation). About 35% of spins win and another 7% hand the bet back, so losing streaks stay
+  short (it used to be 1 win in 4 at 92%). Reel weights (out of 24) and pay table:
 
-  | Symbol | On a reel | Three pay (x bet, the bet included) |
-  |---|---|---|
-  | Cherry | 7 | 8 (any two cherries: 2) |
-  | Lemon | 6 | 10 |
-  | Bell | 4 | 18 |
-  | BAR | 3 | 30 |
-  | 7 | 2 | 80 |
-  | Lucky block | 2 | 20, plus a Lucky Block |
+  | Symbol | On a reel | Three pay (x bet, the bet included) | Two pay |
+  |---|---|---|---|
+  | Cherry | 8 | 3 | 2 |
+  | Lemon | 6 | 5 | nothing (sour) |
+  | Bell | 4 | 10 | 1 (the bet back) |
+  | BAR | 3 | 25 | 2 |
+  | 7 | 2 | 80 | 3 |
+  | Lucky block | 1 | 15, plus a Lucky Block | 3 |
 
   Mined with a pickaxe.
 - **Roulette Table** (done): European roulette, one zero and 1-36. Bet 1 to 100 on red,
-  black, green (the zero, 35 to 1), odd, even, 1-18, 19-36, a dozen (pays 2 to 1) or a single
-  number (35 to 1); even bets pay 1 to 1. The wheel is shown as a strip of its pockets in wheel order, slowing to a
-  stop under a marker. The usual casino odds make every bet return exactly 36/37: a
-  **2.7%** house edge, as in a real casino (`roulette` game test). Mined with an axe.
+  black, green (the zero, 36 to 1), odd, even, 1-18, 19-36, a dozen (pays 2 to 1) or a single
+  number (36 to 1); even bets pay 1 to 1. The wheel is shown as a strip of its pockets in wheel order, slowing to a
+  stop under a marker. Made fair: on zero every other bet is handed back, and green and single
+  numbers pay 36 to 1, not 35, so every bet returns exactly what is bet (`roulette` game test).
+  Mined with an axe.
 - **Blackjack Table** (done): against the dealer, from an endlessly shuffled deck. Deal, then
-  Hit, Stand or Double (first two cards only); no splitting. The dealer hits a soft 17 and
+  Hit, Stand or Double (first two cards only); no splitting, but five cards without going bust
+  win at once (a Five-Card Charlie). The dealer stands on every 17 and
   plays out one card at a time; blackjack pays 3 to 2; bets are 2 to 100 in steps of 2 so that comes to
   whole tokens. The dealer's face-down card isn't sent to the player's game until it's
-  turned over. Closing the screen mid-hand stands. Played perfectly (basic strategy) the
-  house keeps **1.2%** of the starting bet (a million simulated hands in the `blackjack`
-  game test); played carelessly, more. Mined with an axe.
+  turned over. Closing the screen mid-hand stands. Played well (basic strategy) it comes out
+  even, within about 0.1% (a million simulated hands in the `blackjack` game test; the rules
+  above were picked by simulation, from 98.7% under a soft-17 dealer with no Charlie); played
+  carelessly, less. Mined with an axe.
 - **Betting** (all three games): « and » change the bet by 10, − and + by one (2 at
   blackjack), between the least bet and 100 (`Bets`). The bet is taken, and the result decided,
   the moment Spin or Deal is pressed: closing the screen can't take it back (a pending win is
@@ -400,7 +399,7 @@ level minus Bad Luck's, each counted up to II, so -2 to +2.
 8. ~~The whole effect catalog: the Sandbox and its rooms, the custom effects, the Dragon
    Hatchling.~~ Done. Next: survival playtesting, then tuning.
 
-House edges: slots 8.4%, roulette 2.7%, blackjack about 1.2% with perfect play.
+No house edge: every game pays back what is bet, without luck (blackjack played well).
 
 ## Working on it
 

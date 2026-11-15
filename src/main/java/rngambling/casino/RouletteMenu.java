@@ -85,8 +85,8 @@ public class RouletteMenu extends AbstractContainerMenu {
         var random = player.level().getRandom();
         Roulette.Bet kind = kind();
         int chosen = data.get(NUMBER);
-        int number = CasinoLuck.spin(random, rngambling.luck.PlayerLuck.level(player),
-                () -> Roulette.spin(random), n -> Roulette.wins(kind, chosen, n));
+        int number = CasinoLuck.spin(random, rngambling.luck.PlayerLuck.level(player), Roulette.odds(kind, chosen),
+                () -> Roulette.spin(random), n -> Roulette.returns(kind, chosen, n));
         data.set(RESULT, number);
         pending = bet * Roulette.returns(kind(), data.get(NUMBER), number);
         payAt = player.level().getGameTime() + SPIN_TICKS;

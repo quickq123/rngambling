@@ -22,9 +22,8 @@ import rngambling.luck.PlayerLuck;
  * only; the screen sees a block once it's dug, and the whole field when the game ends. Closing the
  * screen mid-game cashes out.
  *
- * <p>Luck (see {@link CasinoLuck}): with Luck, a dig that would find a creeper is, with the respin
- * chance, moved to a safe block still hidden (the creeper was somewhere else all along); with Bad
- * Luck, a safe dig may find a creeper moved there from another hidden block.
+ * <p>Luck makes every pot bigger, Bad Luck smaller (see {@link CasinoLuck#potFactor}): the next
+ * pot shown already counts it.
  */
 public class CreeperFieldMenu extends AbstractContainerMenu {
     /** Buttons: 0-3 the bet (see {@link Bets}), then these, then {@link #BUTTON_TILE} + the block's index (0-24, row by row). */
@@ -130,14 +129,6 @@ public class CreeperFieldMenu extends AbstractContainerMenu {
         if (data.get(at) != HIDDEN) {
             return;
         }
-        RandomSource random = player.level().getRandom();
-        int luck = PlayerLuck.level(player);
-        double respin = CasinoLuck.RESPIN[Math.min(Math.abs(luck), CasinoLuck.RESPIN.length - 1)];
-        if (luck > 0 && creepers[at] && random.nextDouble() < respin) {
-            move(random, at, false); // the creeper was somewhere else
-        } else if (luck < 0 && !creepers[at] && random.nextDouble() < respin) {
-            move(random, at, true); // a creeper crept over
-        }
         if (creepers[at]) {
             data.set(at, BOOM);
             phase = Phase.BETTING;
@@ -150,28 +141,10 @@ public class CreeperFieldMenu extends AbstractContainerMenu {
         }
         data.set(at, DUG);
         dug++;
-        pot = CreeperField.pot(stake, count, dug, pot);
+        pot = CreeperField.pot(stake, count, dug, pot, PlayerLuck.level(player));
         sound(SoundEvents.GRAVEL_BREAK, 1.0f + dug * 0.03f);
         if (dug == CreeperField.BLOCKS - count || pot >= HigherLower.TABLE_LIMIT) {
             cashOut(player, Result.CLEARED);
-        }
-    }
-
-    /**
-     * Luck: {@code intoIt} false moves the creeper under {@code at} to another hidden safe block;
-     * true moves a creeper from another hidden block to {@code at}. Does nothing if there's nowhere.
-     */
-    private void move(RandomSource random, int at, boolean intoIt) {
-        List<Integer> spots = new ArrayList<>();
-        for (int i = 0; i < CreeperField.BLOCKS; i++) {
-            if (i != at && data.get(i) == HIDDEN && creepers[i] == intoIt) {
-                spots.add(i);
-            }
-        }
-        if (!spots.isEmpty()) {
-            int other = spots.get(random.nextInt(spots.size()));
-            creepers[other] = !intoIt;
-            creepers[at] = intoIt;
         }
     }
 
@@ -204,7 +177,7 @@ public class CreeperFieldMenu extends AbstractContainerMenu {
         data.set(PHASE, phase.ordinal());
         data.set(POT, pot);
         data.set(DUG_COUNT, dug);
-        data.set(NEXT_POT, phase == Phase.DIGGING ? CreeperField.pot(stake, count, dug + 1, pot) : 0);
+        data.set(NEXT_POT, phase == Phase.DIGGING ? CreeperField.pot(stake, count, dug + 1, pot, PlayerLuck.level(player)) : 0);
     }
 
     @Override

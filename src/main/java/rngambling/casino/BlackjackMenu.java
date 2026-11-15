@@ -95,6 +95,8 @@ public class BlackjackMenu extends AbstractContainerMenu {
             sound(SoundEvents.BOOK_PAGE_TURN, 1.4f);
             if (Blackjack.total(playerHand) > 21) {
                 settle(serverPlayer, Blackjack.Outcome.BUST);
+            } else if (playerHand.size() >= Blackjack.CHARLIE_CARDS) {
+                settle(serverPlayer, Blackjack.Outcome.CHARLIE);
             } else if (Blackjack.total(playerHand) == 21) {
                 startDealer(serverPlayer);
             }

@@ -3,9 +3,9 @@ package rngambling.casino;
 import net.minecraft.util.RandomSource;
 
 /**
- * European roulette: one zero and the numbers 1 to 36. Every bet pays at the usual casino odds,
- * which are set as if there were no zero, so the zero is the house's edge: every bet returns
- * 36/37 (97.3%) of what is bet over time, a 2.7% house edge, as in a real casino.
+ * European roulette: one zero and the numbers 1 to 36, made fair: when the ball lands on zero,
+ * every bet but Green and single numbers is handed back, and those two pay 37 to 1 (back 37 times
+ * the bet) rather than a real casino's 35 to 1. So every bet pays back what is bet, over time.
  */
 public final class Roulette {
     /** The numbers in the order they sit around a European wheel. */
@@ -15,7 +15,7 @@ public final class Roulette {
 
     /** What a bet can be on, and what a winning bet returns, times the bet (the bet itself included). */
     public enum Bet {
-        RED(2), BLACK(2), GREEN(36), ODD(2), EVEN(2), LOW(2), HIGH(2), DOZEN_1(3), DOZEN_2(3), DOZEN_3(3), NUMBER(36);
+        RED(2), BLACK(2), GREEN(37), ODD(2), EVEN(2), LOW(2), HIGH(2), DOZEN_1(3), DOZEN_2(3), DOZEN_3(3), NUMBER(37);
 
         public final int returns;
 
@@ -56,9 +56,17 @@ public final class Roulette {
         };
     }
 
-    /** What the bet returns on this number, times the bet (0 if it loses). */
+    /** What the bet returns on this number, times the bet (0 if it loses; 1, the bet back, for an outside bet on zero). */
     public static int returns(Bet bet, int chosen, int number) {
-        return wins(bet, chosen, number) ? bet.returns : 0;
+        if (wins(bet, chosen, number)) {
+            return bet.returns;
+        }
+        return number == 0 && bet != Bet.GREEN && bet != Bet.NUMBER ? 1 : 0;
+    }
+
+    /** A bet's odds, for luck's re-spins (see {@link CasinoLuck}). */
+    public static CasinoLuck.Odds odds(Bet bet, int chosen) {
+        return CasinoLuck.Odds.of(java.util.stream.IntStream.rangeClosed(0, 36).boxed().toList(), n -> 1 / 37.0, n -> returns(bet, chosen, n));
     }
 
     /** A bet's share of tokens returned over many spins, worked out exactly. */

@@ -5,10 +5,11 @@ import net.minecraft.util.RandomSource;
 
 /**
  * Blackjack against the dealer. Cards are drawn from an endlessly shuffled deck (each card is
- * any of the 52, every time). The rules lean slightly to the house, as in a real casino: the
- * dealer hits a soft 17, there's no splitting, and doubling is only on the first two cards. A
- * blackjack pays 3 to 2. Played perfectly ({@link #basicStrategy}) the house keeps about 1% of
- * what is bet (the {@code blackjack} game test simulates it); played carelessly, more.
+ * any of the 52, every time). The dealer stands on every 17, there's no splitting, doubling is
+ * only on the first two cards, and a blackjack pays 3 to 2. To make up for the missing split, five
+ * cards without going bust win at once (a Five-Card Charlie). Played well ({@link #basicStrategy})
+ * it's a fair game: what comes back is about what was bet (the {@code blackjack} game test
+ * simulates it); played carelessly, less.
  *
  * <p>A card is a number 0-51: its rank is {@code card % 13} (0 ace, 1-9 two to ten, 10-12 jack,
  * queen, king) and its suit {@code card / 13} (hearts, diamonds, clubs, spades).
@@ -62,13 +63,15 @@ public final class Blackjack {
         return hand.size() == 2 && total(hand) == 21;
     }
 
-    /** Whether the dealer takes another card: below 17, or on a soft 17. */
+    /** Whether the dealer takes another card: below 17 (it stands on every 17, soft or hard). */
     public static boolean dealerHits(List<Integer> hand) {
-        int total = total(hand);
-        return total < 17 || (total == 17 && soft(hand));
+        return total(hand) < 17;
     }
 
-    public enum Outcome { NONE, WIN, LOSE, PUSH, BLACKJACK, BUST, DEALER_BUST }
+    /** A hand of this many cards that hasn't gone bust wins at once. */
+    public static final int CHARLIE_CARDS = 5;
+
+    public enum Outcome { NONE, WIN, LOSE, PUSH, BLACKJACK, BUST, DEALER_BUST, CHARLIE }
 
     /** How a finished hand ends (neither side has a blackjack; the player hasn't bust). */
     public static Outcome compare(List<Integer> player, List<Integer> dealer) {
@@ -83,7 +86,7 @@ public final class Blackjack {
     /** What an outcome returns, from the stake (the bet, doubled if the player doubled), the stake itself included. */
     public static int returns(Outcome outcome, int stake) {
         return switch (outcome) {
-            case WIN, DEALER_BUST -> stake * 2;
+            case WIN, DEALER_BUST, CHARLIE -> stake * 2;
             case BLACKJACK -> stake + stake * 3 / 2;
             case PUSH -> stake;
             default -> 0;
@@ -164,6 +167,9 @@ public final class Blackjack {
             }
             if (total(player) > 21) {
                 return -stake;
+            }
+            if (player.size() >= CHARLIE_CARDS) {
+                return stake;
             }
         }
         if (total(player) > 21) {

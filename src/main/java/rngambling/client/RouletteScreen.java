@@ -178,9 +178,11 @@ public class RouletteScreen extends AbstractContainerScreen<RouletteMenu> {
             Component landed = Component.translatable(number == 0 ? "screen.rngambling.roulette.green"
                     : Roulette.isRed(number) ? "screen.rngambling.roulette.red" : "screen.rngambling.roulette.black", number);
             int win = menu.data(RouletteMenu.LAST_WIN);
-            result = win > 0 ? Component.translatable("screen.rngambling.roulette.win", landed, win, win - menu.data(RouletteMenu.LAST_BET))
-                    : Component.translatable("screen.rngambling.roulette.lose", landed);
-            colour = win > 0 ? 0xFF7CFF7C : 0xFFFFB0B0;
+            int bet = menu.data(RouletteMenu.LAST_BET);
+            result = win > bet ? Component.translatable("screen.rngambling.roulette.win", landed, win, win - bet)
+                    : win > 0 ? Component.translatable("screen.rngambling.roulette.push", landed, win)
+                    : Component.translatable("screen.rngambling.roulette.lose", landed, bet);
+            colour = win > bet ? 0xFF7CFF7C : win > 0 ? WHITE : 0xFFFFB0B0;
         }
         graphics.centeredText(font, result, WIDTH / 2, 50, colour);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.tokens", menu.data(RouletteMenu.TOKENS)), 12, 62, WHITE, false);

@@ -21,11 +21,16 @@ import rngambling.casino.SlotMachineMenu;
  */
 public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> {
     private static final Identifier SYMBOLS = RNGambling.id("textures/gui/slot_symbols.png");
-    private static final int WIDTH = 176, HEIGHT = 196;
+    private static final int WIDTH = 176, HEIGHT = 208;
     private static final int RED = 0xFF6E0E16, RED_DARK = 0xFF420810, GOLD = 0xFFE8BA40, GOLD_DARK = 0xFFA87A1E, WHITE = 0xFFF2EEE4;
     private static final int REEL_W = 36, REEL_H = 40, REELS_X = 31, REELS_Y = 22;
     /** When each reel stops on the screen, in ticks after the spin (the win is paid at {@link SlotMachineMenu#SPIN_TICKS}). */
     private static final int[] STOP_TICKS = {14, 22, 30};
+
+    /** The pay table: its rows, top to bottom, where it starts and each row's height. */
+    private static final SlotMachine.Symbol[] PAY_ORDER = {SlotMachine.Symbol.SEVEN, SlotMachine.Symbol.BAR, SlotMachine.Symbol.LUCKY,
+            SlotMachine.Symbol.BELL, SlotMachine.Symbol.LEMON, SlotMachine.Symbol.CHERRY};
+    private static final int PAY_Y = 117, PAY_ROW = 12;
 
     private final BetControls bets = new BetControls(rngambling.casino.Bets.SLOTS, 30, 90);
     private Button spin;
@@ -117,17 +122,15 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
         graphics.fill(x + REELS_X - 3, y + REELS_Y + REEL_H / 2, x + REELS_X - 1, y + REELS_Y + REEL_H / 2 + 1, RED_DARK);
         // The pay table.
         graphics.fill(x + 8, y + 112, x + WIDTH - 8, y + HEIGHT - 8, RED_DARK);
-        SlotMachine.Symbol[] order = {SlotMachine.Symbol.SEVEN, SlotMachine.Symbol.BAR, SlotMachine.Symbol.LUCKY,
-                SlotMachine.Symbol.BELL, SlotMachine.Symbol.LEMON, SlotMachine.Symbol.CHERRY};
-        for (int i = 0; i < order.length; i++) {
-            int px = x + 12 + (i % 2) * 80;
-            int py = y + 116 + (i / 2) * 18;
+        // One row a symbol: three of it, and what that pays; two of it, and what that pays.
+        for (int i = 0; i < PAY_ORDER.length; i++) {
+            int py = y + PAY_Y + i * PAY_ROW;
             for (int k = 0; k < 3; k++) {
-                drawSymbol(graphics, order[i], px + k * 14, py, 1);
+                drawSymbol(graphics, PAY_ORDER[i], x + 12 + k * 12, py, 0.75f);
             }
-        }
-        for (int k = 0; k < 2; k++) {
-            drawSymbol(graphics, SlotMachine.Symbol.CHERRY, x + 12 + k * 14, y + 170, 1);
+            for (int k = 0; k < 2; k++) {
+                drawSymbol(graphics, PAY_ORDER[i], x + 96 + k * 12, py, 0.75f);
+            }
         }
     }
 
@@ -150,6 +153,8 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
             result = Component.translatable("screen.rngambling.slot_machine.spinning");
         } else if (menu.data(SlotMachineMenu.SPINS) == 0) {
             result = Component.translatable("screen.rngambling.slot_machine.ready");
+        } else if (menu.data(SlotMachineMenu.LAST_WIN) > 0 && menu.data(SlotMachineMenu.LAST_WIN) == menu.data(SlotMachineMenu.LAST_BET)) {
+            result = Component.translatable("screen.rngambling.slot_machine.push", menu.data(SlotMachineMenu.LAST_WIN));
         } else if (menu.data(SlotMachineMenu.LAST_WIN) > 0) {
             boolean prize = menu.reel(0) == SlotMachine.Symbol.LUCKY && menu.reel(1) == SlotMachine.Symbol.LUCKY
                     && menu.reel(2) == SlotMachine.Symbol.LUCKY;
@@ -157,7 +162,7 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
                     menu.data(SlotMachineMenu.LAST_WIN), menu.data(SlotMachineMenu.LAST_WIN) - menu.data(SlotMachineMenu.LAST_BET));
             colour = 0xFF7CFF7C;
         } else {
-            result = Component.translatable("screen.rngambling.slot_machine.lose");
+            result = Component.translatable("screen.rngambling.slot_machine.lose", menu.data(SlotMachineMenu.LAST_BET));
             colour = 0xFFFFB0B0;
         }
         graphics.centeredText(font, result, WIDTH / 2, REELS_Y + REEL_H + 6, colour);
@@ -165,13 +170,13 @@ public class SlotMachineScreen extends AbstractContainerScreen<SlotMachineMenu> 
         bets.drawAmount(graphics, font, menu.bet(), WHITE);
         graphics.text(font, Component.translatable("screen.rngambling.slot_machine.tokens", menu.data(SlotMachineMenu.TOKENS)), 10, 79, WHITE, false);
         // Pay table figures, beside their symbols.
-        SlotMachine.Symbol[] order = {SlotMachine.Symbol.SEVEN, SlotMachine.Symbol.BAR, SlotMachine.Symbol.LUCKY,
-                SlotMachine.Symbol.BELL, SlotMachine.Symbol.LEMON, SlotMachine.Symbol.CHERRY};
-        for (int i = 0; i < order.length; i++) {
-            String pays = "x" + order[i].threePays + (order[i] == SlotMachine.Symbol.LUCKY ? "+" : "");
-            graphics.text(font, pays, 12 + (i % 2) * 80 + 44, 120 + (i / 2) * 18, GOLD, false);
+        for (int i = 0; i < PAY_ORDER.length; i++) {
+            SlotMachine.Symbol symbol = PAY_ORDER[i];
+            int py = PAY_Y + i * PAY_ROW + 2;
+            graphics.text(font, "x" + symbol.threePays + (symbol == SlotMachine.Symbol.LUCKY ? "+" : ""), 52, py, GOLD, false);
+            graphics.text(font, symbol.twoPays == 0 ? "-" : symbol.twoPays == 1 ? Component.translatable("screen.rngambling.slot_machine.bet_back").getString() : "x" + symbol.twoPays,
+                    122, py, symbol.twoPays <= 1 ? 0xFFE0C090 : GOLD, false);
         }
-        graphics.text(font, "x" + SlotMachine.TWO_CHERRIES_PAY, 12 + 30, 174, GOLD, false);
-        graphics.text(font, Component.translatable("screen.rngambling.slot_machine.prize_note"), 72, 174, 0xFFE0C090, false);
+        graphics.text(font, Component.translatable("screen.rngambling.slot_machine.prize_note"), 12, PAY_Y + PAY_ORDER.length * PAY_ROW + 2, 0xFFE0C090, false);
     }
 }

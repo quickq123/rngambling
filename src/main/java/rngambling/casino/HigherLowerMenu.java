@@ -115,12 +115,12 @@ public class HigherLowerMenu extends AbstractContainerMenu {
     private void guess(ServerPlayer player, HigherLower.Guess guess) {
         var random = player.level().getRandom();
         int before = card;
-        int next = CasinoLuck.spin(random, PlayerLuck.level(player), () -> Blackjack.draw(random), n -> HigherLower.wins(guess, before, n));
+        int next = Blackjack.draw(random);
         data.set(PREVIOUS, before + 1);
         card = next;
         if (HigherLower.wins(guess, before, next)) {
             odds /= HigherLower.chance(guess, before);
-            pot = HigherLower.pot(stake, odds, pot);
+            pot = HigherLower.pot(stake, odds, pot, PlayerLuck.level(player));
             data.set(STREAK, data.get(STREAK) + 1);
             data.set(RESULT, Result.RIGHT.ordinal());
             sound(SoundEvents.NOTE_BLOCK_CHIME.value(), 1.0f + Math.min(1.0f, data.get(STREAK) * 0.1f));
@@ -156,8 +156,8 @@ public class HigherLowerMenu extends AbstractContainerMenu {
         data.set(PHASE, phase.ordinal());
         data.set(POT, pot);
         if (phase == Phase.PLAYING) {
-            data.set(IF_HIGHER, HigherLower.pot(stake, odds / HigherLower.chance(HigherLower.Guess.HIGHER, card), pot));
-            data.set(IF_LOWER, HigherLower.pot(stake, odds / HigherLower.chance(HigherLower.Guess.LOWER, card), pot));
+            data.set(IF_HIGHER, HigherLower.pot(stake, odds / HigherLower.chance(HigherLower.Guess.HIGHER, card), pot, PlayerLuck.level(player)));
+            data.set(IF_LOWER, HigherLower.pot(stake, odds / HigherLower.chance(HigherLower.Guess.LOWER, card), pot, PlayerLuck.level(player)));
         }
     }
 

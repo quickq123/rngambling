@@ -181,14 +181,22 @@ public final class RNGamblingGameTests {
     }
 
     /**
-     * The slot machine keeps a small house edge (it pays back 90-94% of tokens bet, worked out
-     * exactly and by simulation), takes the bet, refuses a bet the player can't cover, and pays the
-     * win once the reels have stopped.
+     * The slot machine is fair (it pays back what is bet, worked out exactly and by simulation) and
+     * wins often enough that losing streaks stay short; it takes the bet, refuses a bet the player
+     * can't cover, and pays the win once the reels have stopped.
      */
     private static void slotMachine(GameTestHelper helper) {
         double exact = rngambling.casino.SlotMachine.returnToPlayer();
         LOGGER.info("slot machine pays back {}% of tokens bet", String.format("%.2f", exact * 100));
-        helper.assertTrue(exact > 0.90 && exact < 0.94, "the slot machine should pay back 90-94%, not " + exact);
+        helper.assertTrue(Math.abs(exact - 1) < 0.005, "the slot machine should pay back what is bet, not " + exact);
+        double wins = 0, push = 0;
+        for (var reels : rngambling.casino.SlotMachine.allSpins()) {
+            int pays = rngambling.casino.SlotMachine.pays(reels);
+            wins += pays > 1 ? rngambling.casino.SlotMachine.chance(reels) : 0;
+            push += pays == 1 ? rngambling.casino.SlotMachine.chance(reels) : 0;
+        }
+        LOGGER.info("slot machine: {}% of spins win, {}% hand the bet back", String.format("%.1f", wins * 100), String.format("%.1f", push * 100));
+        helper.assertTrue(wins > 0.33 && push > 0.05, "a third of spins or more should win: " + wins);
         RandomSource random = RandomSource.create(7);
         long paid = 0;
         int spins = 300_000;
@@ -415,11 +423,11 @@ public final class RNGamblingGameTests {
         helper.succeed();
     }
 
-    /** Every roulette bet returns exactly 36/37 (a 2.7% house edge), and a spin takes the bet and pays a win. */
+    /** Every roulette bet pays back exactly what is bet (a zero hands outside bets back), and a spin takes the bet and pays a win. */
     private static void roulette(GameTestHelper helper) {
         for (rngambling.casino.Roulette.Bet bet : rngambling.casino.Roulette.Bet.values()) {
             double back = rngambling.casino.Roulette.returnToPlayer(bet, 17);
-            helper.assertTrue(Math.abs(back - 36.0 / 37) < 1e-9, bet + " should return 36/37, not " + back);
+            helper.assertTrue(Math.abs(back - 1) < 1e-9, bet + " should pay back what is bet, not " + back);
         }
         int reds = 0;
         for (int n = 0; n <= 36; n++) {
@@ -457,8 +465,8 @@ public final class RNGamblingGameTests {
     }
 
     /**
-     * Blackjack keeps a small house edge even against perfect play (a million hands by basic
-     * strategy), never shows the dealer's face-down card early, and settles a hand correctly.
+     * Blackjack is fair against good play (a million hands by basic strategy come out within about
+     * 1% of even), never shows the dealer's face-down card early, and settles a hand correctly.
      */
     private static void blackjack(GameTestHelper helper) {
         RandomSource random = RandomSource.create(11);
@@ -469,7 +477,7 @@ public final class RNGamblingGameTests {
         }
         double edge = -net / hands;
         LOGGER.info("blackjack by basic strategy over {} hands: house edge {}% of the starting bet", hands, String.format("%.2f", edge * 100));
-        helper.assertTrue(edge > 0.0 && edge < 0.03, "blackjack should keep a small house edge against perfect play: " + edge);
+        helper.assertTrue(Math.abs(edge) < 0.012, "blackjack should come out about even against good play: " + edge);
 
         BlockPos pos = new BlockPos(1, 1, 1);
         helper.setBlock(pos, RNGambling.BLACKJACK_TABLE.get());
@@ -1093,13 +1101,12 @@ public final class RNGamblingGameTests {
             var guess = rngambling.casino.HigherLower.chance(rngambling.casino.HigherLower.Guess.HIGHER, card) >= 0.5
                     ? rngambling.casino.HigherLower.Guess.HIGHER : rngambling.casino.HigherLower.Guess.LOWER;
             int before = card;
-            int next = rngambling.casino.CasinoLuck.spin(random, luck, () -> rngambling.casino.Blackjack.draw(random),
-                    x -> rngambling.casino.HigherLower.wins(guess, before, x));
+            int next = rngambling.casino.Blackjack.draw(random);
             if (!rngambling.casino.HigherLower.wins(guess, before, next)) {
                 return 0;
             }
             odds /= rngambling.casino.HigherLower.chance(guess, before);
-            pot = rngambling.casino.HigherLower.pot(bet, odds, pot);
+            pot = rngambling.casino.HigherLower.pot(bet, odds, pot, luck);
             card = next;
         }
         return pot;
@@ -1113,12 +1120,12 @@ public final class RNGamblingGameTests {
                 return 0;
             }
             hidden--;
-            pot = rngambling.casino.CreeperField.pot(bet, creepers, k + 1, pot);
+            pot = rngambling.casino.CreeperField.pot(bet, creepers, k + 1, pot, 0);
         }
         return pot;
     }
 
-    /** The two newer casino games: no plan beats the house, the pots stay whole tokens, and the menus keep every token. */
+    /** The two newer casino games: fair whatever the plan (pots round to whole tokens), luck scales pots, and the menus keep every token. */
     private static void casinoGames(GameTestHelper helper) {
         RandomSource random = RandomSource.create(9);
         int n = 100_000;
@@ -1130,7 +1137,8 @@ public final class RNGamblingGameTests {
                 }
                 double rtp = back / n / bet;
                 LOGGER.info("Higher or Lower, bet {}, cash out after {}: {}", bet, stop, String.format("%.3f", rtp));
-                helper.assertTrue(rtp < 0.985 && rtp > 0.75, "Higher or Lower at bet " + bet + ", " + stop + " guesses: " + rtp);
+                double off = bet >= 100 ? 0.04 : 0.12;
+                helper.assertTrue(Math.abs(rtp - 1) < off, "Higher or Lower at bet " + bet + ", " + stop + " guesses: " + rtp);
             }
             for (int creepers : new int[] {1, 3, 5, 10, 20}) {
                 for (int digs : new int[] {1, 3, 6}) {
@@ -1140,7 +1148,7 @@ public final class RNGamblingGameTests {
                     // Exact: the chance of digging that many safe blocks is 1 / the fair odds.
                     int pot = bet;
                     for (int k = 1; k <= digs; k++) {
-                        pot = rngambling.casino.CreeperField.pot(bet, creepers, k, pot);
+                        pot = rngambling.casino.CreeperField.pot(bet, creepers, k, pot, 0);
                     }
                     if (bet * rngambling.casino.CreeperField.odds(creepers, digs) > rngambling.casino.HigherLower.TABLE_LIMIT) {
                         helper.assertTrue(pot == rngambling.casino.HigherLower.TABLE_LIMIT, "pots stop at the table limit");
@@ -1148,16 +1156,22 @@ public final class RNGamblingGameTests {
                     }
                     double rtp = pot / rngambling.casino.CreeperField.odds(creepers, digs) / bet;
                     LOGGER.info("Creeper Field, bet {}, {} creepers, {} digs: {}", bet, creepers, digs, String.format("%.3f", rtp));
-                    helper.assertTrue(rtp < 0.985 && rtp > 0.7, "Creeper Field at bet " + bet + ", " + creepers + " creepers, " + digs + " digs: " + rtp);
+                    double off = bet >= 100 ? 0.02 : 0.12;
+                    helper.assertTrue(Math.abs(rtp - 1) < off, "Creeper Field at bet " + bet + ", " + creepers + " creepers, " + digs + " digs: " + rtp);
                 }
             }
         }
-        double lucky = 0;
+        double lucky = 0, unlucky = 0;
         for (int i = 0; i < n; i++) {
-            lucky += playHigherLower(random, 10, 3, 2);
+            lucky += playHigherLower(random, 100, 3, 2);
+            unlucky += playHigherLower(random, 100, 3, -2);
         }
-        LOGGER.info("Higher or Lower with Luck II, 3 guesses: {}", String.format("%.3f", lucky / n / 10));
-        helper.assertTrue(lucky / n / 10 > 1.05, "Luck II should tip Higher or Lower to the player");
+        LOGGER.info("Higher or Lower, 3 guesses: Luck II {}, Bad Luck II {}", String.format("%.3f", lucky / n / 100), String.format("%.3f", unlucky / n / 100));
+        helper.assertTrue(Math.abs(lucky / n / 100 - 1.25) < 0.05, "Luck II should pay back about 125% at Higher or Lower");
+        helper.assertTrue(Math.abs(unlucky / n / 100 - 0.75) < 0.05, "Bad Luck II should pay back about 75% at Higher or Lower");
+        // Guesses that can't lose (higher on an ace) get no luck bonus.
+        helper.assertTrue(rngambling.casino.HigherLower.pot(100, 1, 100, 2) == 100, "a sure guess shouldn't be a free Luck bonus");
+        helper.assertTrue(rngambling.casino.CreeperField.pot(100, 5, 1, 100, 2) == 156, "Luck II makes a 125-token pot 156");
 
         // The menus: tokens in = tokens out, whatever happens.
         ServerPlayer player = player(helper, GameType.SURVIVAL);
@@ -1240,11 +1254,11 @@ public final class RNGamblingGameTests {
             int l = luck;
             double s = 0, r = 0, b = 0;
             for (int i = 0; i < n; i++) {
-                var reels = rngambling.casino.CasinoLuck.spin(random, l, () -> rngambling.casino.SlotMachine.spin(random),
-                        x -> rngambling.casino.SlotMachine.pays(x) > 0);
+                var reels = rngambling.casino.CasinoLuck.spin(random, l, rngambling.casino.SlotMachine.ODDS,
+                        () -> rngambling.casino.SlotMachine.spin(random), rngambling.casino.SlotMachine::pays);
                 s += rngambling.casino.SlotMachine.pays(reels);
-                int number = rngambling.casino.CasinoLuck.spin(random, l, () -> rngambling.casino.Roulette.spin(random),
-                        x -> rngambling.casino.Roulette.wins(rngambling.casino.Roulette.Bet.RED, 0, x));
+                int number = rngambling.casino.CasinoLuck.spin(random, l, rngambling.casino.Roulette.odds(rngambling.casino.Roulette.Bet.RED, 0),
+                        () -> rngambling.casino.Roulette.spin(random), x -> rngambling.casino.Roulette.returns(rngambling.casino.Roulette.Bet.RED, 0, x));
                 r += rngambling.casino.Roulette.returns(rngambling.casino.Roulette.Bet.RED, 0, number);
                 b += 1 + rngambling.casino.Blackjack.playOneHand(random, l);
             }
@@ -1254,12 +1268,17 @@ public final class RNGamblingGameTests {
             LOGGER.info("Casino at luck {}: slots {}, red {}, blackjack {}", luck, String.format("%.3f", s / n), String.format("%.3f", r / n),
                     String.format("%.3f", b / n));
         }
+        for (var bet : rngambling.casino.Roulette.Bet.values()) {
+            var odds = rngambling.casino.Roulette.odds(bet, 17);
+            double up = 1 + odds.respin(2) * odds.lose(), down = 1 - odds.respin(-2) * (odds.winReturns() - odds.win());
+            helper.assertTrue(Math.abs(up - 1.25) < 1e-9 && Math.abs(down - 0.75) < 1e-9, bet + " with luck: " + up + ", " + down);
+        }
         for (double[] game : new double[][] {slots, red, jack}) {
             helper.assertTrue(game[0] < game[1] && game[1] < game[2] && game[2] < game[3] && game[3] < game[4], "luck should order the returns");
-            helper.assertTrue(game[2] < 1.0, "without luck the house wins");
-            helper.assertTrue(game[3] > 1.0 && game[3] < 1.09, "Luck I: a slight edge for the player");
-            helper.assertTrue(game[4] > 1.09 && game[4] < 1.2, "Luck II: a good edge for the player");
-            helper.assertTrue(game[1] < 0.95, "Bad Luck I: worse than the house's usual edge");
+            double[] want = {0.75, 0.90, 1.0, 1.10, 1.25};
+            for (int k = 0; k < 5; k++) {
+                helper.assertTrue(Math.abs(game[k] - want[k]) < 0.035, "at luck " + (k - 2) + " the casino should pay back about " + want[k] + ", not " + game[k]);
+            }
         }
 
         // Brewing: a Pile of Tokens makes Luck; glowstone strengthens; a fermented spider eye turns it bad.
