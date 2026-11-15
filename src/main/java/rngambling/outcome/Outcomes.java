@@ -102,7 +102,8 @@ public final class Outcomes {
      */
     public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain) {
         String zone = LuckZone.name(level, LuckZone.at(level, pos));
-        Outcome outcome = pick(level.getRandom(), luck, available(Themes.outcomesFor(zone), level.getServer(), chain));
+        Outcome outcome = pick(level.getRandom(), luck, available(Themes.outcomesFor(zone), level.getServer(), chain), variety(player));
+        drawn(player, outcome);
         play(level, pos, player, luck, chain, outcome);
         return outcome;
     }
@@ -116,7 +117,9 @@ public final class Outcomes {
         String zone = LuckZone.name(level, LuckZone.at(level, pos));
         List<Outcome> open = new ArrayList<>(available(Themes.outcomesFor(zone), level.getServer(), chain));
         open.removeIf(o -> o.id().equals(except));
-        play(level, pos, player, luck, chain, pick(level.getRandom(), luck, open));
+        Outcome outcome = pick(level.getRandom(), luck, open, variety(player));
+        drawn(player, outcome);
+        play(level, pos, player, luck, chain, outcome);
     }
 
     /** A draw from one tier only (The Last Gamble's Legendary reward). */
@@ -125,7 +128,9 @@ public final class Outcomes {
         List<Outcome> open = new ArrayList<>(available(Themes.outcomesFor(zone), level.getServer(), chain));
         open.removeIf(o -> o.tier() != tier);
         if (!open.isEmpty()) {
-            play(level, pos, player, luck, chain, pickWithin(level.getRandom(), luck, open));
+            Outcome outcome = pickWithin(level.getRandom(), luck, open, variety(player));
+            drawn(player, outcome);
+            play(level, pos, player, luck, chain, outcome);
         }
     }
 
@@ -202,8 +207,29 @@ public final class Outcomes {
         return pick(random, luck, ALL);
     }
 
-    /** The two-step draw described above. */
+    /** No variety: every effect at its catalog weight. */
+    public static final java.util.function.ToDoubleFunction<Outcome> PLAIN = outcome -> 1.0;
+
+    /** A player's variety factors (see {@link Variety}), or none if the config turns it off. */
+    public static java.util.function.ToDoubleFunction<Outcome> variety(ServerPlayer player) {
+        if (!rngambling.RNGamblingConfig.VARY_EFFECTS.getAsBoolean()) {
+            return PLAIN;
+        }
+        Variety variety = player.getData(rngambling.RNGambling.VARIETY);
+        return outcome -> variety.factor(outcome.id());
+    }
+
+    /** Counts a drawn effect towards the player's variety. */
+    static void drawn(ServerPlayer player, Outcome outcome) {
+        player.setData(rngambling.RNGambling.VARIETY, player.getData(rngambling.RNGambling.VARIETY).record(outcome.id()));
+    }
+
     public static Outcome pick(RandomSource random, int luck, List<Outcome> outcomes) {
+        return pick(random, luck, outcomes, PLAIN);
+    }
+
+    /** The two-step draw described above. */
+    public static Outcome pick(RandomSource random, int luck, List<Outcome> outcomes, java.util.function.ToDoubleFunction<Outcome> variety) {
         Map<Tier, List<Outcome>> byTier = new EnumMap<>(Tier.class);
         for (Outcome outcome : outcomes) {
             if (outcome.tier() != Tier.WILDCARD || outcome.inBand(luck)) {
@@ -212,28 +238,28 @@ public final class Outcomes {
         }
         List<Outcome> wildcards = byTier.remove(Tier.WILDCARD);
         if (wildcards != null && (byTier.isEmpty() || random.nextDouble() < WILDCARD_SHARE)) {
-            return pickWithin(random, luck, wildcards);
+            return pickWithin(random, luck, wildcards, variety);
         }
         Map<Tier, Double> chances = tierChances(byTier.keySet(), luck);
         double roll = random.nextDouble();
         for (Map.Entry<Tier, List<Outcome>> entry : byTier.entrySet()) {
             roll -= chances.get(entry.getKey());
             if (roll < 0) {
-                return pickWithin(random, luck, entry.getValue());
+                return pickWithin(random, luck, entry.getValue(), variety);
             }
         }
-        return pickWithin(random, luck, byTier.values().iterator().next());
+        return pickWithin(random, luck, byTier.values().iterator().next(), variety);
     }
 
     /** Within one tier: by weight, full inside the effect's band, {@link #OUTSIDE_BAND} outside it. */
-    static Outcome pickWithin(RandomSource random, int luck, List<Outcome> outcomes) {
+    static Outcome pickWithin(RandomSource random, int luck, List<Outcome> outcomes, java.util.function.ToDoubleFunction<Outcome> variety) {
         double total = 0;
         for (Outcome outcome : outcomes) {
-            total += weightWithin(outcome, luck);
+            total += weightWithin(outcome, luck) * variety.applyAsDouble(outcome);
         }
         double roll = random.nextDouble() * total;
         for (Outcome outcome : outcomes) {
-            roll -= weightWithin(outcome, luck);
+            roll -= weightWithin(outcome, luck) * variety.applyAsDouble(outcome);
             if (roll < 0) {
                 return outcome;
             }

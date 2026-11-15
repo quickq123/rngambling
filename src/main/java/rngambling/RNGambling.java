@@ -123,6 +123,13 @@ public final class RNGambling {
                     .sync(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8.apply(net.minecraft.network.codec.ByteBufCodecs.list()))
                     .copyOnDeath().build());
 
+    /** How often and how recently each effect has happened to a player, to keep their draws varied (see rngambling.outcome.Variety). */
+    public static final DeferredHolder<net.neoforged.neoforge.attachment.AttachmentType<?>, net.neoforged.neoforge.attachment.AttachmentType<rngambling.outcome.Variety>> VARIETY =
+            ATTACHMENTS.register("variety", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> rngambling.outcome.Variety.EMPTY)
+                    .serialize(rngambling.outcome.Variety.CODEC, variety -> !variety.isEmpty())
+                    .sync(rngambling.outcome.Variety.STREAM_CODEC)
+                    .copyOnDeath().build());
+
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));

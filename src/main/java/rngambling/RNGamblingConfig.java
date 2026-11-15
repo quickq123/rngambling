@@ -13,6 +13,7 @@ public final class RNGamblingConfig {
     public static final ModConfigSpec.DoubleValue MAX_EXPLOSION;
     public static final ModConfigSpec.IntValue MAX_BONUS_HEARTS;
     public static final ModConfigSpec.BooleanValue ANNOUNCE_BIG_PULLS;
+    public static final ModConfigSpec.BooleanValue VARY_EFFECTS;
     public static final ModConfigSpec.IntValue VILLAGE_CASINO_PERCENT;
     public static final ModConfigSpec.BooleanValue CASINOS_IN_MODDED_VILLAGES;
 
@@ -36,6 +37,10 @@ public final class RNGamblingConfig {
         ANNOUNCE_BIG_PULLS = BUILDER
                 .comment("true: when a player pulls a Legendary or Catastrophic effect, everyone else on the server is told in chat.")
                 .define("announce_big_pulls", true);
+        VARY_EFFECTS = BUILDER
+                .comment("true: effects that have happened to a player (often, or lately) are less likely for them, within the same tier,",
+                        "so they see more of the catalog. Never blocked, and which tier comes up is still luck alone. false: plain weights.")
+                .define("vary_effects", true);
         BUILDER.pop();
         BUILDER.comment("Disguised lucky blocks generated in new chunks of the Overworld.").push("world_generation");
         SURFACE_RARITY = BUILDER

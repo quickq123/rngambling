@@ -62,7 +62,8 @@ public final class RNGamblingGameTests {
             Map.entry("rooms_play", RNGamblingGameTests::roomsPlay),
             Map.entry("casino_luck", RNGamblingGameTests::casinoLuck),
             Map.entry("casino_games", RNGamblingGameTests::casinoGames),
-            Map.entry("journal_and_loot", RNGamblingGameTests::journalAndLoot));
+            Map.entry("journal_and_loot", RNGamblingGameTests::journalAndLoot),
+            Map.entry("variety", RNGamblingGameTests::variety));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -941,6 +942,62 @@ public final class RNGamblingGameTests {
      * Collector's quarter and his drops, the Mystery Item list, the Ghost Block's three vanishings,
      * the Phoenix rising once, the Disco Floor putting the floor back, and which mobs Mob Shuffle swaps.
      */
+    /** Variety: effects a player has had (often, or lately) come up less within their tier, so more of the catalog turns up. */
+    private static void variety(GameTestHelper helper) {
+        var fresh = rngambling.outcome.Variety.EMPTY;
+        helper.assertTrue(fresh.factor("endermite_burst") == 1.0, "an effect never had keeps its full weight");
+        var once = fresh.record("endermite_burst");
+        helper.assertTrue(Math.abs(once.factor("endermite_burst") - 1 / 6.6) < 1e-9 && once.factor("pig_rain") == 1.0,
+                "right after it happens, about a third of its weight; others untouched");
+        var many = once;
+        for (int i = 0; i < 100; i++) {
+            many = many.record("endermite_burst");
+        }
+        helper.assertTrue(many.factor("endermite_burst") == rngambling.outcome.Variety.FLOOR, "never below the floor: " + many.factor("endermite_burst"));
+        helper.assertTrue(many.times("endermite_burst") == 101, "counted");
+
+        // 300 draws in a row by one player at luck 0, with and without variety: more different effects, fewer quick repeats.
+        int[] distinct = new int[2], repeats = new int[2];
+        for (int mode = 0; mode < 2; mode++) for (int seed = 0; seed < 10; seed++) {
+            RandomSource random = RandomSource.create(seed);
+            var tally = rngambling.outcome.Variety.EMPTY;
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            java.util.List<String> lastTen = new java.util.ArrayList<>();
+            for (int i = 0; i < 300; i++) {
+                var current = tally;
+                Outcome drawn = Outcomes.pick(random, 0, Outcomes.ALL, mode == 0 ? Outcomes.PLAIN : o -> current.factor(o.id()));
+                if (i < 100) {
+                    seen.add(drawn.id());
+                }
+                repeats[mode] += lastTen.contains(drawn.id()) ? 1 : 0;
+                lastTen.add(drawn.id());
+                if (lastTen.size() > 10) {
+                    lastTen.removeFirst();
+                }
+                tally = tally.record(drawn.id());
+            }
+            distinct[mode] += seen.size();
+        }
+        LOGGER.info("Variety (10 players): different effects in the first 100 draws {} plain, {} varied; repeats within 10 draws over 300: {} plain, {} varied",
+                distinct[0], distinct[1], repeats[0], repeats[1]);
+        helper.assertTrue(distinct[1] > distinct[0] && repeats[1] < repeats[0], "variety should spread the draws");
+
+        // A real roll counts towards the player's tally.
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        try {
+            BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
+            player.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+            Outcome rolled = Outcomes.roll(helper.getLevel(), pos, player, 0);
+            helper.assertTrue(player.getData(RNGambling.VARIETY).times(rolled.id()) == 1 && player.getData(RNGambling.VARIETY).draws() == 1,
+                    "a roll is counted");
+            rngambling.outcome.Scheduler.clear();
+            clearUp(helper, helper.getLevel(), player);
+        } finally {
+            player.discard();
+        }
+        helper.succeed();
+    }
+
     /** The Lucky Journal records each effect once; the dealer sells luck potions; chests hold lucky loot. */
     private static void journalAndLoot(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

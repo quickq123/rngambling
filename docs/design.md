@@ -258,6 +258,16 @@ Bets 5 to 100: pots are whole tokens, rounded down, and from 5 up rounding costs
   the chat line and a description of what they do (`outcome.rngambling.<id>.desc`, generated
   from the effect guide); the rest are "???". Kept through death; synced to the player's game.
   Admin: `/rngambling journal reveal|reset [player]`.
+- **Variety** (`Variety`, config `vary_effects`, default on): each player's tally of how often
+  and how recently each effect has happened to them. Within a tier (never across tiers: which
+  tier comes up is luck alone), an effect's weight is multiplied by 1 / (1 + 5 x recent + 0.6 x
+  times), where recent adds 0.85^(draws since) for its last four occurrences; at least 0.1, so
+  nothing is ever blocked, and effects never had keep full weight. Right after an effect, about
+  0.15 of its weight; 15 draws later about 0.5; long after, 0.63 for once, 0.25 for five times.
+  Simulated over 10 players x 300 draws (game test `variety`): repeats within 10 draws fell from
+  264 to 114, and different effects in the first 100 draws rose from about 70 to 78. Lucky block
+  rolls, Coin Flip, Double or Nothing and The Last Gamble's reward all count and are weighted;
+  admin `effect play` doesn't. The journal shows how many times each effect has happened.
 - **Server-wide announcements:** a Legendary or Catastrophic pull is told to everyone else on
   the server ("Steve pulled a Legendary: God Sword!"). Config `announce_big_pulls` (default on).
 - **The dealer's luck potions** (a chance: each level's trade set picks 2 of 3, or 1 of 2):

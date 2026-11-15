@@ -171,6 +171,11 @@ public class JournalScreen extends Screen {
                                 Component.translatable("outcome.rngambling." + replaced))
                         : Component.translatable("screen.rngambling.journal.zone_only", Component.translatable("zone.rngambling." + zone)), w, GOLD);
             }
+            var player = Minecraft.getInstance().player;
+            int times = player == null ? 0 : player.getData(rngambling.RNGambling.VARIETY).times(picked.id());
+            if (times > 0) {
+                add(lines, colours, Component.translatable(times == 1 ? "screen.rngambling.journal.times_one" : "screen.rngambling.journal.times", times), w, FADED);
+            }
             if (picked.sandbox() || picked.has(Outcome.Flag.ROOM)) {
                 add(lines, colours, Component.translatable("screen.rngambling.journal.sandbox"), w, GOLD);
             }

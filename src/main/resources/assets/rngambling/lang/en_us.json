@@ -944,5 +944,7 @@
   "zone.rngambling.nether": "Nether",
   "zone.rngambling.end": "End",
   "zone.rngambling.ancient_city": "Ancient City",
-  "zone.rngambling.mushroom_fields": "Mushroom Fields"
+  "zone.rngambling.mushroom_fields": "Mushroom Fields",
+  "screen.rngambling.journal.times_one": "Happened to you once.",
+  "screen.rngambling.journal.times": "Happened to you %s times."
 }
