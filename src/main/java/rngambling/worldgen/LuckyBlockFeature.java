@@ -138,7 +138,7 @@ public final class LuckyBlockFeature extends Feature<NoneFeatureConfiguration> {
                 continue;
             }
             StructureManager structures = LuckZone.structures(level);
-            List<StructureStart> starts = structures.startsForStructure(chunk, wanted::contains);
+            List<StructureStart> starts = LuckZone.startsReaching(level, chunk, wanted::contains);
             BlockPos spot = structureSpot(level, random, chunk, structures, starts);
             if (spot != null) {
                 return disguise(level, random, spot);

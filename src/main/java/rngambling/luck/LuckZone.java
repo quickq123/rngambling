@@ -2,9 +2,13 @@ package rngambling.luck;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -18,7 +22,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import rngambling.RNGambling;
 import rngambling.RNGamblingConfig;
 
@@ -104,7 +111,13 @@ public record LuckZone(
                 if (structureManager == null) {
                     structureManager = structures(level);
                 }
-                if (!structureManager.getStructureWithPieceAt(pos, zone.structures.get()).isValid()) {
+                HolderSet<Structure> wanted = zone.structures.get();
+                Registry<Structure> structureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+                StructureManager manager = structureManager;
+                boolean inside = startsReaching(level, ChunkPos.containing(pos),
+                        s -> wanted.contains(structureRegistry.wrapAsHolder(s)))
+                        .stream().anyMatch(start -> manager.structureHasPieceAt(pos, start));
+                if (!inside) {
                     continue;
                 }
             }
@@ -120,6 +133,37 @@ public record LuckZone(
     public static String name(WorldGenLevel level, LuckZone zone) {
         net.minecraft.resources.Identifier id = level.registryAccess().lookupOrThrow(REGISTRY).getKey(zone);
         return id == null ? "none" : id.getNamespace().equals(RNGambling.MOD_ID) ? id.getPath() : id.toString();
+    }
+
+    /**
+     * The starts of the structures reaching into a chunk, as {@link StructureManager#startsForStructure}
+     * finds them, but safe while the world is being generated: a start is read from the chunk it
+     * began in, and a big structure can begin further away than generation may read (a server
+     * crashed on one 9 chunks off). Starts beyond that reach are left out.
+     */
+    public static List<StructureStart> startsReaching(WorldGenLevel level, ChunkPos chunk, Predicate<Structure> which) {
+        if (!(level instanceof WorldGenRegion)) {
+            return structures(level).startsForStructure(chunk, which);
+        }
+        List<StructureStart> starts = new ArrayList<>();
+        for (Map.Entry<Structure, LongSet> entry : level.getChunk(chunk.x(), chunk.z()).getAllReferences().entrySet()) {
+            Structure structure = entry.getKey();
+            if (!which.test(structure)) {
+                continue;
+            }
+            for (long reference : entry.getValue()) {
+                int x = ChunkPos.getX(reference);
+                int z = ChunkPos.getZ(reference);
+                if (!level.hasChunk(x, z)) {
+                    continue;
+                }
+                StructureStart start = level.getChunk(x, z, ChunkStatus.STRUCTURE_STARTS).getStartForStructure(structure);
+                if (start != null && start.isValid()) {
+                    starts.add(start);
+                }
+            }
+        }
+        return starts;
     }
 
     /** The structure look-up for a level being generated (or, in tests, a finished level). */
