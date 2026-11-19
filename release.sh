@@ -51,7 +51,7 @@ MOD_NAME=$(prop mod_name)
 if [ -d neoforge ] && grep -q "'neoforge'" settings.gradle; then TASKS=":neoforge:"; LIBS=neoforge/build/libs; else TASKS=""; LIBS=build/libs; fi
 TAG="v$VERSION-mc$MC"
 ASSET="$MOD_ID-$VERSION-mc$MC.jar"
-OUT=$LIBS/../release
+OUT=$(dirname "$LIBS")/release
 TITLE="$MOD_NAME $VERSION for Minecraft $MC"
 
 export JAVA_HOME="${JAVA_HOME:-/c/Program Files/Eclipse Adoptium/jdk-25.0.5.8-hotspot}"
