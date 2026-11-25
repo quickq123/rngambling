@@ -98,14 +98,30 @@ public final class Outcomes {
 
     /**
      * Picks an effect for this luck, themed by the luck zone where the block is broken (see
-     * {@link Themes}), and plays it.
+     * {@link Themes}), and plays it. A foretold or jinxed tier ({@link Fate}) narrows the draw;
+     * insurance cancels a bad effect. With a Re-roll Ticket in the player's off hand, two effects
+     * are drawn and offered instead ({@link RerollMenu}), and this returns null: the chosen one
+     * plays when they choose.
      */
     public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain) {
         String zone = LuckZone.name(level, LuckZone.at(level, pos));
-        Outcome outcome = pick(level.getRandom(), luck, available(Themes.outcomesFor(zone), level.getServer(), chain), variety(player));
-        drawn(player, outcome);
-        play(level, pos, player, luck, chain, outcome);
+        List<Outcome> open = Fate.applyOmen(player, available(Themes.outcomesFor(zone), level.getServer(), chain));
+        if (Fate.holdsTicket(player)) {
+            Fate.takeTicket(player);
+            RerollMenu.offer(level, pos, player, luck, chain, open);
+            return null;
+        }
+        Outcome outcome = pick(level.getRandom(), luck, open, variety(player));
+        playDrawn(level, pos, player, luck, chain, outcome);
         return outcome;
+    }
+
+    /** Plays a drawn effect: counted towards variety, then cancelled if the player is insured and it's bad, else played. */
+    static void playDrawn(ServerLevel level, BlockPos pos, ServerPlayer player, int luck, int chain, Outcome outcome) {
+        drawn(player, outcome);
+        if (!Fate.claim(player, outcome)) {
+            play(level, pos, player, luck, chain, outcome);
+        }
     }
 
     public static Outcome roll(ServerLevel level, BlockPos pos, ServerPlayer player, int luck) {
@@ -118,8 +134,7 @@ public final class Outcomes {
         List<Outcome> open = new ArrayList<>(available(Themes.outcomesFor(zone), level.getServer(), chain));
         open.removeIf(o -> o.id().equals(except));
         Outcome outcome = pick(level.getRandom(), luck, open, variety(player));
-        drawn(player, outcome);
-        play(level, pos, player, luck, chain, outcome);
+        playDrawn(level, pos, player, luck, chain, outcome);
     }
 
     /** A draw from one tier only (The Last Gamble's Legendary reward). */
@@ -129,8 +144,7 @@ public final class Outcomes {
         open.removeIf(o -> o.tier() != tier);
         if (!open.isEmpty()) {
             Outcome outcome = pickWithin(level.getRandom(), luck, open, variety(player));
-            drawn(player, outcome);
-            play(level, pos, player, luck, chain, outcome);
+            playDrawn(level, pos, player, luck, chain, outcome);
         }
     }
 

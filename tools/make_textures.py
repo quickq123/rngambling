@@ -665,4 +665,50 @@ write_png("item/casino_token.png", casino_token())
 write_png("item/lucky_journal.png", lucky_journal())
 write_png("item/hot_potato.png", hot_potato())
 write_png("entity/dragon_hatchling.png", dragon_hatchling())
+
+
+def pet_rock():
+    """A grey pebble with googly eyes."""
+    rng = random.Random(11)
+    grey, dark, light = (128, 126, 122), (88, 86, 84), (170, 168, 162)
+    px = [[None] * 16 for _ in range(16)]
+    for y in range(16):
+        for x in range(16):
+            dx, dy = (x - 7.5) / 6.6, (y - 9.0) / 4.8
+            if dx * dx + dy * dy <= 1.0:
+                base = light if dx + dy < -0.6 else dark if dx + dy > 0.7 else grey
+                px[y][x] = shade(base, rng.randint(-8, 8))
+    for (ex, ey) in ((5, 7), (9, 7)):
+        for (x, y) in ((ex, ey), (ex + 1, ey), (ex, ey + 1), (ex + 1, ey + 1)):
+            px[y][x] = (245, 245, 245)
+        px[ey + 1][ex + 1] = (20, 20, 20)
+    return px
+
+
+def reroll_ticket():
+    """A paper ticket with notched ends, a red border and a red re-roll arrow."""
+    paper, paper_dark, red = (236, 216, 160), (196, 172, 116), (190, 40, 40)
+    px = [[None] * 16 for _ in range(16)]
+    for y in range(3, 13):
+        for x in range(1, 15):
+            px[y][x] = paper_dark if y == 12 or x == 14 else paper
+    for (x, y) in ((1, 7), (1, 8), (14, 7), (14, 8)):
+        px[y][x] = None
+    for x in range(3, 13):
+        if x % 2:
+            px[4][x] = red
+            px[11][x] = red
+    # A circular arrow: a ring with a gap at the top right and an arrowhead there.
+    for y in range(5, 11):
+        for x in range(5, 11):
+            dx, dy = x - 7.5, y - 7.5
+            if 1.6 <= (dx * dx + dy * dy) ** 0.5 <= 2.7 and not (dx > 0 and dy < 0):
+                px[y][x] = red
+    for (x, y) in ((8, 5), (9, 5), (10, 5), (9, 6)):
+        px[y][x] = red
+    return px
+
+
+write_png("item/pet_rock.png", pet_rock())
+write_png("item/reroll_ticket.png", reroll_ticket())
 print("textures written")

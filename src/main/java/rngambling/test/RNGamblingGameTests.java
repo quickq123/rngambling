@@ -27,8 +27,13 @@ import rngambling.RNGambling;
 import rngambling.block.LuckyBlock;
 import rngambling.block.LuckyBlockEntity;
 import rngambling.luck.Luck;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Items;
+import rngambling.outcome.Fate;
 import rngambling.outcome.Outcome;
 import rngambling.outcome.OutcomeContext;
+import rngambling.outcome.Tier;
 import rngambling.outcome.Outcomes;
 
 /** The mod's game tests. Run: gradlew runGameTestServer (the exit code is the number of failures). */
@@ -63,7 +68,8 @@ public final class RNGamblingGameTests {
             Map.entry("casino_luck", RNGamblingGameTests::casinoLuck),
             Map.entry("casino_games", RNGamblingGameTests::casinoGames),
             Map.entry("journal_and_loot", RNGamblingGameTests::journalAndLoot),
-            Map.entry("variety", RNGamblingGameTests::variety));
+            Map.entry("variety", RNGamblingGameTests::variety),
+            Map.entry("fate", RNGamblingGameTests::fate));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -751,6 +757,99 @@ public final class RNGamblingGameTests {
                 }
             }
             helper.getLevel().getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The luck-system effects: Fortune Teller and Jinxed set the next lucky block's tier (used up
+     * by it), Insurance Policy cancels the next bad effect (only that one), the Re-roll Ticket
+     * offers two effects and plays the one clicked (or one at random if the window is closed), and
+     * the Pet Rock is a named rock with a like and a dislike.
+     */
+    private static void fate(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
+        player.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+        try {
+            helper.assertTrue(Fate.of(player).isEmpty(), "a new player has no fate");
+            OutcomeContext c = new OutcomeContext(level, pos, player, RandomSource.create(3), 0);
+
+            // Fortune Teller foretells a tier; Jinxed replaces it with a bad one.
+            outcome("fortune_teller").action().run(c);
+            Fate fate = Fate.of(player);
+            helper.assertTrue(fate.omen().equals(Fate.FORTUNE) && fate.omenTier() != null, "a fortune is told: " + fate);
+            for (int i = 0; i < 20; i++) {
+                outcome("jinxed").action().run(new OutcomeContext(level, pos, player, RandomSource.create(i), 0));
+                Tier tier = Fate.of(player).omenTier();
+                helper.assertTrue(tier == Tier.BAD || tier == Tier.VERY_BAD, "a jinx is always bad: " + tier);
+            }
+
+            // Insured and jinxed: a +100 block comes out bad, and is cancelled.
+            outcome("insurance_policy").action().run(c);
+            helper.assertTrue(Fate.of(player).insured(), "insured");
+            outcome("insurance_policy").action().run(c);
+            Fate.foretell(player, Fate.JINX, Tier.BAD);
+            Outcome cancelled = Outcomes.roll(level, pos, player, 100);
+            helper.assertTrue(cancelled.tier() == Tier.BAD, "the jinx made a +100 block bad: " + cancelled.id());
+            helper.assertTrue(Fate.of(player).isEmpty(), "the jinx and the insurance are both used up");
+            helper.assertTrue(!rngambling.outcome.Journal.seen(player).contains(cancelled.id()), "a cancelled effect never happened, so isn't in the journal");
+
+            // A fortune of Good: the next block, even at -100, is Good; the fortune is then used up.
+            Fate.foretell(player, Fate.FORTUNE, Tier.GOOD);
+            Outcome foretold = Outcomes.roll(level, pos, player, -100);
+            helper.assertTrue(foretold.tier() == Tier.GOOD, "foretold Good at -100: " + foretold.id());
+            helper.assertTrue(Fate.of(player).omen().isEmpty(), "the fortune is used up");
+            rngambling.outcome.Scheduler.clear();
+            clearUp(helper, level, player);
+            player.getInventory().clearContent();
+
+            // Re-roll Ticket in the off hand: a window with two choices; clicking one plays it (here, cancelled by insurance).
+            player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(RNGambling.REROLL_TICKET.get()));
+            Fate.insure(player);
+            Fate.foretell(player, Fate.JINX, Tier.VERY_BAD);
+            helper.assertTrue(Outcomes.roll(level, pos, player, 0) == null, "a ticket offers a choice instead of rolling");
+            helper.assertTrue(player.getItemInHand(InteractionHand.OFF_HAND).isEmpty(), "the ticket is used up");
+            helper.assertTrue(player.containerMenu instanceof rngambling.outcome.RerollMenu, "the choice window is open");
+            ItemStack first = player.containerMenu.getSlot(2).getItem(), second = player.containerMenu.getSlot(6).getItem();
+            helper.assertTrue(first.is(Items.PAPER) && second.is(Items.PAPER)
+                    && !first.getHoverName().getString().equals(second.getHoverName().getString()), "two different effects on offer");
+            player.containerMenu.clicked(0, 0, ContainerInput.PICKUP, player);
+            helper.assertTrue(player.containerMenu instanceof rngambling.outcome.RerollMenu && Fate.of(player).insured(),
+                    "clicking an empty slot chooses nothing");
+            player.containerMenu.clicked(2, 0, ContainerInput.PICKUP, player);
+            helper.assertTrue(!(player.containerMenu instanceof rngambling.outcome.RerollMenu), "choosing closes the window");
+            helper.assertTrue(!Fate.of(player).insured(), "the chosen (jinxed, Very Bad) effect was played, and the insurance took it");
+
+            // Closing the window without choosing plays one of the two.
+            player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(RNGambling.REROLL_TICKET.get()));
+            Fate.insure(player);
+            Fate.foretell(player, Fate.JINX, Tier.BAD);
+            Outcomes.roll(level, pos, player, 0);
+            player.closeContainer();
+            helper.assertTrue(!Fate.of(player).insured(), "closing the window still played one");
+
+            // Fate is saved: written and read back the same.
+            Fate.insure(player);
+            Fate.foretell(player, Fate.FORTUNE, Tier.LEGENDARY);
+            var saved = Fate.CODEC.codec().encodeStart(com.mojang.serialization.JavaOps.INSTANCE, Fate.of(player)).getOrThrow();
+            Fate loaded = Fate.CODEC.codec().parse(com.mojang.serialization.JavaOps.INSTANCE, saved).getOrThrow();
+            helper.assertTrue(loaded.equals(Fate.of(player)) && loaded.omenTier() == Tier.LEGENDARY, "saved and loaded: " + loaded);
+
+            // The Pet Rock: a named rock with a like and a dislike.
+            outcome("pet_rock").action().run(c);
+            var rocks = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(pos).inflate(3),
+                    e -> e.getItem().is(RNGambling.PET_ROCK.get()));
+            helper.assertTrue(rocks.size() == 1, "one pet rock dropped: " + rocks.size());
+            ItemStack rock = rocks.getFirst().getItem();
+            var lore = rock.get(net.minecraft.core.component.DataComponents.LORE);
+            helper.assertTrue(rock.has(net.minecraft.core.component.DataComponents.CUSTOM_NAME) && lore != null && lore.lines().size() == 2,
+                    "named, with a like and a dislike");
+            rngambling.outcome.Scheduler.clear();
+            clearUp(helper, level, player);
+        } finally {
+            player.discard();
         }
         helper.succeed();
     }

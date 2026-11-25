@@ -114,6 +114,10 @@ public final class EffectCommands {
 
     private static int roll(CommandContext<CommandSourceStack> context, ServerPlayer player, int luck) {
         Outcome outcome = Outcomes.roll(player.level(), blockSpot(player), player, luck);
+        if (outcome == null) {
+            context.getSource().sendSuccess(() -> Component.translatable("command.rngambling.effect.offered", player.getDisplayName()), true);
+            return 1;
+        }
         context.getSource().sendSuccess(() -> Component.translatable("command.rngambling.effect.rolled", outcome.id(),
                 player.getDisplayName(), luck), true);
         return 1;

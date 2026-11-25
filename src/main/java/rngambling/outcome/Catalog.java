@@ -80,7 +80,7 @@ public final class Catalog {
     private static final Identifier SIZE_SHIFT = Identifier.fromNamespaceAndPath("rngambling", "size_shift");
     public static final Identifier BONUS_HEARTS = Identifier.fromNamespaceAndPath("rngambling", "bonus_hearts");
 
-    /** The first catalog; {@link #ALL} adds {@link MoreEffects}. */
+    /** The first catalog; {@link #ALL} adds {@link MoreEffects} and {@link Fortunes}. */
     private static final List<Outcome> FIRST = List.of(
             // ================= Catastrophic =================
             of("CAT-04", "meteor_strike", CATASTROPHIC, -100, -80, 6, Catalog::meteor),
@@ -903,7 +903,7 @@ public final class Catalog {
     );
 
     /** Every catalog effect. */
-    public static final List<Outcome> ALL = java.util.stream.Stream.concat(FIRST.stream(), MoreEffects.ALL.stream()).toList();
+    public static final List<Outcome> ALL = java.util.stream.Stream.of(FIRST, MoreEffects.ALL, Fortunes.ALL).flatMap(List::stream).toList();
 
     // ---- helpers ----
 

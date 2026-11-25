@@ -130,6 +130,11 @@ public final class RNGambling {
                     .sync(rngambling.outcome.Variety.STREAM_CODEC)
                     .copyOnDeath().build());
 
+    /** What lies ahead of a player's next lucky block: an omen, insurance (see rngambling.outcome.Fate). Kept through death. */
+    public static final DeferredHolder<net.neoforged.neoforge.attachment.AttachmentType<?>, net.neoforged.neoforge.attachment.AttachmentType<rngambling.outcome.Fate>> FATE =
+            ATTACHMENTS.register("fate", () -> net.neoforged.neoforge.attachment.AttachmentType.builder(() -> rngambling.outcome.Fate.NONE)
+                    .serialize(rngambling.outcome.Fate.CODEC, fate -> !fate.isEmpty()).copyOnDeath().build());
+
     /** The bought (plain-textured) lucky block. The world-generated mimic comes later. */
     public static final DeferredBlock<LuckyBlock> LUCKY_BLOCK = BLOCKS.registerBlock("lucky_block", LuckyBlock::new,
             properties -> properties.mapColor(MapColor.COLOR_RED).strength(0.5f).sound(SoundType.WOOD));
@@ -239,6 +244,12 @@ public final class RNGambling {
             ENTITY_TYPES.registerEntityType("dragon_hatchling", rngambling.entity.DragonHatchling::new, net.minecraft.world.entity.MobCategory.CREATURE,
                     builder -> builder.sized(0.7f, 0.9f).eyeHeight(0.7f).fireImmune().clientTrackingRange(10));
 
+    /** GOD-44 Re-roll Ticket and NEU-35 Pet Rock (see rngambling.outcome.Fortunes). */
+    public static final DeferredItem<rngambling.item.RerollTicketItem> REROLL_TICKET = ITEMS.registerItem("reroll_ticket",
+            rngambling.item.RerollTicketItem::new, () -> new Item.Properties().rarity(Rarity.UNCOMMON));
+    public static final DeferredItem<rngambling.item.PetRockItem> PET_ROCK = ITEMS.registerItem("pet_rock",
+            rngambling.item.PetRockItem::new, () -> new Item.Properties().stacksTo(1));
+
     /** One-use luck charms, sold by the Casino Dealer. */
     public static final DeferredItem<LuckCharmItem> FOUR_LEAF_CLOVER = ITEMS.registerItem("four_leaf_clover",
             properties -> new LuckCharmItem(10, properties), () -> new Item.Properties().rarity(Rarity.UNCOMMON));
@@ -308,6 +319,8 @@ public final class RNGambling {
                         output.accept(MIMIC_WAND.get());
                         output.accept(LUCK_GLASSES.get());
                         output.accept(HOT_POTATO.get());
+                        output.accept(REROLL_TICKET.get());
+                        output.accept(PET_ROCK.get());
                         // Luck potions (see PlayerLuck): Luck I is vanilla's, the rest are this mod's.
                         for (net.minecraft.world.item.Item bottle : new net.minecraft.world.item.Item[] {net.minecraft.world.item.Items.POTION,
                                 net.minecraft.world.item.Items.SPLASH_POTION, net.minecraft.world.item.Items.LINGERING_POTION}) {

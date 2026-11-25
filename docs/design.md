@@ -25,7 +25,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (221 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (226 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
   Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
   **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
@@ -305,6 +305,26 @@ level minus Bad Luck's, each counted up to II, so -2 to +2.
   5:00); + glowstone = Luck II (3:00); Fermented Spider Eye turns Luck into Bad Luck (I 5:00,
   II 3:00), and glowstone strengthens Bad Luck. Splash and lingering versions brew as usual, so
   Bad Luck can be thrown at other players.
+
+## Fate: omens, insurance and the Re-roll Ticket
+
+Effects that play with the draw itself (`Fortunes`), kept per player in `Fate` (saved, through
+death). Game test `fate`.
+- **Fortune Teller** (NEU-34) draws a tier now, by the odds of the block that gave it, and tells
+  the player; their **next lucky block** draws only from that tier ("As foretold: Good.").
+- **Jinxed** (BAD-36): the same, but always Bad (7 in 10) or Very Bad (3 in 10), whatever the
+  next block's luck ("The jinx strikes: Bad."). The newest omen replaces an older one. A tier
+  with nothing open where the block is (e.g. rooms with no Sandbox) is dropped and the block
+  draws as usual.
+- **Insurance Policy** (GOD-43): the next bad effect (Bad, Very Bad or Catastrophic) drawn for
+  the player never happens ("Insurance paid out: X never happened."); it isn't recorded in the
+  Journal. One policy at a time. It covers lucky-block draws and their redraws (Coin Flip, The
+  Last Gamble), never the admin effect command, and it does cover a jinx.
+- **Re-roll Ticket** (GOD-44), an item: held in the **off hand** when breaking a lucky block, it's
+  used up and the block draws two different effects (within an omen's tier, if any), shown as
+  named cards in a one-row window (`RerollMenu`). Click one; closing the window plays one of the
+  two at random. Insurance still applies to the chosen one.
+- **Pet Rock** (NEU-35), an item: a rock with a random name, like and dislike. Using it pets it.
 
 ## The casino
 
