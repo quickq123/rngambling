@@ -33,6 +33,8 @@ import net.minecraft.world.item.Items;
 import rngambling.outcome.Fate;
 import rngambling.outcome.Outcome;
 import rngambling.outcome.OutcomeContext;
+import rngambling.outcome.SkillRooms;
+import rngambling.outcome.SkillRooms.Medal;
 import rngambling.outcome.Tier;
 import rngambling.outcome.Outcomes;
 
@@ -69,7 +71,8 @@ public final class RNGamblingGameTests {
             Map.entry("casino_games", RNGamblingGameTests::casinoGames),
             Map.entry("journal_and_loot", RNGamblingGameTests::journalAndLoot),
             Map.entry("variety", RNGamblingGameTests::variety),
-            Map.entry("fate", RNGamblingGameTests::fate));
+            Map.entry("fate", RNGamblingGameTests::fate),
+            Map.entry("skill_rooms", RNGamblingGameTests::skillRooms));
 
     /**
      * Rooms played through: on the Void Platform a player who stands still loses their footing
@@ -854,6 +857,205 @@ public final class RNGamblingGameTests {
         helper.succeed();
     }
 
+    /**
+     * The skill rooms played through (built in the test world, ticked by hand): medals by time,
+     * floors, pearls, height, rounds and sequences, the prizes they win, and the rooms' own rules
+     * (crumbling bricks, falls and pearls not hurting, climbing blocks that stay up).
+     */
+    private static void skillRooms(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = player(helper, GameType.SURVIVAL);
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        int[] slot = {0};
+        java.util.function.Function<rngambling.outcome.Room, BlockPos> build = room -> {
+            BlockPos centre = new BlockPos(origin.getX() - 3000 - 160 * slot[0]++, 100, origin.getZ());
+            net.minecraft.world.phys.Vec3 start = room.buildAt(level, centre, player, 0);
+            player.snapTo(start.x, start.y, start.z);
+            return centre;
+        };
+        try {
+            // Medal prizes.
+            helper.assertTrue(SkillRooms.prize(Medal.GOLD).stream().anyMatch(s -> s.is(RNGambling.BLESSED_LUCKY_BLOCK_ITEM.get()))
+                    && SkillRooms.prize(Medal.NONE).isEmpty(), "gold wins a Blessed Lucky Block; no medal, nothing");
+
+            // A course: the way out straight away is gold, and the prize lands in the inventory; falls and pearls don't hurt.
+            player.getInventory().clearContent();
+            var ice = new SkillRooms.IceRun();
+            build.apply(ice);
+            ice.tickForTest(0);
+            ice.exitReached();
+            helper.assertTrue(ice.medal() == Medal.GOLD && ice.finished() && ice.succeeded(), "a quick finish is gold: " + ice.medal());
+            helper.assertTrue(player.getInventory().countItem(RNGambling.BLESSED_LUCKY_BLOCK_ITEM.get()) == 1, "the gold prize is given");
+            helper.assertTrue(ice.protects(level.damageSources().fall()) && ice.protects(level.damageSources().source(net.minecraft.world.damagesource.DamageTypes.ENDER_PEARL))
+                    && !ice.protects(level.damageSources().generic()), "falls and pearls don't hurt in a skill room; other damage does");
+            var speedrun = new rngambling.outcome.Rooms.ParkourCourse();
+            build.apply(speedrun);
+            speedrun.tickForTest(0);
+            speedrun.exitReached();
+            helper.assertTrue(speedrun.medal() == Medal.GOLD, "the Speedrun Course gives a medal at the way out");
+
+            // Dropper: five floors with one opening each; landing on the third floor down is silver, the water gold.
+            var dropper = new SkillRooms.Dropper();
+            BlockPos centre = build.apply(dropper);
+            int[] floors = {86, 68, 50, 32, 14};
+            int[] openings = {9, 9, 6, 6, 4};
+            for (int f = 0; f < floors.length; f++) {
+                int open = 0;
+                for (int x = -4; x <= 4; x++) for (int z = -4; z <= 4; z++) {
+                    open += level.getBlockState(centre.offset(x, floors[f], z)).isAir() ? 1 : 0;
+                }
+                helper.assertTrue(open == openings[f], "floor " + f + " should have one opening of " + openings[f] + ": " + open);
+            }
+            helper.assertTrue(level.getBlockState(centre.offset(0, 0, 0)).is(Blocks.WATER), "water at the bottom");
+            for (int age = 0; age <= 60; age++) {
+                dropper.tickForTest(age);
+            }
+            helper.assertTrue(level.getBlockState(centre.offset(0, 101, 0)).isAir() && !dropper.finished(), "the glass goes after the countdown");
+            player.snapTo(centre.getX() + 0.5, centre.getY() + floors[3] + 1, centre.getZ() + 0.5);
+            player.setOnGround(true);
+            dropper.tickForTest(61);
+            helper.assertTrue(dropper.medal() == Medal.SILVER, "landing on the fourth floor (three passed) is silver: " + dropper.medal());
+
+            // Crumbling Path: a brick cracks when stood on and falls away after a moment.
+            var path = new SkillRooms.CrumblingPath();
+            centre = build.apply(path);
+            BlockPos brick = centre.offset(0, 59, -2);
+            helper.assertTrue(level.getBlockState(brick).is(Blocks.STONE_BRICKS), "the path starts with a brick");
+            player.snapTo(brick.getX() + 0.5, brick.getY() + 1, brick.getZ() + 0.5);
+            player.setOnGround(true);
+            path.tickForTest(1);
+            helper.assertTrue(level.getBlockState(brick).is(Blocks.CRACKED_STONE_BRICKS), "stood on, it cracks");
+            path.tickForTest(1 + SkillRooms.CrumblingPath.CRACK);
+            helper.assertTrue(level.getBlockState(brick).isAir(), "and then it's gone");
+
+            // Ender Pearl Hop: nine pearls; three left at the end is gold, one silver.
+            player.getInventory().clearContent();
+            var hop = new SkillRooms.EnderPearlHop();
+            build.apply(hop);
+            helper.assertTrue(player.getInventory().countItem(Items.ENDER_PEARL) == 9, "nine pearls for the visit");
+            hop.exitReached();
+            helper.assertTrue(hop.medal() == Medal.GOLD, "three spare left is gold");
+            player.getInventory().clearContent();
+            var hop2 = new SkillRooms.EnderPearlHop();
+            build.apply(hop2);
+            for (int s = 0; s < player.getInventory().getContainerSize(); s++) {
+                if (player.getInventory().getItem(s).is(Items.ENDER_PEARL)) {
+                    player.getInventory().getItem(s).shrink(8);
+                }
+            }
+            hop2.exitReached();
+            helper.assertTrue(hop2.medal() == Medal.SILVER, "one left is silver: " + hop2.medal());
+
+            // Tower Climb: every ladder and vine is held up; a way out at the top; height medals at the time limit.
+            var tower = new SkillRooms.TowerClimb();
+            centre = build.apply(tower);
+            int ladders = 0, vines = 0, scaffolds = 0;
+            for (BlockPos p : BlockPos.betweenClosed(centre.offset(-4, 0, -4), centre.offset(4, tower.top() + 2, 4))) {
+                BlockState state = level.getBlockState(p);
+                if (state.is(Blocks.LADDER) || state.is(Blocks.VINE)) {
+                    helper.assertTrue(state.canSurvive(level, p), "a climbing block should be held up at " + p);
+                    ladders += state.is(Blocks.LADDER) ? 1 : 0;
+                    vines += state.is(Blocks.VINE) ? 1 : 0;
+                }
+                scaffolds += state.is(Blocks.SCAFFOLDING) ? 1 : 0;
+            }
+            helper.assertTrue(ladders > 0 && vines > 0 && scaffolds > 0, "ladders, vines and scaffolding: " + ladders + ", " + vines + ", " + scaffolds);
+            helper.assertTrue(tower.top() >= 40 && tower.exitPos() != null && tower.exitPos().getY() == centre.getY() + tower.top() + 1,
+                    "the way out at the top: " + tower.top());
+            helper.assertTrue(tower.medalNow() == Medal.NONE, "no height, no medal");
+            tower.reached(tower.top() / 3);
+            helper.assertTrue(tower.medalNow() == Medal.BRONZE, "a third of the way is bronze");
+            tower.reached(2 * tower.top() / 3);
+            player.snapTo(centre.getX() + 0.5, centre.getY() + 1, centre.getZ() + 0.5);
+            tower.tickForTest(20 * 60 * 3 - 1);
+            helper.assertTrue(tower.medal() == Medal.SILVER, "two thirds at the time limit is silver: " + tower.medal());
+
+            // Block Party: stand on the called colour and survive the drop; fall and it's over.
+            var party = new SkillRooms.BlockParty();
+            centre = build.apply(party);
+            int age = 0;
+            for (; age <= 60; age++) {
+                party.tickForTest(age);
+            }
+            BlockState calledTile = blockOf(party.called());
+            BlockPos safe = null, unsafe = null;
+            for (BlockPos p : BlockPos.betweenClosed(centre.offset(-8, 40, -8), centre.offset(7, 40, 7))) {
+                if (level.getBlockState(p).equals(calledTile)) {
+                    safe = p.immutable();
+                } else {
+                    unsafe = p.immutable();
+                }
+            }
+            helper.assertTrue(safe != null && unsafe != null, "the called colour is on the floor, among others");
+            player.snapTo(safe.getX() + 0.5, safe.getY() + 1, safe.getZ() + 0.5);
+            for (; age <= 60 + 84 + 40; age++) {
+                if (age == 60 + 84 + 1) {
+                    helper.assertTrue(level.getBlockState(unsafe).isAir() && level.getBlockState(safe).equals(calledTile), "every other colour drops away");
+                }
+                party.tickForTest(age);
+            }
+            helper.assertTrue(party.survived() == 1 && !party.finished(), "one round survived: " + party.survived());
+            player.snapTo(safe.getX() + 0.5, safe.getY() - 5, safe.getZ() + 0.5);
+            party.tickForTest(age);
+            helper.assertTrue(party.finished() && party.medal() == Medal.NONE, "falling after one round: out, no medal");
+
+            // Simon Says: repeat eight sequences for gold; one wrong button ends it.
+            var simon = new SkillRooms.SimonSays();
+            centre = build.apply(simon);
+            age = 0;
+            for (int guard = 0; guard < 20000 && !simon.finished(); guard++, age++) {
+                simon.tickForTest(age);
+                if (simon.awaitingInput()) {
+                    for (int pad : simon.sequence()) {
+                        if (simon.finished() || !simon.awaitingInput()) {
+                            break;
+                        }
+                        press(level, centre.offset(SkillRooms.SimonSays.button(pad)), true);
+                        simon.tickForTest(++age);
+                        press(level, centre.offset(SkillRooms.SimonSays.button(pad)), false);
+                        simon.tickForTest(++age);
+                    }
+                }
+            }
+            helper.assertTrue(simon.medal() == Medal.GOLD && simon.rounds() == 8, "eight sequences repeated is gold: " + simon.medal() + ", " + simon.rounds());
+            var wrong = new SkillRooms.SimonSays();
+            centre = build.apply(wrong);
+            age = 0;
+            while (!wrong.awaitingInput() && age < 1000) {
+                wrong.tickForTest(age++);
+            }
+            int bad = (wrong.sequence().getFirst() + 1) % 4;
+            press(level, centre.offset(SkillRooms.SimonSays.button(bad)), true);
+            wrong.tickForTest(age);
+            helper.assertTrue(wrong.finished() && wrong.medal() == Medal.NONE, "a wrong first button: over, no medal");
+        } finally {
+            player.getInventory().clearContent();
+            player.removeAllEffects();
+            level.getServer().getPlayerList().remove(player);
+        }
+        helper.succeed();
+    }
+
+    /** Tokens in the player's inventory plus any dropped around them (which are picked up into the count and removed). */
+    private static int tokensHeldOrDropped(ServerPlayer player) {
+        int count = rngambling.casino.Tokens.count(player.getInventory());
+        for (var item : player.level().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, player.getBoundingBox().inflate(4),
+                e -> e.getItem().is(RNGambling.CASINO_TOKEN.get()))) {
+            count += item.getItem().getCount();
+            item.discard();
+        }
+        return count;
+    }
+
+    private static BlockState blockOf(net.minecraft.world.item.DyeColor colour) {
+        return SkillRooms.BlockParty.concrete(colour);
+    }
+
+    private static void press(ServerLevel level, BlockPos button, boolean on) {
+        BlockState state = level.getBlockState(button);
+        level.setBlock(button, state.setValue(net.minecraft.world.level.block.ButtonBlock.POWERED, on), net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+    }
+
     private static Outcome outcome(String id) {
         return Outcomes.ALL.stream().filter(o -> o.id().equals(id)).findFirst().orElseThrow();
     }
@@ -954,7 +1156,8 @@ public final class RNGamblingGameTests {
                 helper.assertTrue(passable(level, feet) && passable(level, feet.above()), name + ": the start should be clear to stand in");
                 boolean hasExit = !(room instanceof rngambling.outcome.Rooms.WitherArena || room instanceof rngambling.outcome.Rooms.EmpoweredWither
                         || room instanceof rngambling.outcome.Rooms.MobArenaWaves || room instanceof rngambling.outcome.Rooms.TreasureIsland
-                        || room instanceof rngambling.outcome.Rooms.BossBounty || room instanceof rngambling.outcome.Rooms.VoidPlatform);
+                        || room instanceof rngambling.outcome.Rooms.BossBounty || room instanceof rngambling.outcome.Rooms.VoidPlatform
+                        || room instanceof SkillRooms.Dropper || room instanceof SkillRooms.BlockParty || room instanceof SkillRooms.SimonSays);
                 if (hasExit) {
                     helper.assertTrue(room.exitPos() != null && level.getBlockState(room.exitPos()).is(RNGambling.SANDBOX_EXIT.get()),
                             name + ": should have a way out");
@@ -1289,8 +1492,9 @@ public final class RNGamblingGameTests {
                 boolean playing = hilo.phase() == rngambling.casino.HigherLowerMenu.Phase.PLAYING;
                 hilo.removed(player); // closing cashes out
                 int expected = 54 + (playing ? pot : 0);
-                helper.assertTrue(rngambling.casino.Tokens.count(player.getInventory()) == expected,
-                        "Higher or Lower should pay exactly the pot: " + rngambling.casino.Tokens.count(player.getInventory()) + " vs " + expected);
+                // A big pot can be more than an inventory holds (2304): the rest drops at the player's feet.
+                int held = tokensHeldOrDropped(player);
+                helper.assertTrue(held == expected, "Higher or Lower should pay exactly the pot: " + held + " vs " + expected);
 
                 player.getInventory().clearContent();
                 player.getInventory().add(new ItemStack(RNGambling.CASINO_TOKEN.get(), 64));

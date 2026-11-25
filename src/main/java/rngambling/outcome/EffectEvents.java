@@ -58,6 +58,13 @@ public final class EffectEvents {
             if (direct != null && direct.entityTags().contains(CustomEffects.HARMLESS_TAG)) {
                 event.setCanceled(true);
             }
+            // Skill rooms: falls and ender pearls don't hurt (see Room#preventsDamage).
+            if (event.getEntity() instanceof ServerPlayer player) {
+                Room room = Sandbox.roomOf(player);
+                if (room != null && room.protects(event.getSource())) {
+                    event.setCanceled(true);
+                }
+            }
         });
         // Effects' temporary entities (Ore Vision's glows, the party llamas, the Tax Collector) don't outlive a restart.
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityJoinLevelEvent event) -> {

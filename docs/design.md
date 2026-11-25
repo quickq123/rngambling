@@ -25,7 +25,7 @@ Decisions made so far, and the plan. Minecraft 26.1.2, NeoForge 26.1.2.126, Java
   | +50 | 80% | 7% | 13% | Very Good 37% |
   | +100 | 90% | 3% | 7% | Legendary 61% |
 
-- **The catalog** (226 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
+- **The catalog** (234 effects): the whole of docs/effect-catalog.csv: the "Vanilla only"
   effects, all 15 Sandbox rooms and Boss Bounty (below), the "easy custom" effects and the
   Dragon Hatchling (below), plus additions since: **Wear and Tear** (VBD-30), and for the casino
   **Token Toss** (GOD-30, 8-24 tokens), **Token Jackpot** (VGD-24, 2-4 Piles of Tokens) and
@@ -214,7 +214,7 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 | Skyblock Strand (VBD-17) | 3x3 island 90 up, the exit island 18 away; 24 cobblestone | the way out; falling fails |
 | Drowned Pit (VBD-24) | 18-deep flooded pit, 4 Drowned with tridents | the way out on a ledge at the top (2 min) |
 | Treasure Vault (VGD-09) | gold-block room, 6 loot chests; only the chests can be broken (true of every room unless it says otherwise), so the gold stays put | 40 s timer bar (or the way out) |
-| Parkour Course (VGD-10) | 14 jumps in the sky, an End City chest at the end | the way out; falling fails, and you keep nothing |
+| Speedrun Course (VGD-10) | 14 jumps in the sky against the clock, an End City chest at the end | the way out, with a medal by time on top of the chest; falling fails, and you keep nothing |
 | Puzzle Vault (VGD-11) | 5 levers, 5 lamps: each lever flips its lamp and its neighbours'; light them all and the vault door opens to an End City chest | the way out in the vault (4 min) |
 | Treasure Island (LEG-06) | sand island with palms and a moat, 4 treasure chests; anything can be broken | 3 min timer bar |
 | Casino Invitation (GOD-31) | a casino hall: four slot machines, a roulette and a blackjack table, a Casino Dealer to trade with; 8 tokens on the house; nothing in it can be broken or taken | the way out just outside the front door, whenever (10 min max); winnings come home |
@@ -223,7 +223,29 @@ a room hands out are taken away at the end. Falling off a sky room is failure: h
 Rooms are left out of the draw when the Sandbox is off or missing. Tests: `rooms_build` builds
 every room in the test world (the maze always solvable, the tomb's weak pair the only way out,
 the puzzle always solvable); `runClientShots -PshotsWorld=rooms` enters each in the real
-Sandbox, pictures it and leaves by its way out.
+Sandbox, pictures it and leaves by its way out (`-PshotsRooms=Dropper,IceRun` for only some,
+each also pictured from above).
+
+### Skill rooms (Neutral)
+
+Challenges that score you instead of rewarding or punishing you (`SkillRooms`): each ends in a
+**medal**, and the medal is the prize. Gold: a Blessed Lucky Block, 2 Lucky Blocks and 16 Casino
+Tokens. Silver: 2 Lucky Blocks and 8 tokens. Bronze: a Lucky Block and 4 tokens. No medal: nothing,
+and nothing lost. Falls and ender pearls don't hurt in them. Timed courses start the clock when
+you leave the start and show it over the hotbar, with the medal times worked out from the
+course's length (first guesses, to tune in playtesting). All NEU-36 to NEU-43, luck -20 to 20,
+weight 3. Game test `skill_rooms`.
+
+| Room | What it is | Medal |
+|---|---|---|
+| Dropper (NEU-36) | a 100-block shaft; 5 floors across it, one opening each (3x3 narrowing to 2x2), each within 2 blocks of the last; water at the bottom; the glass under you goes after 3-2-1 | the water, gold; landing on a floor ends it: 3 passed, silver; 2, bronze |
+| Ice Run (NEU-37) | 3-wide packed ice, then blue ice, in the sky; sideways turns and 2-3 block gaps | by time at the way out; falling, none |
+| Bounce House (NEU-38) | 8 honey platforms, each 2 lower; a slime pad 4 below each gap to bounce up from | by time; falling, none |
+| Crumbling Path (NEU-39) | 4 winding stone-brick paths that crack when stepped on and drop 0.6 s later, with 2-4 easy quartz jumps between | by time; falling, none |
+| Ender Pearl Hop (NEU-40) | 6 islands 13-17 apart, 9 pearls (3 spare) | at the way out: 3 left, gold; 1-2, silver; 0, bronze |
+| Tower Climb (NEU-41) | up the inside of a 50-high tower: jumps along the walls, ladders, vines, scaffolding; a fall costs only the climb | the way out at the top, gold; at 3 minutes, by height: 2/3, silver; 1/3, bronze |
+| Block Party (NEU-42) | 16x16 floor of coloured 2x2 tiles; a colour is called, the rest drop away when the countdown ends (4 s down to 1.2 s) | rounds survived of 10: 10 gold, 7 silver, 4 bronze |
+| Simon Says (NEU-43) | 4 coloured pads with buttons; repeat the lit sequence, one longer each round; a wrong button or 10 s idle ends it | sequences repeated: 8 gold, 5 silver, 3 bronze |
 
 ### Higher or Lower and Creeper Field (done)
 

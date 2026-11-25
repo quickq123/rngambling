@@ -646,6 +646,15 @@ public final class Catalog {
             of("NEU-20", "message_in_a_bottle", NEUTRAL, -5, 15, 4, CustomEffects::messageInABottle),
             of("NEU-21", "mob_shuffle", NEUTRAL, -10, 10, 3, CustomEffects::mobShuffle),
             of("NEU-24", "ghost_block", NEUTRAL, -10, 10, 4, CustomEffects::ghostBlock).chain(),
+            // Skill rooms (SkillRooms): a medal by how well you do; nothing lost if you don't.
+            of("NEU-36", "dropper", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.Dropper())).room(),
+            of("NEU-37", "ice_run", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.IceRun())).room(),
+            of("NEU-38", "bounce_house", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.BounceHouse())).room(),
+            of("NEU-39", "crumbling_path", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.CrumblingPath())).room(),
+            of("NEU-40", "ender_pearl_hop", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.EnderPearlHop())).room(),
+            of("NEU-41", "tower_climb", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.TowerClimb())).room(),
+            of("NEU-42", "block_party", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.BlockParty())).room(),
+            of("NEU-43", "simon_says", NEUTRAL, -20, 20, 3, c -> room(c, new SkillRooms.SimonSays())).room(),
 
             // ================= Good =================
             of("GOD-01", "iron_haul", GOOD, 10, 40, 8, c -> c.drop(Items.IRON_INGOT, 16, 32)),

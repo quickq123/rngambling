@@ -50,6 +50,8 @@ neoForge {
             systemProperty 'rngambling.shotsWorld', (project.findProperty('shotsWorld') ?: 'flat').toString()
             // -PstructuresOnly: with shotsWorld=zones, only the structures.
             systemProperty 'rngambling.structuresOnly', project.hasProperty('structuresOnly').toString()
+            // -PshotsRooms=Dropper,IceRun: with shotsWorld=rooms, only these rooms (by class name), each also from above.
+            systemProperty 'rngambling.shotsRooms', (project.findProperty('shotsRooms') ?: '').toString()
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 

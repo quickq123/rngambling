@@ -189,7 +189,7 @@ public final class Sandbox {
     public static void reachedExit(ServerPlayer player) {
         Session session = SESSIONS.get(player.getUUID());
         if (session != null && session.room() != null) {
-            session.room().finish(true);
+            session.room().exitReached();
         } else if (session != null) {
             end(player.level().getServer(), player.level().getServer().getLevel(LEVEL), session, player);
         }

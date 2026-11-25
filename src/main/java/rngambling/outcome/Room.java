@@ -144,6 +144,16 @@ public abstract class Room {
         return true;
     }
 
+    /** Damage the room doesn't let hurt the player (skill rooms: falls and ender pearls). */
+    protected boolean preventsDamage(net.minecraft.world.damagesource.DamageSource source) {
+        return false;
+    }
+
+    /** The player walked into the way out: by default, success. */
+    protected void onExit() {
+        finish(true);
+    }
+
     /** When the visit ends: tidy up (effects the room gave, its timer). */
     protected void onEnd(boolean success) {
         if (timer != null) {
@@ -189,6 +199,15 @@ public abstract class Room {
 
     public boolean breakable(BlockPos pos, BlockState state) {
         return canBreak(pos, state);
+    }
+
+    public boolean protects(net.minecraft.world.damagesource.DamageSource source) {
+        return preventsDamage(source);
+    }
+
+    /** The player walked into the way out (also for tests). */
+    public void exitReached() {
+        onExit();
     }
 
     /** Ends the room: through the exit (true) or failed (false). */

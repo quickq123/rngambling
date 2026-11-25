@@ -831,24 +831,30 @@ public final class Rooms {
         }
     }
 
-    /** VGD-10: a parkour course in the sky with a reward chest at the end. Fall and you go home with nothing. */
-    public static final class ParkourCourse extends Room {
-        private static final int Y = 60;
-
+    /**
+     * VGD-10 Speedrun Course: a parkour course in the sky against the clock, with a reward chest at
+     * the end and a medal by time at the way out (see {@link SkillRooms}). Fall and you go home with
+     * nothing.
+     */
+    public static final class ParkourCourse extends SkillRooms.Course {
         @Override
         protected Vec3 build() {
             box(-1, Y - 1, -1, 1, Y - 1, 1, Blocks.QUARTZ_BLOCK, false);
             int x = 0, y = Y - 1, z = 0;
+            double length = 0;
             for (int jump = 0; jump < 14; jump++) {
-                z -= 2 + random.nextInt(2);
+                int step = 2 + random.nextInt(2);
+                z -= step;
                 x += random.nextInt(3) - 1;
                 y += random.nextInt(3) == 0 ? 1 : 0;
                 set(x, y, z, jump % 3 == 2 ? Blocks.GOLD_BLOCK : Blocks.QUARTZ_BLOCK);
+                length += step;
             }
             z -= 3;
             box(x - 1, y, z - 2, x + 1, y, z, Blocks.QUARTZ_BLOCK, false);
             chest(x, y + 1, z - 2, LEGENDARY_CHEST);
             exit(x + 1, y + 1, z - 1);
+            par(length + 4, 3.5, 2.3);
             message("message.rngambling.room.parkour_course.rules");
             return Vec3.atBottomCenterOf(at(0, Y, 0));
         }
@@ -1083,7 +1089,9 @@ public final class Rooms {
         return List.of(WitherArena::new, EmpoweredWither::new, WardensHollow::new, VoidPlatform::new, RisingLavaTomb::new,
                 ElderGuardianMonument::new, FortressAmbush::new, BlindHedgeMaze::new, MobArenaWaves::new, SkyblockStrand::new,
                 DrownedPit::new, TreasureVault::new, ParkourCourse::new, PuzzleVault::new, TreasureIsland::new, BossBounty::new,
-                CasinoRoom::new);
+                CasinoRoom::new, SkillRooms.Dropper::new, SkillRooms.IceRun::new, SkillRooms.BounceHouse::new,
+                SkillRooms.CrumblingPath::new, SkillRooms.EnderPearlHop::new, SkillRooms.TowerClimb::new,
+                SkillRooms.BlockParty::new, SkillRooms.SimonSays::new);
     }
 
 }

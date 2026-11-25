@@ -770,7 +770,14 @@ public final class ScreenshotRun {
     private static final boolean ROOMS = "rooms".equals(System.getProperty("rngambling.shotsWorld"));
 
     private static void planRooms() {
-        var rooms = rngambling.outcome.Rooms.all();
+        var rooms = new java.util.ArrayList<>(rngambling.outcome.Rooms.all());
+        // -PshotsRooms=Dropper,IceRun: only these, each also pictured from above (an overview of its layout).
+        String only = System.getProperty("rngambling.shotsRooms", "");
+        boolean overview = !only.isBlank();
+        if (overview) {
+            java.util.Set<String> names = java.util.Set.of(only.split(","));
+            rooms.removeIf(room -> !names.contains(room.get().getClass().getSimpleName()));
+        }
         rngambling.outcome.Room[] current = new rngambling.outcome.Room[1];
         Vec3[] home = new Vec3[1];
         then(20, minecraft -> {
@@ -790,6 +797,29 @@ public final class ScreenshotRun {
                 check(started && rngambling.outcome.Sandbox.inSandbox(player), current[0].getClass().getSimpleName() + " starts");
             }));
             then(10, minecraft -> shot(minecraft, String.format("5%02d-room-%s", index, current[0].getClass().getSimpleName())));
+            if (overview) {
+                // Looking down the room's length from high above and behind the start (the shaft and tower: straight down).
+                then(5, minecraft -> onServer(minecraft, player -> {
+                    player.getAbilities().mayfly = true;
+                    player.getAbilities().flying = true;
+                    player.onUpdateAbilities();
+                    var start = current[0].startPos();
+                    boolean shaft = current[0] instanceof rngambling.outcome.SkillRooms.Dropper || current[0] instanceof rngambling.outcome.SkillRooms.TowerClimb;
+                    var level = (net.minecraft.server.level.ServerLevel) player.level();
+                    if (shaft) {
+                        double up = current[0] instanceof rngambling.outcome.SkillRooms.TowerClimb ? 52 : 3;
+                        player.teleportTo(level, start.x, start.y + up, start.z, java.util.Set.of(), 180f, 90f, true);
+                    } else {
+                        player.teleportTo(level, start.x, start.y + 12, start.z + 9, java.util.Set.of(), 180f, 38f, true);
+                    }
+                }));
+                then(30, minecraft -> shot(minecraft, String.format("5%02d-room-%s-above", index, current[0].getClass().getSimpleName())));
+                then(5, minecraft -> onServer(minecraft, player -> {
+                    player.getAbilities().flying = false;
+                    player.getAbilities().mayfly = false;
+                    player.onUpdateAbilities();
+                }));
+            }
             then(20, minecraft -> onServer(minecraft, player -> {
                 BlockPos exit = current[0].exitPos();
                 if (exit != null && player.level().getBlockState(exit).is(RNGambling.SANDBOX_EXIT.get())) {
